@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin</title>
+</head>
+<body>
+<div th:if = "${message}">
+    <h1 th:text = "${message}"></h1>
+</div>
+<div th:if = "${message1}">
+  <h1 th:text = "${message1}"></h1>
+</div>
+<div th:if="${user}">
+    <h1 th:text = "${user.firstName}"></h1>
+  <h1 th:text = "${user.lastName}"></h1>
+  <h1 th:text = "${user.email}"></h1>
+  <h1 th:text = "${user.userId}"></h1>
+</div>
+</body>
+</html>

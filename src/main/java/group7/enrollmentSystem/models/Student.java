@@ -25,10 +25,4 @@ public class Student {
     private String email;
     private String phoneNumber;
     private String address;
-    @OneToMany(mappedBy = "student")
-    private Set<StudentProgramme> programmes = new HashSet<>();
-    @OneToMany(mappedBy = "student")
-    private Set<StudentMajor> majors = new HashSet<>();
-    @OneToMany(mappedBy = "student")
-    private Set<CourseEnrollment> courseEnrollments = new HashSet<>();
 }

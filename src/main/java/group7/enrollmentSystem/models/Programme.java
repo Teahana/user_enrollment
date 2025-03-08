@@ -15,6 +15,5 @@ public class Programme {
     private String name;
     private String programmeCode;
     private String faculty;
-    @OneToMany(mappedBy = "programme")
-    private Set<StudentProgramme> students = new HashSet<>();
 }
+

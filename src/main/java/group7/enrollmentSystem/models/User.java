@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 @Data
 @Entity
 @Table(name = "users")
@@ -17,18 +20,20 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
     private String password;
-    private String role;
+    @ElementCollection
+    private Set<String> roles = new HashSet<>();
     private String userId;
-    private String firstName; //first_name
+    private String firstName;
     private String lastName;
     private boolean feesPaid;
 
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> role);
+        return roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
     }
-
     @Override
     public String getPassword() {
         return password;

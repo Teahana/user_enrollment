@@ -2,18 +2,13 @@ package group7.enrollmentSystem.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Data
-@Table(
-        name = "students",
-        indexes = {
-                @Index(name = "idx_student_id", columnList = "studentId", unique = true)
-        }
-)
 public class Student {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

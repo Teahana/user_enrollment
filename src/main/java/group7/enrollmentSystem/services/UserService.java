@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -35,12 +36,7 @@ public class UserService implements UserDetailsService {
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole("ROLE_USER");
-        user.setFeesPaid(true);
+        user.setRoles(Set.of("ROLE_USER"));
         userRepo.save(user);
-    }
-    @Transactional
-    public void updateFees(String email, boolean feesPaid) {
-        userRepo.updateFeesPaid(email, feesPaid);
     }
 }

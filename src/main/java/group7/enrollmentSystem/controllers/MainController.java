@@ -1,22 +1,23 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.dtos.StudentDto;
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequiredArgsConstructor
 public class MainController {
     private final UserRepo userRepo;
+    private final StudentRepo studentRepo;
     @GetMapping("/home")
     public String home() {
         return "home";
@@ -34,16 +35,18 @@ public class MainController {
         return "admin";
     }
     @GetMapping("/register")
-    public String showStudentForm(Model model) {
-        model.addAttribute("studentDto", new StudentDto());
+    public String showStudentForm() {
         return "student-form";
     }
     @PostMapping("/register")
-    public String registerStudent(@ModelAttribute StudentDto studentDto, RedirectAttributes redirectAttributes) {
+    public String registerStudent(@RequestParam("studentId") String studentId,
+            @RequestParam("firstName") String firstName,
+             @RequestParam("lastName") String lastName, RedirectAttributes redirectAttributes) {
         try {
-            System.out.println("Saving student: " + studentDto);
-
-            redirectAttributes.addFlashAttribute("successMessage","Saved student: " + studentDto);
+            System.out.println("Student ID: " + studentId);
+            System.out.println("First Name: " + firstName);
+            System.out.println("Last Name: " + lastName);
+            redirectAttributes.addFlashAttribute("successMessage","Saved student " + firstName + " " + lastName);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }

@@ -25,7 +25,6 @@ public class User implements UserDetails {
     private String userId;
     private String firstName;
     private String lastName;
-    private boolean feesPaid;
 
 
     @Override
@@ -61,6 +60,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return feesPaid;
+        return true;
     }
 }

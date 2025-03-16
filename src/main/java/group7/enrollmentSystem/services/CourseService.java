@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.services;
 
+import group7.enrollmentSystem.dtos.CourseDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.repos.CourseRepo;
 import lombok.RequiredArgsConstructor;
@@ -62,5 +63,8 @@ public class CourseService {
         } else {
             throw new RuntimeException("Course not found with code: " + courseCode);
         }
+    }
+
+    public void addCourse(CourseDto courseDto) {
     }
 }

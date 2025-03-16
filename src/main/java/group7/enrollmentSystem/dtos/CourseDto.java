@@ -1,6 +1,9 @@
 package group7.enrollmentSystem.dtos;
 
+import group7.enrollmentSystem.models.Course;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CourseDto {
@@ -11,4 +14,5 @@ public class CourseDto {
     private Short level;
     private Boolean offeredSem1;
     private Boolean offeredSem2;
+    private List<Course> prerequisites;
 }

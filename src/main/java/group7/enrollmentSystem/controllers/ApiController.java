@@ -11,7 +11,7 @@ import group7.enrollmentSystem.services.CoursePrerequisiteService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
-import group7.enrollmentSystem.services.StudentProgrammeService;
+//import group7.enrollmentSystem.services.StudentProgrammeService;
 import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +32,7 @@ public class ApiController {
     private final ProgrammeService programmeService;
 
     private final CourseProgrammeService courseProgrammeService;
-    private final StudentProgrammeService studentProgrammeService;
+  //  private final StudentProgrammeService studentProgrammeService;
     private final CoursePrerequisiteService coursePrerequisiteService;
 
 

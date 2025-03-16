@@ -1,7 +1,9 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.dtos.CourseDto;
 import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +20,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class MainController {
     private final UserRepo userRepo;
     private final StudentRepo studentRepo;
+    private final CourseRepo courseRepo;
     @GetMapping("/home")
     public String home() {
         return "home";
     }
+
     @GetMapping("/login")
     public String login() {
         return "login";

@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface CourseRepo extends JpaRepository<Course, Long> {
     Optional<Course> findByCourseCode(String courseCode);
     List<Course> findByIdNot(Long id);
+
+    List<Course> findByCourseCodeIn(List<String> courseReqs);
 }

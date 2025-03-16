@@ -57,8 +57,8 @@ public class ApiController {
                 courseDto.getDescription(),
                 courseDto.getCreditPoints(),
                 courseDto.getLevel(),
-                courseDto.getOfferedSem1(),
-                courseDto.getOfferedSem2()
+                courseDto.isOfferedSem1(),
+                courseDto.isOfferedSem2()
         );
 
         return ResponseEntity.ok().body(new HashMap<>() {{
@@ -85,8 +85,8 @@ public class ApiController {
                 courseDto.getDescription(),
                 courseDto.getCreditPoints(),
                 courseDto.getLevel(),
-                courseDto.getOfferedSem1(),
-                courseDto.getOfferedSem2()
+                courseDto.isOfferedSem1(),
+                courseDto.isOfferedSem2()
         );
         return ResponseEntity.ok().body(new HashMap<>() {{
             put("message", "Course updated");

@@ -10,6 +10,7 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
+    @Column(unique = true)
     private String courseCode;
     private String description;
     private Short creditPoints;

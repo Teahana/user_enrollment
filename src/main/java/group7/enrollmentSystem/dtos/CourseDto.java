@@ -12,7 +12,7 @@ public class CourseDto {
     private String description;
     private Short creditPoints;
     private Short level;
-    private Boolean offeredSem1;
-    private Boolean offeredSem2;
-    private List<Course> prerequisites;
+    private boolean offeredSem1;
+    private boolean offeredSem2;
+    private List<String> prerequisites;
 }

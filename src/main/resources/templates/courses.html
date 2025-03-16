@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Courses</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/css/bootstrap-multiselect.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
@@ -13,9 +12,13 @@
 <div class="container mt-4">
     <h2 class="mb-3">Courses</h2>
 
-    <!-- Success/Error Messages -->
-    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
-    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+    <!-- Flash Messages -->
+    <div th:if="${message}" class="alert alert-success" role="alert">
+        <span th:text="${message}"></span>
+    </div>
+    <div th:if="${error}" class="alert alert-danger" role="alert">
+        <span th:text="${error}"></span>
+    </div>
 
     <!-- Add Course Button -->
     <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addCourseModal">
@@ -33,6 +36,7 @@
             <th>Level</th>
             <th>Semester 1</th>
             <th>Semester 2</th>
+            <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -50,6 +54,15 @@
                 <span class="badge bg-success" th:if="${course.offeredSem2}">Yes</span>
                 <span class="badge bg-danger" th:unless="${course.offeredSem2}">No</span>
             </td>
+            <td>
+                <button class="btn btn-sm btn-secondary addPrereqBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addPrerequisiteModal"
+                        th:data-course-id="${course.id}"
+                        th:data-course-code="${course.courseCode}">
+                    Add Prerequisites
+                </button>
+            </td>
         </tr>
         </tbody>
     </table>
@@ -64,7 +77,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addCourseForm" method="post" action="/admin/addCourse">
+                <form th:action="@{/admin/addCourse}" method="post">
                     <div class="mb-3">
                         <label class="form-label">Course Code</label>
                         <input type="text" class="form-control" name="courseCode" required>
@@ -93,10 +106,6 @@
                         <label class="form-label">Offered in Semester 2</label>
                         <input type="checkbox" class="form-check-input" name="offeredSem2">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Prerequisites</label>
-                        <select class="form-select" name="prerequisites" id="prerequisitesDropdown" multiple></select>
-                    </div>
                     <button type="submit" class="btn btn-success">Add Course</button>
                 </form>
             </div>
@@ -104,61 +113,58 @@
     </div>
 </div>
 
+<!-- Add Prerequisites Modal -->
+<div class="modal fade" id="addPrerequisiteModal" tabindex="-1" aria-labelledby="addPrerequisiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Prerequisites for <span id="selectedCourseName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPrerequisiteForm" th:action="@{/admin/addPrerequisite}" method="post">
+                    <input type="hidden" name="courseId" id="selectedCourseId">
+                    <div class="mb-3">
+                        <label class="form-label">Select Prerequisites</label>
+                        <select class="form-select" name="prerequisites" id="prerequisitesDropdown" multiple required>
+                            <!-- Options will be loaded dynamically -->
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success">Add Prerequisites</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    $(document).ready(function () {
-        $('#addCourseModal').on('show.bs.modal', function () {
-            let courseId = 0; // Change if needed
-            $.get(`/api/admin/getCourses/${courseId}`, function (data) {
-                let dropdown = $('#prerequisitesDropdown');
-                dropdown.empty();
-                data.courseCodes.forEach(function (code) {
-                    dropdown.append(new Option(code, code));
-                });
-                dropdown.multiselect('rebuild'); // Rebuild for Bootstrap Multiselect
-            });
-        });
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".addPrereqBtn").forEach(button => {
+            button.addEventListener("click", function () {
+                let courseId = this.getAttribute("data-course-id");
+                let courseCode = this.getAttribute("data-course-code");
 
-        $('#addCourseForm').submit(function (event) {
-            event.preventDefault();
-            let formData = $(this).serializeArray();
-            let jsonData = {};
-            $.each(formData, function (_, field) {
-                if (field.name === "offeredSem1" || field.name === "offeredSem2") {
-                    jsonData[field.name] = $(`[name="${field.name}"]`).prop("checked");
-                } else if (field.name === "prerequisites") {
-                    jsonData[field.name] = $('[name="prerequisites"]').val() || [];
-                } else {
-                    jsonData[field.name] = field.value;
-                }
-            });
+                document.getElementById("selectedCourseId").value = courseId;
+                document.getElementById("selectedCourseName").innerText = courseCode;
 
-            $.ajax({
-                type: "POST",
-                url: "/admin/addCourse",
-                contentType: "application/json",
-                data: JSON.stringify(jsonData),
-                success: function () {
-                    alert("Course added successfully!");
-                    location.reload();
-                },
-                error: function () {
-                    alert("Error adding course.");
-                }
+                fetch(`/api/admin/getCourses/${courseId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        let dropdown = document.getElementById("prerequisitesDropdown");
+                        dropdown.innerHTML = "";
+                        data.courseCodes.forEach(code => {
+                            let option = document.createElement("option");
+                            option.value = code;
+                            option.textContent = code;
+                            dropdown.appendChild(option);
+                        });
+                    });
             });
         });
     });
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $('#prerequisitesDropdown').multiselect({
-            enableFiltering: true,
-            includeSelectAllOption: true
-        });
-    });
-</script>
 
 </body>
 </html>

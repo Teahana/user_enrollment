@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())  // Disable CSRF
                 .cors(cors -> cors.disable())  // Disable CORS
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin/**").hasRole("ADMIN")// Restrict /admin/** to ADMIN role
+                     //   .requestMatchers("/admin/**").hasRole("ADMIN")// Restrict /admin/** to ADMIN role
                         .anyRequest().permitAll()  // Allow all other endpoints
                 )
                 .formLogin(login -> login

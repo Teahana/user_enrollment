@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.services;
 
+import group7.enrollmentSystem.dtos.ProgrammeDto;
 import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,18 @@ public class ProgrammeService {
 
     private final ProgrammeRepo programmeRepo;
 
-    // Create a new programme
+
+    // Add a new programme
+    public void addProgramme(ProgrammeDto programmeDto) {
+        Programme programme = new Programme();
+        programme.setProgrammeCode(programmeDto.getProgrammeCode());
+        programme.setName(programmeDto.getName());
+        programme.setFaculty(programmeDto.getFaculty());
+        programmeRepo.save(programme);
+    }
+    
+    
+    //------------------------For testing on PostMan--------------------------------------------//
     public void saveProgramme(String name, String programmeCode, String faculty) {
         Programme programme = new Programme();
         programme.setName(name);
@@ -22,6 +34,7 @@ public class ProgrammeService {
         programme.setFaculty(faculty);
         programmeRepo.save(programme);
     }
+    //--------------------------------------------------------------
 
     // Get all programmes records
     public List<Programme> getAllProgrammes() {
@@ -55,4 +68,5 @@ public class ProgrammeService {
             throw new RuntimeException("Programme not found with code: " + programmeCode);
         }
     }
+
 }

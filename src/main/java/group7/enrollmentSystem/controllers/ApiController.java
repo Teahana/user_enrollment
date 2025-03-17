@@ -32,7 +32,7 @@ public class ApiController {
     private final ProgrammeService programmeService;
 
     private final CourseProgrammeService courseProgrammeService;
-  //  private final StudentProgrammeService studentProgrammeService;
+    private final StudentProgrammeService studentProgrammeService;
     private final CoursePrerequisiteService coursePrerequisiteService;
 
 
@@ -46,7 +46,7 @@ public class ApiController {
         return ResponseEntity.ok(response);
     }
 
-    //--------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------
     //**Programme CRUD**//
 
     @PostMapping("/addCourse")
@@ -105,14 +105,15 @@ public class ApiController {
     //**Programme CRUD**//
 
     @PostMapping("/addProgramme")
-    public ResponseEntity<?> progRegister(@RequestBody HashMap<String, String> data) {
-        String name = data.get("name");
-        String programmeCode = data.get("programmeCode");
-        String faculty = data.get("faculty");
-        programmeService.saveProgramme(name, programmeCode,faculty);
-        HashMap<String, String> response = new HashMap<>();
-        response.put("message", "Programme added");
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> progRegister(@RequestBody ProgrammeDto programmeDto) {
+        programmeService.saveProgramme(
+                programmeDto.getProgrammeCode(),
+                programmeDto.getName(),
+                programmeDto.getFaculty()
+        );
+        return ResponseEntity.ok().body(new HashMap<>() {{
+            put("message", "Programme Added");
+        }});
     }
 
     @GetMapping("/programmes")
@@ -226,5 +227,4 @@ public class ApiController {
             put("message", "CoursePrerequisite deleted");
         }});
     }
-
 }

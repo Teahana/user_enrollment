@@ -3,7 +3,9 @@ package group7.enrollmentSystem.services;
 import group7.enrollmentSystem.dtos.CourseDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
+import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.repos.CoursePrerequisiteRepo;
+import group7.enrollmentSystem.repos.CourseProgrammeRepo;
 import group7.enrollmentSystem.repos.CourseRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,8 +21,38 @@ public class CourseService {
 
     private final CourseRepo courseRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
+    private final CourseProgrammeRepo courseProgrammeRepo;
+
+    public List<CourseDto> getAllCoursesWithProgrammesAndPrereqs() {
+        List<Course> allCourses = courseRepo.findAll();
+
+        return allCourses.stream().map(course -> {
+            CourseDto dto = new CourseDto();
+            dto.setCourseCode(course.getCourseCode());
+            dto.setTitle(course.getTitle());
+            dto.setDescription(course.getDescription());
+            dto.setCreditPoints(course.getCreditPoints());
+            dto.setLevel(course.getLevel());
+            dto.setOfferedSem1(course.isOfferedSem1());
+            dto.setOfferedSem2(course.isOfferedSem2());
+
+            // Fetch programme codes using CourseProgrammeRepo
+            List<String> programmeCodes = courseProgrammeRepo.findProgrammesByCourseId(course.getId()).stream()
+                    .map(Programme::getProgrammeCode) // or .getName() if needed
+                    .collect(Collectors.toList());
+            dto.setProgrammes(programmeCodes);
+
+            // Fetch prerequisite course codes using CoursePrerequisiteRepo
+            List<String> prereqCodes = coursePrerequisiteRepo.findPrerequisitesByCourseId(course.getId()).stream()
+                    .map(Course::getCourseCode)
+                    .collect(Collectors.toList());
+            dto.setPrerequisites(prereqCodes);
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
     // Create a new course
-    public void saveCourse(String courseCode, String title, String description, Short creditPoints, Short level, Boolean offeredSem1, Boolean offeredSem2) {
+    public void saveCourse(String courseCode, String title, String description, double creditPoints, Short level, Boolean offeredSem1, Boolean offeredSem2) {
         Course course = new Course();
         course.setCourseCode(courseCode);
         course.setTitle(title);
@@ -42,7 +75,7 @@ public class CourseService {
     }
 
     // Update a course
-    public void updateCourse(String courseCode, String title, String description, Short creditPoints, Short level, Boolean offeredSem1, Boolean offeredSem2) {
+    public void updateCourse(String courseCode, String title, String description, double creditPoints, Short level, Boolean offeredSem1, Boolean offeredSem2) {
         Optional<Course> optionalCourse = courseRepo.findByCourseCode(courseCode);
         if (optionalCourse.isPresent()) {
             Course course = optionalCourse.get();

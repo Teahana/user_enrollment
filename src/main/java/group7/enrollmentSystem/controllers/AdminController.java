@@ -30,8 +30,8 @@ public class AdminController {
 
     @GetMapping("/courses")
     public String getCourses(Model model) {
-        model.addAttribute("courses",courseRepo.findAll());
-        model.addAttribute("courseDto",new CourseDto());
+        List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
+        model.addAttribute("courses", courseDtos);
         return "courses";
     }
     @PostMapping("/addCourse")

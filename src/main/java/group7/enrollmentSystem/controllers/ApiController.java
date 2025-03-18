@@ -32,7 +32,7 @@ public class ApiController {
     private final ProgrammeService programmeService;
 
     private final CourseProgrammeService courseProgrammeService;
-    private final StudentProgrammeService studentProgrammeService;
+    //private final StudentProgrammeService studentProgrammeService;
     private final CoursePrerequisiteService coursePrerequisiteService;
 
 

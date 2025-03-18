@@ -14,7 +14,8 @@ import java.util.Optional;
 @Repository
 public interface CourseProgrammeRepo extends JpaRepository<CourseProgramme, Long> {
     List<CourseProgramme> findByProgrammeId(Long programme_id);
-
+    @Query("SELECT cp.programme FROM CourseProgramme cp WHERE cp.course.id = :courseId")
+    List<Programme> findProgrammesByCourseId(@Param("courseId") Long courseId);
     // Fetch all courses linked to a specific programme
     @Query("SELECT cp.course FROM CourseProgramme cp WHERE cp.programme.programmeCode = :programmeCode")
     List<Course> findCoursesByProgrammeCode(@Param("programmeCode") String programmeCode);

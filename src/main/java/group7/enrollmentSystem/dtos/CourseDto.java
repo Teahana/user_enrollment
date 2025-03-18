@@ -10,9 +10,10 @@ public class CourseDto {
     private String courseCode;
     private String title;
     private String description;
-    private Short creditPoints;
+    private double creditPoints;
     private Short level;
     private boolean offeredSem1;
     private boolean offeredSem2;
     private List<String> prerequisites;
+    private List<String> programmes;
 }

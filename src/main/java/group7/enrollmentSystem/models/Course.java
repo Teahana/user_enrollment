@@ -17,13 +17,13 @@ public class Course {
     @Column(unique = true)
     private String courseCode;
     private String description;
-    private Short creditPoints;
+    private double creditPoints;
     private Short level;
     private double cost;
     private boolean offeredSem1;
     private boolean offeredSem2;
 
-    public Course(String courseCode, String title, String description, short creditPoints, short level, boolean offeredSem1, boolean offeredSem2) {
+    public Course(String courseCode, String title, String description, double creditPoints, short level,double cost, boolean offeredSem1, boolean offeredSem2) {
         this.courseCode = courseCode;
         this.title = title;
         this.description = description;
@@ -31,5 +31,6 @@ public class Course {
         this.level = level;
         this.offeredSem1 = offeredSem1;
         this.offeredSem2 = offeredSem2;
+        this.cost = cost;
     }
 }

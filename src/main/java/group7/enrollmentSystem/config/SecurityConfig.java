@@ -21,37 +21,50 @@ public class SecurityConfig {
                 .authenticationProvider(customAtuhenticationProvider)
                 .build();
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())  // Disable CSRF
-                .cors(cors -> cors.disable())  // Disable CORS
-                .authorizeHttpRequests(auth -> auth
-                        //.requestMatchers("/admin/**").hasRole("ADMIN")// Restrict /admin/** to ADMIN role
-                        .anyRequest().permitAll()  // Allow all other endpoints
-                )
+            .csrf(csrf -> csrf.disable())  // Disable CSRF
+            .cors(cors -> cors.disable())  // Disable CORS
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/**").permitAll()
+                    .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
+                    .requestMatchers("/courseEnroll/**").hasRole("STUDENT")
+                    .requestMatchers("/home","/register","/login", "/").permitAll()  // Allow access to home and login pages
+                    .anyRequest().authenticated()  // Require authentication for all other endpoints
+            )
                 .formLogin(login -> login
-                        .loginPage("/login")   // Custom login page
-                        .defaultSuccessUrl("/home", true)  // Redirect to /home after successful login
-                        .failureHandler((request, response, exception) -> {
-                            if(exception.getMessage().equalsIgnoreCase("Unpaid fees")){
-                                response.sendRedirect("/login?disabled");
+                        .loginPage("/login")
+                        .successHandler((request, response, authentication) -> {
+                            // Custom role-based redirect logic here
+                            String redirectUrl = "/home"; // default
+
+                            boolean isAdmin = authentication.getAuthorities().stream()
+                                    .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+
+                            if (isAdmin) {
+                                redirectUrl = "/admin";
                             }
-                            else{
-                               response.sendRedirect("/login?error");
+
+                            response.sendRedirect(redirectUrl);
+                        })
+                        .failureHandler((request, response, exception) -> {
+                            if ("Unpaid fees".equalsIgnoreCase(exception.getMessage())) {
+                                response.sendRedirect("/login?disabled");
+                            } else {
+                                response.sendRedirect("/login?error");
                             }
 
                         })  // Redirect to /login?error after failed login
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout")
-                        .permitAll()
-                );
+                    .permitAll()
+            )
+            .logout(logout -> logout
+                    .logoutUrl("/logout")
+                    .logoutSuccessUrl("/login?logout")
+                    .permitAll()
+            );
 
         return http.build();
     }
 }
-
-

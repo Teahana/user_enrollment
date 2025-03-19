@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;

@@ -25,4 +25,6 @@ public interface CourseProgrammeRepo extends JpaRepository<CourseProgramme, Long
 
     // Find a CourseProgramme record by course and programme
     Optional<CourseProgramme> findByCourseAndProgramme(Course course, Programme programme);
+
+    List<CourseProgramme> findByProgramme(Programme programme);
 }

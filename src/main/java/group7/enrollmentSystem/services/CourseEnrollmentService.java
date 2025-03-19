@@ -46,12 +46,14 @@ public class CourseEnrollmentService {
 
     // Fetch enrolled courses only for active enrollments
     public List<CourseEnrollment> getActiveEnrollments(Long studentId) {
-        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingTrue(studentId);
+        Student student = studentRepo.findById(studentId).orElseThrow();
+        return courseEnrollmentRepo.findByStudentAndCurrentlyTakingTrue(student);
     }
 
     // Fetch inactive (canceled) enrollments
     public List<CourseEnrollment> getCanceledEnrollments(Long studentId) {
-        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalse(studentId);
+        Student student = studentRepo.findById(studentId).orElseThrow();
+        return courseEnrollmentRepo.findByStudentAndCurrentlyTakingFalse(student);
     }
 
     // Get available Courses Based on Semester
@@ -89,16 +91,29 @@ public class CourseEnrollmentService {
     }
 
     // Get available courses excluding courses already actively enrolled
-    public List<CourseProgramme> getAvailableCoursesForEnrollment(Long studentId) {
-        List<Long> activeCourseIds = courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingTrue(studentId)
-                .stream().map(enrollment -> enrollment.getCourse().getId()).toList();
+    public List<Course> getAvailableCoursesForEnrollment(Long studentId) {
+        Student student = studentRepo.findById(studentId).orElseThrow();
+        // Find the student's current programme
+        StudentProgramme studentProgramme = studentProgrammeRepo
+                .findByStudentAndCurrentProgrammeTrue(student)
+                .orElseThrow(() -> new RuntimeException("Student's current programme not found"));
+        //Get all courses linked to this programme
+        List<CourseProgramme> programmeCourses = courseProgrammeRepo
+                .findByProgramme(studentProgramme.getProgramme());
 
-        StudentProgramme studentProgramme = studentProgrammeRepo.findByStudentIdAndCurrentProgrammeTrue(studentId)
-                .orElseThrow(() -> new RuntimeException("No active programme found"));
-
-        return courseProgrammeRepo.findByProgrammeId(studentProgramme.getProgramme().getId()).stream()
-                .filter(cp -> !activeCourseIds.contains(cp.getCourse().getId()))
-                .toList();
+        //Extract the list of courses
+        List<Course> coursesInProgramme = programmeCourses.stream()
+                .map(CourseProgramme::getCourse)
+                .collect(Collectors.toList());
+        //Get the courses the student is already enrolled in
+        List<CourseEnrollment> enrolledCourses = courseEnrollmentRepo.findByStudent(student);
+        List<Course> currentlyEnrolledCourses = enrolledCourses.stream()
+                .map(CourseEnrollment::getCourse)
+                .collect(Collectors.toList());
+        //Filter out courses the student is already enrolled in
+        return coursesInProgramme.stream()
+                .filter(course -> !currentlyEnrolledCourses.contains(course))
+                .collect(Collectors.toList());
     }
 
     public List<CourseEnrollment> getActiveEnrollmentsBySemester(Long studentId, int semester) {

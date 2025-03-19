@@ -2,12 +2,15 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.CourseDto;
 import group7.enrollmentSystem.dtos.ProgrammeDto;
+import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
+import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +29,17 @@ public class AdminController {
     private final CourseProgrammeService courseProgrammeService;
     private final ProgrammeRepo programmeRepo;
     private final ProgrammeService programmeService;
+    private final UserRepo userRepo;
 
+    @GetMapping
+    public String getAdminPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+
+        User user = userRepo.findByEmail(email).orElse(null);
+        model.addAttribute("user", user);
+
+        return "admin";
+    }
 
     @GetMapping("/courses")
     public String getCourses(Model model) {
@@ -46,6 +59,7 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
+
     @PostMapping("/addPrerequisite")
     public String addPrerequisite(@RequestParam Long courseId,
                                   @RequestParam List<String> prerequisites,

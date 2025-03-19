@@ -1,12 +1,11 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.dtos.CourseDto;
-import group7.enrollmentSystem.dtos.ProgrammeDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseDto;
+import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
 import group7.enrollmentSystem.models.CourseProgramme;
 import group7.enrollmentSystem.models.Programme;
-import group7.enrollmentSystem.models.StudentProgramme;
 import group7.enrollmentSystem.services.CoursePrerequisiteService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;

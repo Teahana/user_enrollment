@@ -1,4 +1,4 @@
-package group7.enrollmentSystem.dtos;
+package group7.enrollmentSystem.dtos.classDtos;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

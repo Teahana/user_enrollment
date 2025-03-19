@@ -1,19 +1,23 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.dtos.CourseDto;
-import group7.enrollmentSystem.dtos.ProgrammeDto;
+import group7.enrollmentSystem.dtos.classDtos.AddCourseReq;
+import group7.enrollmentSystem.dtos.classDtos.CourseDto;
+import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -46,18 +50,20 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
-    @PostMapping("/addPrerequisite")
-    public String addPrerequisite(@RequestParam Long courseId,
-                                  @RequestParam List<String> prerequisites,
-                                  RedirectAttributes redirectAttributes) {
+    @PostMapping("/addPreReqs")
+    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
         try {
-            courseService.addPrerequisites(courseId, prerequisites);
+            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
             redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
+        } catch (DataIntegrityViolationException e) {
+            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
         }
         return "redirect:/admin/courses";
     }
+
+
 
     // Display all programmes
     @GetMapping("/programmes")
@@ -95,3 +101,15 @@ public class AdminController {
         return "redirect:/admin/programmes";
     }
 }
+//    @PostMapping("/addPrerequisite")
+//    public String addPrerequisite(@RequestParam Long courseId,
+//                                  @RequestParam List<String> prerequisites,
+//                                  RedirectAttributes redirectAttributes) {
+//        try {
+//            courseService.addPrerequisites(courseId, prerequisites);
+//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
+//        } catch (Exception e) {
+//            redirectAttributes.addFlashAttribute("error", e.getMessage());
+//        }
+//        return "redirect:/admin/courses";
+//    }

@@ -1,12 +1,12 @@
-package group7.enrollmentSystem.dtos;
+package group7.enrollmentSystem.dtos.classDtos;
 
-import group7.enrollmentSystem.models.Course;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
 public class CourseDto {
+    private Long id;
     private String courseCode;
     private String title;
     private String description;

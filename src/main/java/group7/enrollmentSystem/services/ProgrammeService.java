@@ -1,6 +1,6 @@
 package group7.enrollmentSystem.services;
 
-import group7.enrollmentSystem.dtos.ProgrammeDto;
+import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
 import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import lombok.RequiredArgsConstructor;

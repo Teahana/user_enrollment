@@ -1,6 +1,6 @@
 package group7.enrollmentSystem.services;
 
-import group7.enrollmentSystem.dtos.CourseDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
 import group7.enrollmentSystem.models.Programme;
@@ -28,6 +28,7 @@ public class CourseService {
 
         return allCourses.stream().map(course -> {
             CourseDto dto = new CourseDto();
+            dto.setId(course.getId());
             dto.setCourseCode(course.getCourseCode());
             dto.setTitle(course.getTitle());
             dto.setDescription(course.getDescription());
@@ -130,21 +131,35 @@ public class CourseService {
             coursePrerequisiteRepo.save(coursePrerequisite);
         }
     }
-    public void addPrerequisites(Long courseId, List<String> prerequisiteCodes) {
+
+    public void addPrerequisites(Long courseId, List<Long> prereqIds) {
         Course course = courseRepo.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        List<Course> prerequisiteCourses = courseRepo.findByCourseCodeIn(prerequisiteCodes);
-        List<CoursePrerequisite> coursePrerequisites = new ArrayList<>();
+        List<Course> prerequisites = courseRepo.findAllById(prereqIds);
 
-        for (Course prereq : prerequisiteCourses) {
-            CoursePrerequisite cp = new CoursePrerequisite();
-            cp.setCourse(course);
-            cp.setPrerequisite(prereq);
-            coursePrerequisites.add(cp);
-        }
+        List<CoursePrerequisite> newPrereqs = prerequisites.stream()
+                .map(prereq -> new CoursePrerequisite(null, course, prereq))
+                .collect(Collectors.toList());
 
-        coursePrerequisiteRepo.saveAll(coursePrerequisites);
+        coursePrerequisiteRepo.saveAll(newPrereqs);
     }
 
+
 }
+//    public void addPrerequisites(Long courseId, List<String> prerequisiteCodes) {
+//        Course course = courseRepo.findById(courseId)
+//                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+//
+//        List<Course> prerequisiteCourses = courseRepo.findByCourseCodeIn(prerequisiteCodes);
+//        List<CoursePrerequisite> coursePrerequisites = new ArrayList<>();
+//
+//        for (Course prereq : prerequisiteCourses) {
+//            CoursePrerequisite cp = new CoursePrerequisite();
+//            cp.setCourse(course);
+//            cp.setPrerequisite(prereq);
+//            coursePrerequisites.add(cp);
+//        }
+//
+//        coursePrerequisiteRepo.saveAll(coursePrerequisites);
+//    }

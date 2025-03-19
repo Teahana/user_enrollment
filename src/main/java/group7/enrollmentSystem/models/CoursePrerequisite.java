@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "course_prerequisite",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"course_id", "prerequisite_id"})})
 public class CoursePrerequisite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

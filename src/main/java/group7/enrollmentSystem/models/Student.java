@@ -1,4 +1,4 @@
-package group7.enrollmentSystem.models.enrollment;
+package group7.enrollmentSystem.models;
 
 import jakarta.persistence.*;
 import lombok.Data;

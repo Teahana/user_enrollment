@@ -5,6 +5,7 @@ import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Set;
 @Data
 @Entity
 @Table(name = "users")
+@Inheritance(strategy = InheritanceType.JOINED)
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,19 +22,22 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
     private String password;
-    @ElementCollection
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
     private Set<String> roles = new HashSet<>();
-    private String userId;
     private String firstName;
     private String lastName;
-
+    private String userId;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
-                .map(SimpleGrantedAuthority::new)
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .toList();
     }
+
     @Override
     public String getPassword() {
         return password;

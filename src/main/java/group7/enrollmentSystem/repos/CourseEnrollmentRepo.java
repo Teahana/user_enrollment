@@ -11,12 +11,17 @@ import java.util.List;
 
 @Repository
 public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Long> {
-    List<CourseEnrollment> findByStudentAndCurrentlyTakingTrue(Student student);
-    List<CourseEnrollment> findByStudentAndCurrentlyTakingFalse(Student student);
+//    List<CourseEnrollment> findByStudentAndCurrentlyTakingTrue(Student student);
+//    List<CourseEnrollment> findByStudentAndCurrentlyTakingFalse(Student student);
+    List<CourseEnrollment> findByStudentIdAndCurrentlyTakingTrue(Long studentId);
+    List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalse(Long studentId);
     List<CourseEnrollment> findByStudent(Student student);
-    
+
     @Query("SELECT ce FROM CourseEnrollment ce WHERE ce.student.id = :studentId")
     List<CourseEnrollment> exampleForGettingByLongId(@Param("studentId") Long id);
+
+
+
 }
 
 

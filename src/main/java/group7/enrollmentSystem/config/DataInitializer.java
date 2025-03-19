@@ -1,20 +1,14 @@
 package group7.enrollmentSystem.config;
 
-import group7.enrollmentSystem.models.Course;
-import group7.enrollmentSystem.models.CourseProgramme;
-import group7.enrollmentSystem.models.Programme;
-import group7.enrollmentSystem.models.Student;
-import group7.enrollmentSystem.repos.CourseProgrammeRepo;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.ProgrammeRepo;
-import group7.enrollmentSystem.repos.StudentRepo;
+import group7.enrollmentSystem.models.*;
+import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.StudentProgrammeService;
 import group7.enrollmentSystem.services.UserService;
-import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
     private final StudentRepo studentRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final UserRepo userRepo;
+    private final CourseEnrollmentRepo courseEnrollmentRepo;
 
     @Override
     public void run(String... args) {
@@ -38,6 +33,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeProgrammes();
         initializeCourseProgrammes();
         linkStudentsToProgrammes();
+        initializeCourseEnrollments();
 
     }
 
@@ -795,4 +791,49 @@ public class DataInitializer implements CommandLineRunner {
 
         System.out.println("Clearly linked students to programmes successfully.");
     }
+    private void initializeCourseEnrollments() {
+        String studentId = "s11212749"; // Student ID
+        Student student = studentRepo.findByStudentId(studentId)
+                .orElseThrow(() -> new RuntimeException("Student with ID " + studentId + " not found"));
+
+        if (courseEnrollmentRepo.count() > 0) {
+            System.out.println("Course enrollments already initialized. Skipping.");
+            return;
+        }
+
+        List<Course> courses = courseRepo.findAll();
+        if (courses.size() < 8) {
+            throw new RuntimeException("Not enough courses in the system!");
+        }
+
+        List<CourseEnrollment> enrollments = new ArrayList<>();
+
+        // Create 4 currently taking enrollments
+        for (int i = 0; i < 4; i++) {
+            CourseEnrollment enrollment = new CourseEnrollment();
+            enrollment.setStudent(student);
+            enrollment.setCourse(courses.get(i));
+            enrollment.setCompleted(false);
+            enrollment.setDateEnrolled(LocalDate.now().minusMonths(6));
+            enrollment.setCurrentlyTaking(true);
+            enrollment.setSemesterEnrolled(1);
+            enrollments.add(enrollment);
+        }
+
+        // Create 4 completed enrollments
+        for (int i = 4; i < 8; i++) {
+            CourseEnrollment enrollment = new CourseEnrollment();
+            enrollment.setStudent(student);
+            enrollment.setCourse(courses.get(i));
+            enrollment.setCompleted(true);
+            enrollment.setDateEnrolled(LocalDate.now().minusYears(1));
+            enrollment.setCurrentlyTaking(false);
+            enrollment.setSemesterEnrolled(1);
+            enrollments.add(enrollment);
+        }
+
+        courseEnrollmentRepo.saveAll(enrollments);
+        System.out.println("Initialized 4 currently taking and 4 completed course enrollments for student " + studentId);
+    }
+
 }

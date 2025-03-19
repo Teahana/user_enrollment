@@ -46,14 +46,12 @@ public class CourseEnrollmentService {
 
     // Fetch enrolled courses only for active enrollments
     public List<CourseEnrollment> getActiveEnrollments(Long studentId) {
-        Student student = studentRepo.findById(studentId).orElseThrow();
-        return courseEnrollmentRepo.findByStudentAndCurrentlyTakingTrue(student);
+        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingTrue(studentId);
     }
 
     // Fetch inactive (canceled) enrollments
     public List<CourseEnrollment> getCanceledEnrollments(Long studentId) {
-        Student student = studentRepo.findById(studentId).orElseThrow();
-        return courseEnrollmentRepo.findByStudentAndCurrentlyTakingFalse(student);
+        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalse(studentId);
     }
 
     // Get available Courses Based on Semester

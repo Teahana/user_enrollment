@@ -1,9 +1,10 @@
 package group7.enrollmentSystem.services;
 
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,6 +21,7 @@ public class UserService implements UserDetailsService {
 
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final StudentRepo studentRepo;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -32,11 +34,47 @@ public class UserService implements UserDetailsService {
             return user.get();
         }
     }
+
+    @Transactional
+    public void registerUser(String email, String password, String firstName, String lastName, String role, Student student) {
+        // validate email not yet registered
+        if (userRepo.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+
+        if ("ROLE_STUDENT".equalsIgnoreCase(role) && student != null) {
+            if (student.getStudentId() == null || student.getStudentId().isEmpty()) {
+                throw new IllegalArgumentException("Student ID is required");
+            }
+            student.setEmail(email);
+            student.setPassword(passwordEncoder.encode(password));
+            student.setRoles(Set.of("STUDENT"));
+            student.setFirstName(firstName);
+            student.setLastName(lastName);
+
+            studentRepo.save(student);
+            System.out.println("Student user saved");
+        } else if ("ROLE_ADMIN".equalsIgnoreCase(role)) {
+            User user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setRoles(Set.of("ADMIN"));
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+
+            userRepo.save(user);
+            System.out.println("Admin user saved ");
+        } else {
+            throw new IllegalArgumentException("Unsupported role");
+        }
+    }
+
     public void save(String email, String password) {
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRoles(Set.of("ROLE_USER"));
+        user.setRoles(Set.of("USER"));
         userRepo.save(user);
+
     }
 }

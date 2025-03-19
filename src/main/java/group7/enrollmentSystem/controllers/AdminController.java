@@ -5,6 +5,7 @@ import group7.enrollmentSystem.dtos.classDtos.CourseDto;
 import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
+import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
@@ -30,7 +31,17 @@ public class AdminController {
     private final CourseProgrammeService courseProgrammeService;
     private final ProgrammeRepo programmeRepo;
     private final ProgrammeService programmeService;
+    private final UserRepo userRepo;
 
+    @GetMapping
+    public String getAdminPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+
+        User user = userRepo.findByEmail(email).orElse(null);
+        model.addAttribute("user", user);
+
+        return "admin";
+    }
 
     @GetMapping("/courses")
     public String getCourses(Model model) {
@@ -101,15 +112,3 @@ public class AdminController {
         return "redirect:/admin/programmes";
     }
 }
-//    @PostMapping("/addPrerequisite")
-//    public String addPrerequisite(@RequestParam Long courseId,
-//                                  @RequestParam List<String> prerequisites,
-//                                  RedirectAttributes redirectAttributes) {
-//        try {
-//            courseService.addPrerequisites(courseId, prerequisites);
-//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
-//        } catch (Exception e) {
-//            redirectAttributes.addFlashAttribute("error", e.getMessage());
-//        }
-//        return "redirect:/admin/courses";
-//    }

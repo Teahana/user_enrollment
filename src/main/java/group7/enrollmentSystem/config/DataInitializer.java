@@ -3,9 +3,14 @@ package group7.enrollmentSystem.config;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CourseProgramme;
 import group7.enrollmentSystem.models.Programme;
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
+import group7.enrollmentSystem.repos.StudentRepo;
+import group7.enrollmentSystem.services.StudentProgrammeService;
+import group7.enrollmentSystem.services.UserService;
+import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -19,13 +24,71 @@ public class DataInitializer implements CommandLineRunner {
 
     private final CourseRepo courseRepo;
     private final ProgrammeRepo programmeRepo;
+    private final UserService userService;
+    private final StudentProgrammeService studentProgrammeService;
+    private final StudentRepo studentRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
+    private final UserRepo userRepo;
 
     @Override
     public void run(String... args) {
-        initializeProgrammes();
+        initializeAdminUser();
+        initializeStudents();
         initializeCourses();
+        initializeProgrammes();
         initializeCourseProgrammes();
+        linkStudentsToProgrammes();
+
+    }
+
+    private void initializeAdminUser() {
+
+        String adminEmail = "admin@gmail.com";
+        String adminFirstName = "Adrian";
+        String adminLastName = "Alamu";
+        String password = "12345";
+
+        if (userRepo.findByEmail(adminEmail).isPresent()) {
+            System.out.println("Admin user (" + adminEmail + ") is already registered. Skipping admin initialization.");
+            return;
+        }
+
+        userService.registerUser(adminEmail, password, adminFirstName, adminLastName, "ROLE_ADMIN", null);
+        System.out.println("Admin user initialized successfully.");
+    }
+
+
+    private void initializeStudents() {
+        if(studentRepo.count() > 0){
+            System.out.println("Students already initialized. Skipping initialization.");
+            return;
+        }
+
+        List<Student> students = List.of(
+                createStudent("s11212749", "Tino", "Potoi", "12 Bakshi Street, Suva", "1234567"),
+                createStudent("s11212750", "Jane", "Qio", "57 Ratu Mara Rd, Nabua", "2345678"),
+                createStudent("s11212751", "Pita", "Kumar", "Lot 5 Brown Street, Lautoka", "3456789"),
+                createStudent("s11212752", "Mary", "Singh", "Lot 3 Princes Rd, Tamavua", "4567890"),
+                createStudent("s11212753", "Tomasi", "Prasad", "10 Victoria Parade, Suva", "5678901")
+        );
+
+        students.forEach(student -> {
+            String email = student.getStudentId() + "@student.usp.ac.fj";
+            String password = "12345"; // default sample password for initialization
+
+            userService.registerUser(email, password, student.getFirstName(), student.getLastName(),"ROLE_STUDENT", student);
+            System.out.println("Registered student user: " + email);
+        });
+    }
+
+    private Student createStudent(String studentId, String firstName, String lastName, String address, String phoneNumber) {
+        Student student = new Student();
+        student.setStudentId(studentId);
+        student.setFirstName(firstName);
+        student.setLastName(lastName);
+        student.setAddress(address);
+        student.setPhoneNumber(phoneNumber);
+        return student;
     }
 
     private void initializeProgrammes() {
@@ -683,5 +746,53 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             System.out.println("Course-Programme links already exist. Skipping.");
         }
+    }
+
+    private void linkStudentsToProgrammes() {
+        if(!studentProgrammeService.getAllStudentProgrammes().isEmpty()){
+            System.out.println("Student-Programme links already initialized. Skipping initialization.");
+            return;
+        }
+
+        // Retrieve all initialized students and programmes
+        List<Student> students = studentRepo.findAll();
+        List<Programme> programmes = programmeRepo.findAll();
+
+        if (students.isEmpty() || programmes.isEmpty()) {
+            throw new RuntimeException("Must initialize students and programmes first!");
+        }
+
+        // Example association logic (simple example)
+        studentProgrammeService.saveStudentProgramme(
+                students.get(0).getId(),
+                programmes.get(0).getId(),
+                true
+        );
+
+        studentProgrammeService.saveStudentProgramme(
+                students.get(1).getId(),
+                programmes.get(1 % programmes.size()).getId(),
+                true
+        );
+
+        studentProgrammeService.saveStudentProgramme(
+                students.get(2).getId(),
+                programmes.get(2 % programmes.size()).getId(),
+                true
+        );
+
+        studentProgrammeService.saveStudentProgramme(
+                students.get(3).getId(),
+                programmes.get(0).getId(),
+                true
+        );
+
+        studentProgrammeService.saveStudentProgramme(
+                students.get(4).getId(),
+                programmes.get(1 % programmes.size()).getId(),
+                true
+        );
+
+        System.out.println("Clearly linked students to programmes successfully.");
     }
 }

@@ -6,6 +6,7 @@ import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
 import group7.enrollmentSystem.models.CourseProgramme;
 import group7.enrollmentSystem.models.Programme;
+import group7.enrollmentSystem.models.StudentProgramme;
 import group7.enrollmentSystem.services.CoursePrerequisiteService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
@@ -13,11 +14,13 @@ import group7.enrollmentSystem.services.ProgrammeService;
 //import group7.enrollmentSystem.services.StudentProgrammeService;
 import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -31,11 +34,11 @@ public class ApiController {
     private final ProgrammeService programmeService;
 
     private final CourseProgrammeService courseProgrammeService;
-    //private final StudentProgrammeService studentProgrammeService;
+   // private final StudentProgrammeService studentProgrammeService;
     private final CoursePrerequisiteService coursePrerequisiteService;
 
 
-    @PostMapping("/register")
+    /*@PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody HashMap<String, String> data) {
         String email = data.get("email");
         String password = data.get("password");
@@ -43,6 +46,44 @@ public class ApiController {
         HashMap<String, String> response = new HashMap<>();
         response.put("message", "User registered successfully");
         return ResponseEntity.ok(response);
+    }*/
+
+   @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody HashMap<String, String> data) {
+        try {
+            String email = data.get("email");
+            String password = data.get("password");
+            String firstName = data.get("firstName");
+            String lastName = data.get("lastName");
+            String role = data.get("role");
+
+            // Extract student-specific data if the registration is for a student
+            if ("ROLE_STUDENT".equalsIgnoreCase(role)) {
+                Student student = new Student();
+                student.setStudentId(data.get("studentId"));
+                student.setFirstName(data.get("firstName"));
+                student.setLastName(data.get("lastName"));
+                student.setPhoneNumber(data.get("phoneNumber"));
+                student.setAddress(data.get("address"));
+
+                userService.registerUser(email, password, firstName, lastName, role, student);
+            } else if ("ROLE_ADMIN".equalsIgnoreCase(role)) {
+                userService.registerUser(email, password, firstName, lastName, role, null);
+            } else {
+                throw new IllegalArgumentException("Invalid role provided");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Registration successful.");
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch(Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
     }
 
 //--------------------------------------------------------------------------------------------

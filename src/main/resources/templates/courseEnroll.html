@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Courses to Enroll - Semester <span th:text="${semester}"></span></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container mt-4">
+    <h2 class="mb-3">Select Courses to Enroll - Semester <span th:text="${semester}"></span></h2>
+
+    <!-- Flash Messages -->
+    <div th:if="${error}" class="alert alert-danger" role="alert">
+        <span th:text="${error}"></span>
+    </div>
+    <div th:if="${success}" class="alert alert-success" role="alert">
+        <span th:text="${success}"></span>
+    </div>
+
+    <form th:action="@{'/courseEnroll/enrollCourses/' + ${semester}}" method="post">
+        <table class="table table-bordered">
+            <thead class="table-dark">
+            <tr>
+                <th>Select</th>
+                <th>Course Code</th>
+                <th>Title</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="cp : ${courses}">
+                <td><input type="checkbox" name="selectedCourses" th:value="${cp.course.id}" /></td>
+                <td th:text="${cp.course.courseCode}"></td>
+                <td th:text="${cp.course.title}"></td>
+                <td th:text="${cp.course.description}"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p class="mt-3">By registering for these courses, I agree to uphold the University policies.</p>
+
+        <div class="mb-3">
+            <button type="reset" class="btn btn-secondary">Reset Selection</button>
+            <button type="submit" class="btn btn-primary" th:disabled="${#lists.isEmpty(courses)}">
+                Enroll Selected Courses
+            </button>
+        </div>
+
+        <div th:if="${#lists.isEmpty(courses)}" class="alert alert-info">
+            There are no further courses available for enrollment in this semester.
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.models;
 
+import group7.enrollmentSystem.models.Course;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -8,7 +9,7 @@ import java.time.LocalDate;
 @Entity
 @Data
 public class CourseEnrollment {
-    @Id
+   @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne
@@ -19,6 +20,8 @@ public class CourseEnrollment {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
     private boolean completed;
+    private String grade;
     private LocalDate dateEnrolled;
     private boolean currentlyTaking;
+    private int semesterEnrolled;
 }

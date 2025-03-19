@@ -2,22 +2,20 @@ package group7.enrollmentSystem.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
-import java.util.HashSet;
-import java.util.Set;
-
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Data
-public class Student {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@PrimaryKeyJoinColumn(name = "id")
+@AttributeOverrides({
+        @AttributeOverride(name = "email", column = @Column(name = "email", nullable = false, unique = true)),
+        @AttributeOverride(name = "firstName", column = @Column(name = "first_name")),
+        @AttributeOverride(name = "lastName", column = @Column(name = "last_name"))
+})
+public class Student extends User {
     @Column(nullable = false, unique = true)
     private String studentId;
-    private String firstName;
-    private String lastName;
-    private String email;
     private String phoneNumber;
     private String address;
 }

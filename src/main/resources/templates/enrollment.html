@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Enrollment</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+
+    <h2>Welcome, <span th:text="${student.firstName}"></span></h2>
+    <h3>Your Programme: <span th:text="${programme.name}"></span></h3>
+
+    <!-- Semester Tabs -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a th:classappend="${semester == 1} ? 'active'" class="nav-link"
+               th:href="@{/courseEnroll/enrollment/1}">Semester 1</a>
+        </li>
+        <li class="nav-item">
+            <a th:classappend="${semester == 2} ? 'active'" class="nav-link"
+               th:href="@{/courseEnroll/enrollment/2}">Semester 2</a>
+        </li>
+    </ul>
+
+    <h3>Your Enrolled Courses</h3>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Course Code</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Credits</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="enrollment : ${activeEnrollments}">
+            <td th:text="${enrollment.course.courseCode}"></td>
+            <td th:text="${enrollment.course.title}"></td>
+            <td th:text="${enrollment.course.description}"></td>
+            <td th:text="${enrollment.course.creditPoints}"></td>
+            <td>
+                <form th:action="@{/courseEnroll/cancelEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
+                    <button type="submit" class="btn btn-warning">Cancel</button>
+                </form>
+
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <a th:href="@{'/courseEnroll/selectCourses/' + ${semester}}" class="btn btn-success">Add Course</a>
+
+    <h3>Cancelled Courses</h3>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Course Code</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Credits</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="enrollment : ${canceledEnrollments}">
+            <td th:text="${enrollment.course.courseCode}"></td>
+            <td th:text="${enrollment.course.title}"></td>
+            <td th:text="${enrollment.course.description}"></td>
+            <td th:text="${enrollment.course.creditPoints}"></td>
+            <td>
+                <form th:action="@{/courseEnroll/activateEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
+                    <button type="submit" class="btn btn-success"
+                            th:disabled="${activeEnrollments.size() >= 4}">
+                        Activate
+                    </button>
+                    <div th:if="${activeEnrollments.size() >= 4}" class="alert alert-warning">
+                        You cannot activate more courses. You already have four active courses this semester.
+                    </div>
+                </form>
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+</div>
+</body>
+</html>

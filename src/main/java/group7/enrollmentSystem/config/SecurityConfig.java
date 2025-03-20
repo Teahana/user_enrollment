@@ -28,11 +28,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())  // Disable CSRF
             .cors(cors -> cors.disable())  // Disable CORS
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/**").permitAll()
-                    .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
-                    .requestMatchers("/courseEnroll/**").hasRole("STUDENT")
-                    .requestMatchers("/home","/register","/login", "/").permitAll()  // Allow access to home and login pages
-                    .anyRequest().authenticated()  // Require authentication for all other endpoints
+                    .anyRequest().permitAll()
+                   // .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
+                   // .requestMatchers("/courseEnroll/**").hasRole("STUDENT")
+                   // .requestMatchers("/home","/register","/login", "/").permitAll()  // Allow access to home and login pages
+                  //  .anyRequest().authenticated()  // Require authentication for all other endpoints
             )
                 .formLogin(login -> login
                         .loginPage("/login")
@@ -44,19 +44,20 @@ public class SecurityConfig {
                                     .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
 
                             if (isAdmin) {
-                                redirectUrl = "/admin";
+                                System.out.println("Admin logged in");
+                                redirectUrl = "/admin/dashboard";
                             }
 
                             response.sendRedirect(redirectUrl);
                         })
-                        .failureHandler((request, response, exception) -> {
-                            if ("Unpaid fees".equalsIgnoreCase(exception.getMessage())) {
-                                response.sendRedirect("/login?disabled");
-                            } else {
-                                response.sendRedirect("/login?error");
-                            }
-
-                        })  // Redirect to /login?error after failed login
+//                        .failureHandler((request, response, exception) -> {
+//                            if ("Unpaid fees".equalsIgnoreCase(exception.getMessage())) {
+//                                response.sendRedirect("/login?disabled");
+//                            } else {
+//                                response.sendRedirect("/login?error");
+//                            }
+//
+//                        })  // Redirect to /login?error after failed login
                     .permitAll()
             )
             .logout(logout -> logout

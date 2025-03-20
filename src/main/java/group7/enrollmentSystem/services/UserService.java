@@ -48,7 +48,7 @@ public class UserService implements UserDetailsService {
             }
             student.setEmail(email);
             student.setPassword(passwordEncoder.encode(password));
-            student.setRoles(Set.of("STUDENT"));
+            student.setRoles(Set.of("ROLE_STUDENT"));
             student.setFirstName(firstName);
             student.setLastName(lastName);
 
@@ -58,7 +58,7 @@ public class UserService implements UserDetailsService {
             User user = new User();
             user.setEmail(email);
             user.setPassword(passwordEncoder.encode(password));
-            user.setRoles(Set.of("ADMIN"));
+            user.setRoles(Set.of("ROLE_ADMIN"));
             user.setFirstName(firstName);
             user.setLastName(lastName);
 

@@ -6,11 +6,13 @@ import group7.enrollmentSystem.services.StudentProgrammeService;
 import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final UserRepo userRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
@@ -38,7 +41,6 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initializeAdminUser() {
-
         String adminEmail = "admin@gmail.com";
         String adminFirstName = "Adrian";
         String adminLastName = "Alamu";
@@ -49,43 +51,41 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        userService.registerUser(adminEmail, password, adminFirstName, adminLastName, "ROLE_ADMIN", null);
+        User admin = new User();
+        admin.setEmail(adminEmail);
+        admin.setPassword(passwordEncoder.encode(password));
+        admin.setRoles(Set.of("ROLE_ADMIN"));
+        admin.setFirstName(adminFirstName);
+        admin.setLastName(adminLastName);
+
+        userRepo.save(admin);
         System.out.println("Admin user initialized successfully.");
     }
-
-
     private void initializeStudents() {
-        if(studentRepo.count() > 0){
+        if (studentRepo.count() > 0) {
             System.out.println("Students already initialized. Skipping initialization.");
             return;
         }
 
         List<Student> students = List.of(
-                createStudent("s11212749", "Tino", "Potoi", "12 Bakshi Street, Suva", "1234567"),
-                createStudent("s11212750", "Jane", "Qio", "57 Ratu Mara Rd, Nabua", "2345678"),
-                createStudent("s11212751", "Pita", "Kumar", "Lot 5 Brown Street, Lautoka", "3456789"),
-                createStudent("s11212752", "Mary", "Singh", "Lot 3 Princes Rd, Tamavua", "4567890"),
-                createStudent("s11212753", "Tomasi", "Prasad", "10 Victoria Parade, Suva", "5678901")
+                new Student("s11212749", "Tino", "Potoi", "12 Bakshi Street, Suva", "1234567"),
+                new Student("s11212750", "Jane", "Qio", "57 Ratu Mara Rd, Nabua", "2345678"),
+                new Student("s11212751", "Pita", "Kumar", "Lot 5 Brown Street, Lautoka", "3456789"),
+                new Student("s11212752", "Mary", "Singh", "Lot 3 Princes Rd, Tamavua", "4567890"),
+                new Student("s11212753", "Tomasi", "Prasad", "10 Victoria Parade, Suva", "5678901")
         );
 
         students.forEach(student -> {
             String email = student.getStudentId() + "@student.usp.ac.fj";
-            String password = "12345"; // default sample password for initialization
+            student.setEmail(email);
+            student.setPassword(passwordEncoder.encode("12345")); // Encrypt password
+            student.setRoles(Set.of("STUDENT"));
 
-            userService.registerUser(email, password, student.getFirstName(), student.getLastName(),"ROLE_STUDENT", student);
-            System.out.println("Registered student user: " + email);
+            studentRepo.save(student);
+            System.out.println("Registered student: " + email);
         });
     }
 
-    private Student createStudent(String studentId, String firstName, String lastName, String address, String phoneNumber) {
-        Student student = new Student();
-        student.setStudentId(studentId);
-        student.setFirstName(firstName);
-        student.setLastName(lastName);
-        student.setAddress(address);
-        student.setPhoneNumber(phoneNumber);
-        return student;
-    }
 
     private void initializeProgrammes() {
         if (programmeRepo.count() == 0) {

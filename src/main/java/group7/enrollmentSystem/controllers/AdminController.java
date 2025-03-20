@@ -35,13 +35,11 @@ public class AdminController {
     private final ProgrammeService programmeService;
     private final UserRepo userRepo;
 
-    @GetMapping
+    @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
         String email = authentication.getName();
-
         User user = userRepo.findByEmail(email).orElse(null);
         model.addAttribute("user", user);
-
         return "admin";
     }
 

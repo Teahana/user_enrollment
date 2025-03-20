@@ -626,91 +626,91 @@ public class DataInitializer implements CommandLineRunner {
             // Year I
             for (String code : List.of("CS111","CS112","CS150","MA111","MA161","MG101","ST131","UU100A","UU114")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bns));
+                courseProgrammes.add(new CourseProgramme(null, c, bns, false));
             }
             // Year II
             for (String code : List.of("CS211","CS214","CS215","CS218","CS219","IS221","IS222","UU200","CS001")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bns));
+                courseProgrammes.add(new CourseProgramme(null, c, bns, false));
             }
             // Year III
             for (String code : List.of("CS310","CS311","CS317","CS324","CS350","CS351","CS352","IS333")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bns));
+                courseProgrammes.add(new CourseProgramme(null, c, bns, false));
             }
             // Year IV
             for (String code : List.of("CS403","CS412","CS424","CS400")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bns));
+                courseProgrammes.add(new CourseProgramme(null, c, bns, false));
             }
 
             // ---- Link BSE courses ----
             // Year I
             for (String code : List.of("CS111","CS112","CS140","MA111","MA161","MG101","ST131","UU100A","UU114")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bse));
+                courseProgrammes.add(new CourseProgramme(null, c, bse, false));
             }
             // Year II
             for (String code : List.of("CS211","CS214","CS218","CS219","CS230","CS241","IS221","IS222","UU200","CS001")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bse));
+                courseProgrammes.add(new CourseProgramme(null, c, bse, false));
             }
             // Year III
             for (String code : List.of("CS310","CS311","CS324","CS341","CS352","IS314","IS328","IS333")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bse));
+                courseProgrammes.add(new CourseProgramme(null, c, bse, false));
             }
             // Year IV
             for (String code : List.of("CS415","CS403","CS412","CS424","CS400")) {
                 // Note: The handbook says "one of CS403, CS412, CS424", but let's just link them all
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bse));
+                courseProgrammes.add(new CourseProgramme(null, c, bse, false));
             }
 
             // ---- Link BEC courses ----
             // Year I (Semester I + II combined here for simplicity)
             for (String code : List.of("PH102","MM101","UU114","MA111","UU100A","EE102","MM103","CS111","MA112")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bec));
+                courseProgrammes.add(new CourseProgramme(null, c, bec, false));
             }
             // Year II
             for (String code : List.of("MA211","CV211","CV212","EV201","EN001","MA272","CV203","CV222","CH205")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bec));
+                courseProgrammes.add(new CourseProgramme(null, c, bec, false));
             }
             // Year III
             for (String code : List.of("CV311","CV312","CV313","CV316","CV321","CV322","CV323","CV324","EN001")) {
                 // The handbook repeats EN001 across multiple years, if needed.
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bec));
+                courseProgrammes.add(new CourseProgramme(null, c, bec, false));
             }
             // Year IV
             for (String code : List.of("CV461","CV469","CV488","CV491","CV492","CV499",
                     "CV462","CV463","CV464","CV493","CV494","CV495","CV496")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bec));
+                courseProgrammes.add(new CourseProgramme(null, c, bec, false));
             }
 
             // ---- Link BEE courses ----
             // Year I
             for (String code : List.of("PH102","MM101","UU114","MA111","EE102","MM103","CS111","MA112")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bee));
+                courseProgrammes.add(new CourseProgramme(null, c, bee, false));
             }
             // Year II
             for (String code : List.of("EE212","EE213","EE222","MA211","EE211","EE224","EE225","MA272","EN001")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bee));
+                courseProgrammes.add(new CourseProgramme(null, c, bee, false));
             }
             // Year III
             for (String code : List.of("EE316","EE312","EE313","EE314","EE321","EE323","EE325","EE326")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bee));
+                courseProgrammes.add(new CourseProgramme(null, c, bee, false));
             }
             // Year IV
             for (String code : List.of("EE463","EE464","EE488","EE491","EE492","EE499","PH302","EE461","EE462","EE467")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bee));
+                courseProgrammes.add(new CourseProgramme(null, c, bee, false));
             }
 
             // ---- Link BEM courses ----
@@ -718,23 +718,23 @@ public class DataInitializer implements CommandLineRunner {
             for (String code : List.of("PH102","MM101","UU114","MA111","UU100A","EE102","MM103","CS111","MA112")) {
                 // (similar to BEC year I data, so reusing the same set)
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bem));
+                courseProgrammes.add(new CourseProgramme(null, c, bem, false));
             }
             // Year II
             for (String code : List.of("MA211","MM221","MM212","MM211","EN001","MA272","MM222","MM223","MM214","EN001")) {
                 // EN001 can appear multiple times in different semesters
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bem));
+                courseProgrammes.add(new CourseProgramme(null, c, bem, false));
             }
             // Year III
             for (String code : List.of("MM311","MM312","MM315","MM316","EN001","MM321","MM322","MM323","MM324")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bem));
+                courseProgrammes.add(new CourseProgramme(null, c, bem, false));
             }
             // Year IV
             for (String code : List.of("MM469","MM488","MM491","MM492","MM499","MM461","MM462","MM463","MM465","MM466","MM467","MM468")) {
                 Course c = courseRepo.findByCourseCode(code).orElseThrow();
-                courseProgrammes.add(new CourseProgramme(null, c, bem));
+                courseProgrammes.add(new CourseProgramme(null, c, bem, false));
             }
 
             courseProgrammeRepo.saveAll(courseProgrammes);

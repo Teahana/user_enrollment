@@ -21,5 +21,5 @@ public class CourseProgramme {
     @ManyToOne
     @JoinColumn(name = "programme_id", nullable = false)
     private Programme programme;
-   // boolean optional;
+    boolean optional;
 }

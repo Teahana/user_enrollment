@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(response => response.json())
         .then(data => {
             allCourses = data; // Store the courses globally
+            console.log("All courses:", allCourses);
         });
 
     // Attach event listeners

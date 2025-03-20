@@ -2,6 +2,7 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseDto;
 import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
+import group7.enrollmentSystem.dtos.interfaceDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
@@ -37,21 +38,12 @@ public class ApiController {
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final StudentRepo studentRepo;
 
-//    @PostMapping("/test")
-//    public ResponseEntity<?> test(@RequestBody HashMap<String, Long> body) {
-//        List<CourseEnrollment> data1 = courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalse(body.get("studentId"));
-//        List<CourseEnrollment> data2 = courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingTrue(body.get("studentId"));
-//        Student student = studentRepo.findById(body.get("studentId")).orElse(null);
-//        List<CourseEnrollment> data3 = courseEnrollmentRepo.findByStudentAndCurrentlyTakingTrue(student);
-//        List<CourseEnrollment> data4 = courseEnrollmentRepo.findByStudentAndCurrentlyTakingFalse(student);
-//        return ResponseEntity.ok().body(new HashMap<>() {{
-//            put("data1", data1);
-//            put("data2", data2);
-//            put("data3", data3);
-//            put("data4", data4);
-//        }});
-//
-//    }
+    @PostMapping("/test")
+    public ResponseEntity<?> test(@RequestBody HashMap<String, Long> body) {
+        List<CourseEnrollmentDto> data = courseEnrollmentRepo.getCourseEnrollments(body.get("studentId"));
+        return ResponseEntity.ok(data);
+
+    }
     /*@PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody HashMap<String, String> data) {
         String email = data.get("email");

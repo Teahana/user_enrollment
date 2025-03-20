@@ -9,6 +9,7 @@ import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.StudentProgrammeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -29,8 +30,8 @@ public class CourseEnrollController {
 
 
     @GetMapping("/enrollment/{semester}")
-    public String enrollment(@PathVariable("semester") int semester, Model model, Principal principal) {
-        String email = principal.getName();
+    public String enrollment(@PathVariable("semester") int semester, Model model, Authentication auth) {
+        String email = auth.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
         StudentProgramme programme = studentProgrammeService.getAllStudentProgrammes().stream()
                 .filter(StudentProgramme::isCurrentProgramme)

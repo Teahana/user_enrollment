@@ -29,32 +29,32 @@ public class AdminApiController {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
         return ResponseEntity.ok(courses);
     }
-    @PostMapping("/addPreReqs")
-    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
-        try {
-            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
-        } catch (Exception e) {
-            System.out.println("Exception: "+ e.getMessage());
-            return ResponseEntity.badRequest().body("Failed to add prerequisites");
-        }
-    }
+//    @PostMapping("/addPreReqs")
+//    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
+//        try {
+//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
+//            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
+//        } catch (Exception e) {
+//            System.out.println("Exception: "+ e.getMessage());
+//            return ResponseEntity.badRequest().body("Failed to add prerequisites");
+//        }
+//    }
 
     @GetMapping("/getCoursesExcept/{id}")
     public ResponseEntity<?> getCoursePrerequisites(@PathVariable Long id) {
         List<Course> courses = courseRepo.findByIdNot(id);
-        List<String> courseCodes = courses.stream().map(Course::getCourseCode).toList();
+        List<String> courseCodes = courses.stream().map( Course::getCourseCode).toList();
         return ResponseEntity.ok(Map.of("courseCodes", courseCodes));
     }
 
-    // Fetch courses for programmess
+    // Fetch courses for programmes
     @GetMapping("/getCoursesNotLinkedToProgramme")
     public ResponseEntity<List<Course>> getCoursesNotLinkedToProgramme(@RequestParam String programmeCode) {
         List<Course> courses = courseProgrammeService.getCoursesNotLinkedToProgramme(programmeCode);
         return ResponseEntity.ok(courses);
     }
 
-    // This is to remove a course from a programme useddd by admin
+    // This is to remove a course from a programme used by admin
     @DeleteMapping("/removeCourseFromProgramme")
     public ResponseEntity<Void> removeCourseFromProgramme(
             @RequestParam String courseCode,

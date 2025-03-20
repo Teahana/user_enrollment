@@ -21,7 +21,7 @@ public class CourseProgrammeService {
     private final ProgrammeRepo programmeRepo;
 
 
-    // Get all courses forprogramme
+    // Get all courses for programme
     public List<Course> getCoursesNotLinkedToProgramme(String programmeCode) {
         // Fetch all courses
         List<Course> allCourses = courseRepo.findAll();
@@ -84,7 +84,7 @@ public class CourseProgrammeService {
             courseProgramme.setProgramme(programme.get());
             courseProgrammeRepo.save(courseProgramme);
         } else {
-            throw new RuntimeException("Course or Programme nottt found");
+            throw new RuntimeException("Course or Programme not found");
         }
     }
 

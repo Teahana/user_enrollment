@@ -43,10 +43,12 @@ public class SecurityConfig {
                             boolean isAdmin = authentication.getAuthorities().stream()
                                     .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
 
+
                             if (isAdmin) {
                                 System.out.println("Admin logged in");
                                 redirectUrl = "/admin/dashboard";
                             }
+
 
                             response.sendRedirect(redirectUrl);
                         })

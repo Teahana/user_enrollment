@@ -29,16 +29,16 @@ public class AdminApiController {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
         return ResponseEntity.ok(courses);
     }
-    @PostMapping("/addPreReqs")
-    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
-        try {
-            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
-        } catch (Exception e) {
-            System.out.println("Exception: "+ e.getMessage());
-            return ResponseEntity.badRequest().body("Failed to add prerequisites");
-        }
-    }
+//    @PostMapping("/addPreReqs")
+//    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
+//        try {
+//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
+//            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
+//        } catch (Exception e) {
+//            System.out.println("Exception: "+ e.getMessage());
+//            return ResponseEntity.badRequest().body("Failed to add prerequisites");
+//        }
+//    }
 
     @GetMapping("/getCoursesExcept/{id}")
     public ResponseEntity<?> getCoursePrerequisites(@PathVariable Long id) {

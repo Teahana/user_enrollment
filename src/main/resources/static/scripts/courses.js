@@ -1,19 +1,16 @@
 // Global variables
 let allCourses = []; // Store all courses for filtering
 let selectedCourseId;
-let selectedPrereqCodes = []; // Store already selected prerequisites
-let selectedPrereqIds = new Set(); // Track selected prerequisite IDs
+let prerequisiteGroups = []; // Stores groups [{id, type, courses: [], relationToNextGroup: null}]
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Fetch all courses when the page loads
     fetch("/api/admin/getAllCourses")
         .then(response => response.json())
         .then(data => {
-            allCourses = data; // Store the courses globally
+            allCourses = data;
             console.log("All courses:", allCourses);
         });
 
-    // Attach event listeners
     document.querySelectorAll(".addPrereqBtn").forEach(button => {
         button.addEventListener("click", handleAddPrerequisites);
     });
@@ -30,95 +27,104 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let form = document.getElementById("addPrerequisiteForm");
     if (form) {
-        form.addEventListener("submit", submitAddPrerequisiteForm);
+        form.addEventListener("submit", submitPrerequisiteForm);
     }
 });
 
+/**
+ * Handles opening the Add Prerequisites modal
+ */
 function handleAddPrerequisites(event) {
     let button = event.currentTarget;
     selectedCourseId = button.getAttribute("data-course-id");
-    let courseCode = button.getAttribute("data-course-code");
-
     document.getElementById("selectedCourseId").value = selectedCourseId;
-    document.getElementById("selectedCourseName").innerText = courseCode;
+    document.getElementById("prerequisiteGroupsContainer").innerHTML = "";
+    prerequisiteGroups = [];
+    addNewPrerequisiteGroup();
+}
 
-    // Get already selected prerequisites for this course from the table
-    let row = button.closest("tr");
-    selectedPrereqCodes = Array.from(row.querySelectorAll("td:nth-child(9) span"))
-        .map(span => span.textContent.trim()) // Extract text content
-        .filter(Boolean);
+/**
+ * Adds a new prerequisite group (AND/OR)
+ */
+function addNewPrerequisiteGroup() {
+    let groupId = prerequisiteGroups.length + 1;
+    let prevGroupId = groupId - 1;
 
-    console.log("Already selected prerequisites:", selectedPrereqCodes);
+    prerequisiteGroups.push({ id: groupId, type: "AND", courses: [], relationToNextGroup: null });
 
-    // Filter courses: exclude selected course and already selected prerequisites
-    let availablePrereqs = allCourses.filter(course =>
-        course.id !== Number(selectedCourseId) && !selectedPrereqCodes.includes(course.courseCode)
+    let container = document.getElementById("prerequisiteGroupsContainer");
+
+    let groupDiv = document.createElement("div");
+    groupDiv.classList.add("mb-3", "p-2", "border", "rounded");
+    groupDiv.innerHTML = `
+        <label class="form-label">Group ${groupId}</label>
+        <select class="form-select mb-2" onchange="updatePrerequisiteType(${groupId}, this.value)">
+            <option value="AND">ALL courses in this group must be passed</option>
+            <option value="OR">ANY one of these courses must be passed</option>
+        </select>
+        <div id="group-${groupId}-courses"></div>
+        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addCourseToGroup(${groupId})">+ Add Course</button>
+    `;
+
+    container.appendChild(groupDiv);
+
+    if (prevGroupId > 0) {
+        let relationDiv = document.createElement("div");
+        relationDiv.classList.add("text-center", "my-2");
+        relationDiv.innerHTML = `
+            <select class="form-select d-inline w-auto" onchange="updateGroupRelation(${prevGroupId}, this.value)">
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
+            </select>
+        `;
+        container.insertBefore(relationDiv, groupDiv);
+    }
+}
+
+/**
+ * Updates the prerequisite type (AND/OR) for a group
+ */
+function updatePrerequisiteType(groupId, type) {
+    let group = prerequisiteGroups.find(g => g.id === groupId);
+    if (group) group.type = type;
+}
+
+/**
+ * Updates the relation between groups (AND/OR)
+ */
+function updateGroupRelation(groupId, relation) {
+    let group = prerequisiteGroups.find(g => g.id === groupId);
+    if (group) group.relationToNextGroup = relation;
+}
+
+/**
+ * Adds a course to a specific prerequisite group
+ */
+function addCourseToGroup(groupId) {
+    let group = prerequisiteGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    let availableCourses = allCourses.filter(course =>
+        course.id !== Number(selectedCourseId) && !group.courses.includes(course.id)
     );
 
-    selectedPrereqIds.clear(); // Reset selected prerequisites tracking
-    populatePrerequisiteCheckboxes(availablePrereqs);
-}
+    if (availableCourses.length === 0) return alert("No more courses to add!");
 
-/**
- * Populates the prerequisite checkboxes inside the modal.
- */
-function populatePrerequisiteCheckboxes(courses) {
-    let checkboxesDiv = document.getElementById("prerequisitesCheckboxes");
-    checkboxesDiv.innerHTML = ""; // Clear previous checkboxes
+    let select = document.createElement("select");
+    select.classList.add("form-select", "mb-2");
+    select.innerHTML = availableCourses.map(course =>
+        `<option value="${course.id}">${course.courseCode}</option>`
+    ).join("");
 
-    courses.forEach(course => {
-        let checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = course.id;
-        checkbox.name = "prerequisites";
-        checkbox.checked = selectedPrereqIds.has(course.id);
-
-        checkbox.addEventListener("change", function () {
-            if (this.checked) {
-                selectedPrereqIds.add(course.id);
-            } else {
-                selectedPrereqIds.delete(course.id);
-            }
-        });
-
-        let label = document.createElement("label");
-        label.textContent = ` ${course.courseCode}`;
-        label.prepend(checkbox);
-
-        let div = document.createElement("div");
-        div.appendChild(label);
-        checkboxesDiv.appendChild(div);
-    });
-}
-
-/**
- * Prepares the form for submission.
- */
-function submitAddPrerequisiteForm() {
-    let selectedPrereqs = Array.from(document.querySelectorAll("#prerequisitesCheckboxes input:checked"))
-        .map(checkbox => Number(checkbox.value));
-
-    if (selectedPrereqs.length === 0) {
-        showMessage("errorDiv", "No prerequisites selected.", "error");
-        return false; // Prevent submission if no prerequisites are selected
-    }
-
-    // Create hidden input fields for each prerequisite
-    let form = document.getElementById("addPrerequisiteForm");
-    let hiddenInputsContainer = document.getElementById("prerequisitesInputsContainer");
-    hiddenInputsContainer.innerHTML = ""; // Clear old inputs
-
-    selectedPrereqs.forEach(id => {
-        let input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "prerequisites";
-        input.value = id;
-        hiddenInputsContainer.appendChild(input);
+    select.addEventListener("change", function () {
+        let selectedCourseId = Number(this.value);
+        if (!group.courses.includes(selectedCourseId)) {
+            group.courses.push(selectedCourseId);
+        }
     });
 
-    return true; // Allow normal form submission
+    document.getElementById(`group-${groupId}-courses`).appendChild(select);
 }
-
 
 /**
  * Filters the course list based on user input.
@@ -142,20 +148,17 @@ function filterPrerequisites() {
     let searchTerm = this.value.toLowerCase();
     let checkboxesDiv = document.getElementById("prerequisitesCheckboxes");
 
-    // Convert the original course list into an array that maintains selected courses at the top
     let sortedCourses = allCourses
         .filter(course =>
             course.id !== Number(selectedCourseId) &&
             (!searchTerm || course.courseCode.toLowerCase().includes(searchTerm))
         )
         .sort((a, b) => {
-            // Keep selected prerequisites at the top
-            let aSelected = selectedPrereqIds.has(a.id);
-            let bSelected = selectedPrereqIds.has(b.id);
-            return bSelected - aSelected; // True (1) moves up, False (0) moves down
+            let aSelected = prerequisiteGroups.some(group => group.courses.includes(a.id));
+            let bSelected = prerequisiteGroups.some(group => group.courses.includes(b.id));
+            return bSelected - aSelected;
         });
 
-    // Repopulate the checkboxes
     populatePrerequisiteCheckboxes(sortedCourses);
 }
 
@@ -173,3 +176,193 @@ function showMessage(divId, message, type) {
         div.classList.remove("alert-success", "alert-danger");
     }, 2000);
 }
+
+/**
+ * Handles form submission and adds prerequisite groups data
+ */
+function submitPrerequisiteForm(event) {
+    let hiddenInput = document.createElement("input");
+    hiddenInput.type = "hidden";
+    hiddenInput.name = "prerequisites";
+    hiddenInput.value = JSON.stringify(prerequisiteGroups);
+    event.target.appendChild(hiddenInput);
+}
+
+// // Global variables
+// let allCourses = []; // Store all courses for filtering
+// let selectedCourseId;
+// let prerequisiteGroups = []; // Stores groups [{id, type, courses: []}]
+//
+// document.addEventListener("DOMContentLoaded", function () {
+//     // Fetch all courses when the page loads
+//     fetch("/api/admin/getAllCourses")
+//         .then(response => response.json())
+//         .then(data => {
+//             allCourses = data; // Store the courses globally
+//             console.log("All courses:", allCourses);
+//         });
+//
+//     // Attach event listeners
+//     document.querySelectorAll(".addPrereqBtn").forEach(button => {
+//         button.addEventListener("click", handleAddPrerequisites);
+//     });
+//
+//     let searchInput = document.getElementById("searchInput");
+//     if (searchInput) {
+//         searchInput.addEventListener("input", filterCourses);
+//     }
+//
+//     let searchPrereqInput = document.getElementById("searchPrereqInput");
+//     if (searchPrereqInput) {
+//         searchPrereqInput.addEventListener("input", filterPrerequisites);
+//     }
+//
+//     let form = document.getElementById("addPrerequisiteForm");
+//     if (form) {
+//         form.addEventListener("submit", submitPrerequisiteForm);
+//     }
+// });
+//
+// /**
+//  * Handles opening the Add Prerequisites modal
+//  */
+// function handleAddPrerequisites(event) {
+//     let button = event.currentTarget;
+//     selectedCourseId = button.getAttribute("data-course-id");
+//     let courseCode = button.getAttribute("data-course-code");
+//
+//     document.getElementById("selectedCourseId").value = selectedCourseId;
+//     document.getElementById("selectedCourseName").innerText = courseCode;
+//
+//     prerequisiteGroups = []; // Reset groups
+//     document.getElementById("prerequisiteGroupsContainer").innerHTML = ""; // Clear UI
+//     addNewPrerequisiteGroup(); // Start with one default group
+// }
+//
+// /**
+//  * Adds a new prerequisite group (AND/OR)
+//  */
+// function addNewPrerequisiteGroup() {
+//     let groupId = prerequisiteGroups.length + 1;
+//     prerequisiteGroups.push({ id: groupId, type: "AND", courses: [] });
+//
+//     let container = document.getElementById("prerequisiteGroupsContainer");
+//
+//     let groupDiv = document.createElement("div");
+//     groupDiv.classList.add("mb-3", "p-2", "border", "rounded");
+//     groupDiv.innerHTML = `
+//         <label class="form-label">Group ${groupId} - Required Courses</label>
+//         <select class="form-select mb-2" onchange="updatePrerequisiteType(${groupId}, this.value)">
+//             <option value="AND">ALL courses in this group must be passed</option>
+//             <option value="OR">ANY one of these courses must be passed</option>
+//         </select>
+//         <div id="group-${groupId}-courses"></div>
+//         <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addCourseToGroup(${groupId})">+ Add Course</button>
+//     `;
+//
+//     container.appendChild(groupDiv);
+// }
+//
+// /**
+//  * Updates the prerequisite type (AND/OR) for a group
+//  */
+// function updatePrerequisiteType(groupId, type) {
+//     let group = prerequisiteGroups.find(g => g.id === groupId);
+//     if (group) {
+//         group.type = type;
+//     }
+// }
+//
+// /**
+//  * Adds a course to a specific prerequisite group
+//  */
+// function addCourseToGroup(groupId) {
+//     let group = prerequisiteGroups.find(g => g.id === groupId);
+//     if (!group) return;
+//
+//     let availableCourses = allCourses.filter(course =>
+//         course.id !== Number(selectedCourseId) &&
+//         !group.courses.includes(course.id) // Prevent duplicates
+//     );
+//
+//     if (availableCourses.length === 0) return alert("No more courses to add!");
+//
+//     let select = document.createElement("select");
+//     select.classList.add("form-select", "mb-2");
+//     select.innerHTML = availableCourses.map(course =>
+//         `<option value="${course.id}">${course.courseCode}</option>`
+//     ).join("");
+//
+//     select.addEventListener("change", function () {
+//         let selectedCourseId = Number(this.value);
+//         if (!group.courses.includes(selectedCourseId)) {
+//             group.courses.push(selectedCourseId);
+//         }
+//     });
+//
+//     document.getElementById(`group-${groupId}-courses`).appendChild(select);
+// }
+//
+// /**
+//  * Handles form submission and adds prerequisite groups data
+//  */
+// function submitPrerequisiteForm(event) {
+//     let hiddenInput = document.createElement("input");
+//     hiddenInput.type = "hidden";
+//     hiddenInput.name = "prerequisites";
+//     hiddenInput.value = JSON.stringify(prerequisiteGroups);
+//
+//     event.target.appendChild(hiddenInput);
+// }
+//
+// /**
+//  * Filters the course list based on user input.
+//  */
+// function filterCourses() {
+//     let searchTerm = this.value.toLowerCase();
+//     let tableRows = document.querySelectorAll("#courseTableBody tr");
+//
+//     tableRows.forEach(row => {
+//         let courseCodeCell = row.querySelector(".courseCode");
+//         let courseCode = courseCodeCell.textContent.toLowerCase();
+//
+//         row.style.display = courseCode.includes(searchTerm) ? "" : "none";
+//     });
+// }
+//
+// /**
+//  * Filters the prerequisite selection inside the modal.
+//  */
+// function filterPrerequisites() {
+//     let searchTerm = this.value.toLowerCase();
+//     let checkboxesDiv = document.getElementById("prerequisitesCheckboxes");
+//
+//     let sortedCourses = allCourses
+//         .filter(course =>
+//             course.id !== Number(selectedCourseId) &&
+//             (!searchTerm || course.courseCode.toLowerCase().includes(searchTerm))
+//         )
+//         .sort((a, b) => {
+//             let aSelected = prerequisiteGroups.some(group => group.courses.includes(a.id));
+//             let bSelected = prerequisiteGroups.some(group => group.courses.includes(b.id));
+//             return bSelected - aSelected; // Selected prerequisites move up
+//         });
+//
+//     populatePrerequisiteCheckboxes(sortedCourses);
+// }
+//
+// /**
+//  * Shows a message in a specified div.
+//  */
+// function showMessage(divId, message, type) {
+//     let div = document.getElementById(divId);
+//     div.innerText = message;
+//     div.style.display = "block";
+//     div.classList.add(type === "success" ? "alert-success" : "alert-danger");
+//
+//     setTimeout(() => {
+//         div.style.display = "none";
+//         div.classList.remove("alert-success", "alert-danger");
+//     }, 2000);
+// }
+//

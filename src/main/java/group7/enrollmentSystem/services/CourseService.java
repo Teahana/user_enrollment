@@ -132,18 +132,18 @@ public class CourseService {
         }
     }
 
-    public void addPrerequisites(Long courseId, List<Long> prereqIds) {
-        Course course = courseRepo.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
-
-        List<Course> prerequisites = courseRepo.findAllById(prereqIds);
-
-        List<CoursePrerequisite> newPrereqs = prerequisites.stream()
-                .map(prereq -> new CoursePrerequisite(null, course, prereq))
-                .collect(Collectors.toList());
-
-        coursePrerequisiteRepo.saveAll(newPrereqs);
-    }
+//    public void addPrerequisites(Long courseId, List<Long> prereqIds) {
+//        Course course = courseRepo.findById(courseId)
+//                .orElseThrow(() -> new RuntimeException("Course not found"));
+//
+//        List<Course> prerequisites = courseRepo.findAllById(prereqIds);
+//
+//        List<CoursePrerequisite> newPrereqs = prerequisites.stream()
+//                .map(prereq -> new CoursePrerequisite(null, course, prereq))
+//                .collect(Collectors.toList());
+//
+//        coursePrerequisiteRepo.saveAll(newPrereqs);
+//    }
 
 
 }

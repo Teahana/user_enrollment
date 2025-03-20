@@ -145,6 +145,13 @@ public class CourseService {
         coursePrerequisiteRepo.saveAll(newPrereqs);
     }
 
+    //Used to fetch prerequisiteCourseCodes for Prerequisite Column in selectCourses Page
+    public List<String> getPrerequisiteCodesByCourseId(Long courseId) {
+        return coursePrerequisiteRepo.findPrerequisitesByCourseId(courseId).stream()
+                .map(Course::getCourseCode)
+                .collect(Collectors.toList());
+    }
+
 
 }
 //    public void addPrerequisites(Long courseId, List<String> prerequisiteCodes) {

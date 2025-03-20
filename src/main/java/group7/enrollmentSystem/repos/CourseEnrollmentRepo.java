@@ -17,7 +17,7 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
             "FROM CourseEnrollment ce WHERE ce.student.id = :studentId")
     List<CourseEnrollmentDto> getCourseEnrollments(@Param("studentId") Long studentId);
 
-
+    boolean existsByStudentIdAndCourseIdAndCompletedTrue(Long studentId, Long courseId);
 
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingTrue(Long studentId);
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalse(Long studentId);

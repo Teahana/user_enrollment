@@ -1,15 +1,12 @@
 package group7.enrollmentSystem.services;
 
+import group7.enrollmentSystem.dtos.interfaceDtos.CoursePrerequisiteDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CourseProgramme;
 import group7.enrollmentSystem.models.CourseEnrollment;
 import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.StudentProgramme;
-import group7.enrollmentSystem.repos.CourseProgrammeRepo;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
-import group7.enrollmentSystem.repos.StudentProgrammeRepo;
-import group7.enrollmentSystem.repos.StudentRepo;
+import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +24,8 @@ public class CourseEnrollmentService {
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final StudentProgrammeRepo studentProgrammeRepo;
     private final CourseRepo courseRepo;
+    private final CoursePrerequisiteRepo coursePrerequisiteRepo;
+
 
     // Cancel enrollment
     public void cancelEnrollment(Long enrollmentId) {
@@ -63,6 +62,9 @@ public class CourseEnrollmentService {
 
         List<CourseProgramme> allCourses = courseProgrammeRepo.findAll();
 
+        // Fetch available courses for the semester
+        //List<CourseProgramme> courses = courseProgrammeRepo.findBySemester(semester);
+
         return allCourses.stream()
                 .filter(cp -> (semester == 1 && cp.getCourse().isOfferedSem1()) ||
                         (semester == 2 && cp.getCourse().isOfferedSem2()))
@@ -72,20 +74,44 @@ public class CourseEnrollmentService {
 
     // Handles the enrollment
     public void enrollStudentInCourses(Long studentId, List<Long> courseIds, int semester) {
-        Student student = studentRepo.findById(studentId).orElseThrow();
+        Student student = studentRepo.findById(studentId).orElseThrow(() -> new IllegalArgumentException("Student not found"));
         List<Course> courses = courseRepo.findAllById(courseIds);
 
-        courses.stream()
-                .filter(c -> (semester == 1 && c.isOfferedSem1()) ||
-                        (semester == 2 && c.isOfferedSem2()))
-                .forEach(c -> {
-                    CourseEnrollment enrollment = new CourseEnrollment();
-                    enrollment.setStudent(student);
-                    enrollment.setCourse(c);
-                    enrollment.setCurrentlyTaking(true);
-                    enrollment.setDateEnrolled(LocalDate.now());
-                    courseEnrollmentRepo.save(enrollment);
-                });
+        for (Long courseId : courseIds) {
+            // Fetch prerequisites for the course
+            List<CoursePrerequisiteDto> prerequisites = coursePrerequisiteRepo.findPrerequisitesByCourseIdForEnrollment(courseId);
+
+            // Check if all prerequisites are completed by student
+            boolean prerequisitesCompleted = prerequisites.stream().allMatch(prerequisite ->
+                    courseEnrollmentRepo.existsByStudentIdAndCourseIdAndCompletedTrue(
+                            studentId, prerequisite.getPrerequisiteId()));
+
+            if (!prerequisitesCompleted) {
+                // Fetch the course code for the error message
+                String courseCode = courseRepo.findById(courseId)
+                        .map(Course::getCourseCode)
+                        .orElseThrow(() -> new IllegalArgumentException("Course not found with ID: " + courseId));
+
+                throw new IllegalArgumentException("Cannot enroll - Prerequisites not completed for course: " + courseCode);
+            }
+
+            // If prerequisites are completed, enroll the student
+            Course course = courseRepo.findById(courseId)
+                    .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            courses.stream()
+                    .filter(c -> (semester == 1 && c.isOfferedSem1()) ||
+                            (semester == 2 && c.isOfferedSem2()))
+                    .forEach(c -> {
+                        CourseEnrollment enrollment = new CourseEnrollment();
+                        enrollment.setStudent(student);
+                        enrollment.setCourse(c);
+                        enrollment.setCurrentlyTaking(true);
+                        enrollment.setDateEnrolled(LocalDate.now());
+                        enrollment.setSemesterEnrolled(semester);
+                        courseEnrollmentRepo.save(enrollment);
+                    });
+        }
     }
 
     // Get available courses excluding courses already actively enrolled

@@ -3,16 +3,14 @@ package group7.enrollmentSystem.config;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.StudentProgrammeService;
-import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -20,13 +18,13 @@ public class DataInitializer implements CommandLineRunner {
 
     private final CourseRepo courseRepo;
     private final ProgrammeRepo programmeRepo;
-    private final UserService userService;
     private final StudentProgrammeService studentProgrammeService;
     private final StudentRepo studentRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final UserRepo userRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final PasswordEncoder passwordEncoder;
+    private final CoursePrerequisiteRepo coursePrerequisiteRepo;
 
     @Override
     public void run(String... args) {
@@ -34,6 +32,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeStudents();
         initializeCourses();
         initializeProgrammes();
+        initializeCoursePrerequisites();
         initializeCourseProgrammes();
         linkStudentsToProgrammes();
         initializeCourseEnrollments();
@@ -79,7 +78,7 @@ public class DataInitializer implements CommandLineRunner {
             String email = student.getStudentId() + "@student.usp.ac.fj";
             student.setEmail(email);
             student.setPassword(passwordEncoder.encode("12345")); // Encrypt password
-            student.setRoles(Set.of("STUDENT"));
+            student.setRoles(Set.of("ROLE_STUDENT"));
 
             studentRepo.save(student);
             System.out.println("Registered student: " + email);
@@ -608,6 +607,209 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             System.out.println("Courses already exist. Skipping.");
         }
+    }
+
+    private void initializeCoursePrerequisites() {
+        if (coursePrerequisiteRepo.count() > 0) {
+            System.out.println("Course prerequisites already initialized. Skipping.");
+            return;
+        }
+
+        // Retrieve all courses from the database
+        List<Course> allCourses = courseRepo.findAll();
+
+        // Map to store course codes to course objects for quick lookup
+        Map<String, Course> courseMap = allCourses.stream()
+                .collect(Collectors.toMap(Course::getCourseCode, course -> course));
+
+        // List to store all CoursePrerequisite entities to be saved
+        List<CoursePrerequisite> prerequisites = new ArrayList<>();
+
+        // Define prerequisites for each course based on the handbook data
+        // Format: courseCode -> list of prerequisite course codes
+        Map<String, List<String>> prerequisiteMap = new HashMap<>();
+        prerequisiteMap.put("CS001", List.of("UU100A"));
+        prerequisiteMap.put("CS112", List.of("CS111"));
+        prerequisiteMap.put("CS140", List.of()); // No prerequisites
+        prerequisiteMap.put("CS150", List.of()); // No prerequisites
+        prerequisiteMap.put("CS211", List.of("CS111"));
+        prerequisiteMap.put("CS214", List.of("CS112"));
+        prerequisiteMap.put("CS215", List.of("CS111", "CS150")); // CS111 and CS150
+        prerequisiteMap.put("CS218", List.of("CS112"));
+        prerequisiteMap.put("CS219", List.of("CS112"));
+        prerequisiteMap.put("CS230", List.of("CS111", "CS140")); // CS111 and CS140
+        prerequisiteMap.put("CS241", List.of("CS112", "CS230")); // CS112 and CS230
+        prerequisiteMap.put("CS310", List.of("CS211"));
+        prerequisiteMap.put("CS311", List.of("CS211"));
+        prerequisiteMap.put("CS317", List.of("CS215"));
+        prerequisiteMap.put("CS324", List.of("CS218", "CS219", "CS214", "CS215")); // CS218 or CS219 or CS214 or CS215
+        prerequisiteMap.put("CS341", List.of("CS241"));
+        prerequisiteMap.put("CS350", List.of("CS215"));
+        prerequisiteMap.put("CS351", List.of("CS310"));
+        prerequisiteMap.put("CS352", List.of()); // No prerequisites (admission to BSE or BNS)
+        prerequisiteMap.put("CS400", List.of()); // Completion of all 100, 200, 300, and 400 level courses
+        prerequisiteMap.put("CS403", List.of("CS401", "CS352")); // CS401 or CS352
+        prerequisiteMap.put("CS412", List.of()); // Admission into Postgraduate Diploma or 75% completion of 300 level courses
+        prerequisiteMap.put("CS415", List.of()); // Admission into Postgraduate Diploma or 75% completion of 300 level courses
+        prerequisiteMap.put("CS424", List.of("CS324")); // CS324
+        prerequisiteMap.put("CV203", List.of("MA112", "MM101")); // MA112 and MM101
+        prerequisiteMap.put("CV211", List.of("MA112", "MM103")); // MA112 and MM103
+        prerequisiteMap.put("CV212", List.of("MM103")); // MM103
+        prerequisiteMap.put("CV222", List.of("PH102", "MA111", "MA112")); // PH102 and (MA111 or MA112)
+        prerequisiteMap.put("CV311", List.of("MM212")); // MM212
+        prerequisiteMap.put("CV312", List.of("CV211")); // CV211
+        prerequisiteMap.put("CV313", List.of("MM222", "CV222")); // MM222 or CV222
+        prerequisiteMap.put("CV316", List.of()); // 100% completion of 1st & 2nd year courses
+        prerequisiteMap.put("CV321", List.of("CV311")); // CV311
+        prerequisiteMap.put("CV322", List.of("CV313")); // CV313
+        prerequisiteMap.put("CV323", List.of("MM312", "CV312")); // MM312 or CV312
+        prerequisiteMap.put("CV324", List.of("CV311")); // CV311
+        prerequisiteMap.put("CV461", List.of("CV323")); // CV323
+        prerequisiteMap.put("CV462", List.of("CH205")); // CH205
+        prerequisiteMap.put("CV463", List.of("CV461")); // CV461
+        prerequisiteMap.put("CV464", List.of("CV311")); // CV311
+        prerequisiteMap.put("CV469", List.of()); // 100% of 1st & 2nd year courses and 75% of 3rd year courses
+        prerequisiteMap.put("CV488", List.of()); // Successful completion of all 100 and 200 level courses
+        prerequisiteMap.put("CV491", List.of("CV322")); // CV322
+        prerequisiteMap.put("CV492", List.of("CV324")); // CV324
+        prerequisiteMap.put("CV493", List.of("CV323")); // CV323
+        prerequisiteMap.put("CV494", List.of("CV492", "EV302")); // CV492 and EV302
+        prerequisiteMap.put("CV495", List.of("CV322")); // CV322
+        prerequisiteMap.put("CV496", List.of()); // Completion of all 100, 200, and 75% of 300 level courses
+        prerequisiteMap.put("CV499", List.of("CV488")); // CV488
+        prerequisiteMap.put("EE102", List.of("MA111", "PH102")); // MA111 and PH102
+        prerequisiteMap.put("EE211", List.of("EE213", "MA112")); // EE213 and MA112
+        prerequisiteMap.put("EE212", List.of("EE102")); // EE102
+        prerequisiteMap.put("EE213", List.of("EE102", "MA112")); // EE102 and MA112
+        prerequisiteMap.put("EE222", List.of("EE102", "MA112", "MA161")); // EE102 and (MA112 or MA161)
+        prerequisiteMap.put("EE224", List.of("EE102", "MA211")); // EE102 and MA211
+        prerequisiteMap.put("EE225", List.of("EE212", "EE213")); // EE212 and EE213
+        prerequisiteMap.put("EE312", List.of("EE224")); // EE224
+        prerequisiteMap.put("EE313", List.of("EE222")); // EE222
+        prerequisiteMap.put("EE314", List.of()); // Completion of all 100 and 200 level courses
+        prerequisiteMap.put("EE316", List.of()); // 100% completion of 1st & 2nd year courses
+        prerequisiteMap.put("EE321", List.of("EE211")); // EE211
+        prerequisiteMap.put("EE323", List.of("EE312")); // EE312
+        prerequisiteMap.put("EE325", List.of("EE312", "EE213", "EE321", "EE225")); // EE312 and EE213 and EE321 and EE225
+        prerequisiteMap.put("EE326", List.of("EE313", "CS211")); // EE313 and CS211
+        prerequisiteMap.put("EE461", List.of()); // Completion of all 100, 200, and 75% of 300 level courses
+        prerequisiteMap.put("EE462", List.of("EE323")); // EE323
+        prerequisiteMap.put("EE463", List.of("EE312", "EE323")); // EE312 or EE323
+        prerequisiteMap.put("EE464", List.of("EE321", "EE325")); // EE321 and EE325
+        prerequisiteMap.put("EE467", List.of("PH302", "EE492")); // PH302 and EE492
+        prerequisiteMap.put("EE488", List.of()); // Successful completion of all 100 and 200 level courses
+        prerequisiteMap.put("EE491", List.of()); // Completion of all 100 and 200 level courses
+        prerequisiteMap.put("EE492", List.of("EE224", "MA272", "EE323")); // EE224 and MA272 and EE323
+        prerequisiteMap.put("EE499", List.of("EE488")); // EE488
+        prerequisiteMap.put("EN001", List.of("MM101", "MM103", "EE102")); // MM101 and MM103 and EE102
+        prerequisiteMap.put("IS221", List.of("CS111", "IS122", "IS104")); // CS111 or IS122 or IS104
+        prerequisiteMap.put("IS222", List.of("CS111", "IS122", "IS104")); // CS111 or IS122 or IS104
+        prerequisiteMap.put("IS226", List.of("IS222")); // IS222
+        prerequisiteMap.put("IS302", List.of("IS202")); // IS202
+        prerequisiteMap.put("IS314", List.of("IS222", "CS241", "CS214", "IS226")); // IS222 and (CS241 or CS214 or IS226)
+        prerequisiteMap.put("IS322", List.of("IS222")); // IS222
+        prerequisiteMap.put("IS328", List.of("IS222")); // IS222
+        prerequisiteMap.put("IS333", List.of()); // Completion of 200 level CS/IS courses
+        prerequisiteMap.put("IS351", List.of("IS222")); // IS222
+        prerequisiteMap.put("IS413", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("IS414", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("IS421", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("IS428", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("IS431", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("IS432", List.of("IS431")); // IS431
+        prerequisiteMap.put("IS433", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("IS434", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("MA111", List.of()); // Year 13/Form 7 Mathematics or equivalent
+        prerequisiteMap.put("MA112", List.of()); // Year 13/Form 7 Mathematics or equivalent
+        prerequisiteMap.put("MA161", List.of()); // Year 13/Form 7 Mathematics or equivalent
+        prerequisiteMap.put("MA211", List.of("MA112")); // MA112
+        prerequisiteMap.put("MA221", List.of("MA111")); // MA111
+        prerequisiteMap.put("MA262", List.of("MA161", "MA111", "MA112")); // MA161 or MA111 or MA112
+        prerequisiteMap.put("MA272", List.of("MA112")); // MA112
+        prerequisiteMap.put("MA312", List.of("MA211")); // MA211
+        prerequisiteMap.put("MA313", List.of("MA211")); // MA211
+        prerequisiteMap.put("MA321", List.of("MA221")); // MA221
+        prerequisiteMap.put("MA341", List.of("MA221", "MA211")); // MA221 or MA211
+        prerequisiteMap.put("MA411", List.of("MA313")); // MA313
+        prerequisiteMap.put("MA416", List.of("MA211", "MA312")); // MA211 and MA312
+        prerequisiteMap.put("MM101", List.of()); // Admission into Undergraduate Programme
+        prerequisiteMap.put("MM103", List.of("MA111", "PH102")); // MA111 and PH102
+        prerequisiteMap.put("MM211", List.of("MA112", "MM103")); // MA112 and MM103
+        prerequisiteMap.put("MM212", List.of("MM103")); // MM103
+        prerequisiteMap.put("MM214", List.of("MM103")); // MM103
+        prerequisiteMap.put("MM221", List.of("PH102", "MA111", "MA112")); // PH102 and (MA111 or MA112)
+        prerequisiteMap.put("MM222", List.of("PH102", "MA111", "MA112")); // PH102 and (MA111 or MA112)
+        prerequisiteMap.put("MM223", List.of("MM212")); // MM212
+        prerequisiteMap.put("MM301", List.of("MA211")); // MA211
+        prerequisiteMap.put("MM311", List.of("MM221", "MM222")); // MM221 and MM222
+        prerequisiteMap.put("MM312", List.of("MM211")); // MM211
+        prerequisiteMap.put("MM315", List.of("MM211")); // MM211
+        prerequisiteMap.put("MM316", List.of()); // 100% completion of 1st & 2nd year courses
+        prerequisiteMap.put("MM321", List.of("MM221")); // MM221
+        prerequisiteMap.put("MM322", List.of("EE102")); // EE102
+        prerequisiteMap.put("MM323", List.of("MM223")); // MM223
+        prerequisiteMap.put("MM324", List.of("MM312", "MM315")); // MM312 and MM315
+        prerequisiteMap.put("MM461", List.of("MM323")); // MM323
+        prerequisiteMap.put("MM462", List.of("MM311")); // MM311
+        prerequisiteMap.put("MM463", List.of("MM301", "MM311")); // MM301 and MM311
+        prerequisiteMap.put("MM465", List.of("MM324")); // MM324
+        prerequisiteMap.put("MM466", List.of()); // Completion of all 100, 200, and 75% of 300 level courses
+        prerequisiteMap.put("MM467", List.of("MM324")); // MM324
+        prerequisiteMap.put("MM468", List.of("MM214", "MA272")); // MM214 and MA272
+        prerequisiteMap.put("MM469", List.of()); // 100% of 1st & 2nd year courses and 75% of 3rd year courses
+        prerequisiteMap.put("MM488", List.of()); // Successful completion of all 100 and 200 level courses
+        prerequisiteMap.put("MM491", List.of()); // Completion of all 100 and 200 level courses
+        prerequisiteMap.put("MM492", List.of()); // Completion of all 100 and 200 level courses
+        prerequisiteMap.put("MM499", List.of("MM488")); // MM488
+        prerequisiteMap.put("PH102", List.of()); // Year 13/Form 7 Physics or equivalent
+        prerequisiteMap.put("PH103", List.of()); // Year 13/Form 7 Physics or equivalent
+        prerequisiteMap.put("PH106", List.of()); // Year 12/Form 6 Physics
+        prerequisiteMap.put("PH202", List.of("PH102", "PH103", "MA111", "MA112")); // PH102 or PH103 and MA111 or MA112
+        prerequisiteMap.put("PH204", List.of("PH102", "PH103", "MA112")); // PH102 or PH103 and MA112
+        prerequisiteMap.put("PH206", List.of("PH102", "PH103", "MA111", "MA112")); // PH102 or PH103 and MA111 or MA112
+        prerequisiteMap.put("PH301", List.of("PH202")); // PH202
+        prerequisiteMap.put("PH302", List.of("PH206", "EE224", "EE212", "EE225")); // PH206 or EE224 and (EE212 or EE225)
+        prerequisiteMap.put("PH304", List.of("PH204")); // PH204
+        prerequisiteMap.put("PH306", List.of("PH206")); // PH206
+        prerequisiteMap.put("PH402", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("PH407", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("PH414", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("PH416", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("PH420", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("PH421", List.of()); // Admission into Postgraduate Programme
+        prerequisiteMap.put("ST130", List.of()); // Year 12/Form 6 Mathematics
+        prerequisiteMap.put("ST131", List.of()); // Year 13/Form 7 Mathematics or equivalent
+        prerequisiteMap.put("ST403", List.of("MA341")); // MA341
+        prerequisiteMap.put("ST420", List.of()); // Admission into Postgraduate Programme
+
+        // Iterate through the prerequisite map and create CoursePrerequisite entities
+        for (Map.Entry<String, List<String>> entry : prerequisiteMap.entrySet()) {
+            String courseCode = entry.getKey();
+            List<String> prereqCodes = entry.getValue();
+
+            Course course = courseMap.get(courseCode);
+            if (course == null) {
+                System.out.println("Course not found: " + courseCode);
+                continue;
+            }
+
+            for (String prereqCode : prereqCodes) {
+                Course prerequisite = courseMap.get(prereqCode);
+                if (prerequisite == null) {
+                    System.out.println("Prerequisite course not found: " + prereqCode);
+                    continue;
+                }
+
+                CoursePrerequisite coursePrerequisite = new CoursePrerequisite();
+                coursePrerequisite.setCourse(course);
+                coursePrerequisite.setPrerequisite(prerequisite);
+                prerequisites.add(coursePrerequisite);
+            }
+        }
+
+        // Save all prerequisites to the database
+        coursePrerequisiteRepo.saveAll(prerequisites);
+        System.out.println("Course prerequisites initialized successfully.");
     }
 
 

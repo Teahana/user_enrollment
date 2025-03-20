@@ -15,7 +15,7 @@
     <div th:if="${#authentication != null}">
         <!-- Check if the user has the STUDENT role -->
         <div th:if="${#authentication.getAuthorities().?[#this.getAuthority() == 'ROLE_STUDENT'].size() > 0}">
-            <a href="/courseEnroll/enrollment/1" class="btn btn-primary mb-3">My Registration</a>
+            <a href="/courseEnroll/enrollment/1" class="btn btn-primary mb-3">My Registrations</a>
         </div>
 
         <!-- Logout Button -->

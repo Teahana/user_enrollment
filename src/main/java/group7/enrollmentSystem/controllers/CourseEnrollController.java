@@ -7,6 +7,7 @@ import group7.enrollmentSystem.models.StudentProgramme;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
+import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.StudentProgrammeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -26,6 +27,7 @@ public class CourseEnrollController {
     private final StudentRepo studentRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final StudentProgrammeService studentProgrammeService;
+    private final CourseService courseService;
 
 
     @GetMapping("/enrollment/{semester}")
@@ -81,19 +83,25 @@ public class CourseEnrollController {
         Student student = studentRepo.findByEmail(email).orElseThrow();
         List<CourseProgramme> courses = courseEnrollmentService.getAvailableCoursesForSemester(student.getId(), semester);
         model.addAttribute("courses", courses);
+        model.addAttribute("courseService", courseService);
         model.addAttribute("semester", semester);
         return "courseEnroll";
     }
 
-
     @PostMapping("/enrollCourses/{semester}")
     public String enrollCourses(@PathVariable("semester") int semester,
-                                @RequestParam("selectedCourses") List<Long> selectedCourseIds,
+                                @RequestParam(value = "selectedCourses", required = false) List<Long> selectedCourseIds,
                                 Principal principal,
                                 RedirectAttributes redirectAttributes) {
 
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Check if no courses are selected
+        if (selectedCourseIds == null || selectedCourseIds.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please select a course");
+            return "redirect:/courseEnroll/selectCourses/" + semester;
+        }
 
         // Check active enrollments
         int activeEnrollmentsCount = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester).size();
@@ -107,9 +115,14 @@ public class CourseEnrollController {
             return "redirect:/courseEnroll/selectCourses/" + semester;
         }
 
-        courseEnrollmentService.enrollStudentInCourses(student.getId(), selectedCourseIds, semester);
-        redirectAttributes.addFlashAttribute("success", "Courses have been enrolled successfully for Semester " + semester);
 
-        return "redirect:/courseEnroll/enrollment/" + semester;
+        try {
+            courseEnrollmentService.enrollStudentInCourses(student.getId(), selectedCourseIds, semester);
+            redirectAttributes.addFlashAttribute("success", "Courses have been enrolled successfully for Semester " + semester);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/courseEnroll/selectCourses/" + semester;
+        }
+         return "redirect:/courseEnroll/enrollment/" + semester;
     }
 }

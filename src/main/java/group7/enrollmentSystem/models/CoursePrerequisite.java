@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "course_prerequisite",
-        uniqueConstraints = {@UniqueConstraint(columnNames = {"course_id", "prerequisite_id", "group_id"})})
+@Table(name = "course_prerequisite")
 public class CoursePrerequisite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,16 +18,15 @@ public class CoursePrerequisite {
 
     @ManyToOne
     @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    private Course course; // The main course
 
     @ManyToOne
     @JoinColumn(name = "prerequisite_id", nullable = false)
-    private Course prerequisite;
+    private Course prerequisite; // The prerequisite course
 
-    @Enumerated(EnumType.STRING)
-    private PrerequisiteType prerequisiteType; // AND / OR
-
-    @Column(nullable = false)
-    private int groupId; // Groups related AND/OR conditions
+    @ManyToOne
+    @JoinColumn(name = "prerequisite_group_id", nullable = false)
+    private PrerequisiteGroup prerequisiteGroup; // Belongs to a prerequisite group
 }
+
 

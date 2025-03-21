@@ -11,4 +11,6 @@ import java.util.List;
 public interface CoursePrerequisiteRepo extends JpaRepository<CoursePrerequisite, Long> {
     @Query("SELECT cp.prerequisite FROM CoursePrerequisite cp WHERE cp.course.id = :courseId")
     List<Course> findPrerequisitesByCourseId(@Param("courseId") Long courseId);
+
+    List<CoursePrerequisite> findByCourse(Course course);
 }

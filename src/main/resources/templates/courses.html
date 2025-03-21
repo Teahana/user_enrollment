@@ -14,6 +14,7 @@
     <h2 class="mb-3">Courses</h2>
     <div id="successDiv" class="alert" style="display: none;"></div>
     <div id="errorDiv" class="alert" style="display: none;"></div>
+    <div id="feedbackDiv" class="alert" style="display: none;"></div>
     <!-- Search Input -->
     <div class="mb-3">
         <input type="text" id="searchInput" class="form-control" placeholder="Search by Course Code">
@@ -74,10 +75,22 @@
                         data-bs-toggle="modal"
                         data-bs-target="#addPrerequisiteModal"
                         th:data-course-id="${course.id}"
-                        th:data-course-code="${course.courseCode}">
+                        th:data-course-code="${course.courseCode}"
+                        th:if="${not course.hasPreReqs}">
                     Add Prerequisites
                 </button>
+
+                <button class="btn btn-sm btn-warning editPrereqBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editPrerequisiteModal"
+                        th:data-course-id="${course.id}"
+                        th:data-course-code="${course.courseCode}"
+                        th:if="${course.hasPreReqs}">
+                    Edit Prerequisites
+                </button>
             </td>
+
+
         </tr>
         </tbody>
     </table>
@@ -140,8 +153,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addPrerequisiteForm">
+                <form id="addPrerequisiteForm" action="/admin/confirmPreReqAdd" method="POST">
                     <input type="hidden" name="courseId" id="selectedCourseId">
+                    <input type="hidden" name="successStatus" id="successStatus">
+                    <input type="hidden" name="responseMessage" id="responseMessage">
 
                     <!-- Container where all top-level groups go -->
                     <div id="prerequisiteGroupsContainer" class="group-container">

@@ -19,23 +19,23 @@ public class PrerequisiteGroup {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PrerequisiteType type; // AND / OR
-
-    @ManyToOne
-    @JoinColumn(name = "parent_group_id")
-    private PrerequisiteGroup parentGroup; // Self-referencing for nesting
-
-    @ManyToOne
-    @JoinColumn(name = "next_group_id")
-    private PrerequisiteGroup nextGroup; // For linking groups at the same level
-
-    @Enumerated(EnumType.STRING)
-    private PrerequisiteType operatorToNext; // Operator (AND / OR) for linking groups
-    @OneToMany(mappedBy = "parentGroup", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PrerequisiteGroup> subGroups = new ArrayList<>();
-
-    @OneToMany(mappedBy = "prerequisiteGroup", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CoursePrerequisite> prerequisites = new ArrayList<>();
+//    @Enumerated(EnumType.STRING)
+//    @Column(nullable = false)
+//    private PrerequisiteType type; // AND / OR
+//
+//    @ManyToOne
+//    @JoinColumn(name = "parent_group_id")
+//    private PrerequisiteGroup parentGroup; // Self-referencing for nesting
+//
+//    @ManyToOne
+//    @JoinColumn(name = "next_group_id")
+//    private PrerequisiteGroup nextGroup; // For linking groups at the same level
+//
+//    @Enumerated(EnumType.STRING)
+//    private PrerequisiteType operatorToNext; // Operator (AND / OR) for linking groups
+//    @OneToMany(mappedBy = "parentGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<PrerequisiteGroup> subGroups = new ArrayList<>();
+//
+//    @OneToMany(mappedBy = "prerequisiteGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<CoursePrerequisite> prerequisites = new ArrayList<>();
 }

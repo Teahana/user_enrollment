@@ -13,4 +13,7 @@ public interface CoursePrerequisiteRepo extends JpaRepository<CoursePrerequisite
     List<Course> findPrerequisitesByCourseId(@Param("courseId") Long courseId);
 
     List<CoursePrerequisite> findByCourse(Course course);
+    @Query("SELECT cp FROM CoursePrerequisite cp WHERE cp.course.id = :courseId")
+    List<CoursePrerequisite> findByCourseId(@Param("courseId") Long courseId);
+
 }

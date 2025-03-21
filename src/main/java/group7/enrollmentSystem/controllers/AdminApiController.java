@@ -1,12 +1,16 @@
 package group7.enrollmentSystem.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteRequest;
+import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteDTO;
+import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +26,8 @@ public class AdminApiController {
     private final CourseRepo courseRepo;
     private final CourseProgrammeService courseProgrammeService;
     private final CourseService courseService;
+    @Autowired
+    private ObjectMapper objectMapper;
 
 
     @GetMapping("/getAllCourses")
@@ -30,11 +36,20 @@ public class AdminApiController {
         return ResponseEntity.ok(courses);
     }
     @PostMapping("/addPreReqs")
-    public ResponseEntity<?> addPrerequisites(@RequestBody CoursePrerequisiteRequest request) {
+    public ResponseEntity<?> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
         try{
-            System.out.println("request: " + request);
             courseService.addPrerequisites(request);
             return ResponseEntity.ok(Map.of("message", "Prerequisites added successfully"));
+        }
+        catch (Exception e){
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+    @PostMapping("/getPreReqs")
+    public ResponseEntity<?> getPreReqs(@RequestBody Map<String,Long> request) {
+        try{
+            FlatCoursePrerequisiteRequest prerequisites = courseService.getPrerequisitesForCourse(request.get("courseId"));
+            return ResponseEntity.ok(Map.of("prerequisites", prerequisites));
         }
         catch (Exception e){
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

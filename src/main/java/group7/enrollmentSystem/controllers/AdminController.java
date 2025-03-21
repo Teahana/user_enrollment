@@ -49,6 +49,21 @@ public class AdminController {
         model.addAttribute("courses", courseDtos);
         return "courses";
     }
+    @PostMapping("/confirmPreReqAdd")
+    public String confirmPreReqAdd(
+            @RequestParam("successStatus") String successStatus,
+            @RequestParam("responseMessage") String responseMessage,
+            RedirectAttributes redirectAttributes) {
+
+        if ("true".equals(successStatus)) {
+            redirectAttributes.addFlashAttribute("message", responseMessage);
+        } else {
+            redirectAttributes.addFlashAttribute("error", responseMessage);
+        }
+
+        return "redirect:/admin/courses";
+    }
+
     @PostMapping("/addCourse")
     public String addCourse(@ModelAttribute("courseDto") CourseDto courseDto, RedirectAttributes redirectAttributes) {
         try{

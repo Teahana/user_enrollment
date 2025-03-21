@@ -558,35 +558,6 @@ function cleanEmptyGroups(groups) {
         }));
 }
 
-function submitPrerequisiteForm(event) {
-    event.preventDefault();
-    let courseId = document.getElementById("selectedCourseId").value;
-
-    if (!courseId || topLevelGroups.length === 0) {
-        alert("Please add at least one prerequisite group.");
-        return;
-    }
-
-    // Clean empty groups before sending
-    let cleanedGroups = cleanEmptyGroups(topLevelGroups);
-
-    let requestData = {
-        courseId: Number(courseId),
-        prerequisiteGroups: cleanedGroups
-    };
-
-    // 🆕 Log the cleaned data before submitting
-    console.log("Submitting prerequisite data:", JSON.stringify(requestData, null, 2));
-
-    // 🛑 Commented out actual request for testing
-    fetch("/api/admin/addPreReqs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData)
-    }).then(() => {
-        // Do nothing
-    });
-}
 
 
 
@@ -625,3 +596,79 @@ function showMessage(divId, message, type) {
         div.classList.remove("alert-success", "alert-danger");
     }, 2000);
 }
+function flattenGroups(courseId, groups, isChild = false, parentId = null) {
+    let flatList = [];
+
+    for (let i = 0; i < groups.length; i++) {
+        let group = groups[i];
+        const currentGroupId = group.id;
+        const childGroupId = group.subGroups.length > 0 ? group.subGroups[0].id : 0;
+        const isTopLevelParent = !isChild;
+        const isFinalSubGroup = isChild && group.subGroups.length === 0;
+
+        group.courses.forEach(prerequisiteId => {
+            flatList.push({
+                courseId: Number(courseId),
+                prerequisiteId: prerequisiteId,
+                groupId: currentGroupId,
+                prerequisiteType: group.type,
+                operatorToNext: isTopLevelParent ? group.operatorToNext : null,
+                parent: !isChild || group.subGroups.length > 0,
+                child: isChild,
+                childId: childGroupId || 0
+            });
+        });
+
+        // Handle subgroups recursively
+        if (group.subGroups.length > 0) {
+            flatList.push(...flattenGroups(courseId, group.subGroups, true, currentGroupId));
+        }
+    }
+
+    return flatList;
+}
+function submitPrerequisiteForm(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    let courseId = document.getElementById("selectedCourseId").value;
+
+    if (!courseId || topLevelGroups.length === 0) {
+        alert("Please add at least one prerequisite group.");
+        return;
+    }
+
+    // Clean empty groups before sending
+    let cleanedGroups = cleanEmptyGroups(topLevelGroups);
+
+    let flattenedPrerequisites = flattenGroups(courseId, cleanedGroups);
+
+    let requestData = {
+        courseId: Number(courseId),
+        prerequisites: flattenedPrerequisites
+    };
+
+    // ✅ First, send the request to API
+    fetch("/api/admin/addPreReqs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData)
+    })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(({ status, body }) => {
+            document.getElementById("successStatus").value = (status === 200) ? "true" : "false";
+            document.getElementById("responseMessage").value = body.message ||
+                (status === 200 ? "Prerequisites added successfully" : "An unknown error occurred");
+
+            // ✅ Now, submit the form normally
+            document.getElementById("addPrerequisiteForm").submit();
+        })
+        .catch(err => {
+            document.getElementById("successStatus").value = "false";
+            document.getElementById("responseMessage").value = "Network error: " + err.message;
+
+            // ✅ Submit form with error message
+            document.getElementById("addPrerequisiteForm").submit();
+        });
+}
+
+

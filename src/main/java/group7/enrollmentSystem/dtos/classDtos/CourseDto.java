@@ -16,4 +16,5 @@ public class CourseDto {
     private boolean offeredSem2;
     private List<String> prerequisites;
     private List<String> programmes;
+    boolean hasPreReqs;
 }

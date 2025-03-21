@@ -1,8 +1,6 @@
 package group7.enrollmentSystem.services;
 
-import group7.enrollmentSystem.dtos.classDtos.CourseDto;
-import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteRequest;
-import group7.enrollmentSystem.dtos.classDtos.PrerequisiteGroupDTO;
+import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
@@ -27,96 +25,7 @@ public class CourseService {
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final PrerequisiteGroupRepository prerequisiteGroupRepository;
-    @Transactional
-    public void addPrerequisites(CoursePrerequisiteRequest request) {
-        Course course = courseRepo.findById(request.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Course not found with id: " + request.getCourseId()));
 
-        // 🧹 CLEANUP existing groups + course prerequisites
-        List<CoursePrerequisite> existingLinks = coursePrerequisiteRepo.findByCourse(course);
-        Set<PrerequisiteGroup> topLevelGroups = existingLinks.stream()
-                .map(CoursePrerequisite::getPrerequisiteGroup)
-                .filter(g -> g.getParentGroup() == null)
-                .collect(Collectors.toSet());
-
-        coursePrerequisiteRepo.deleteAll(existingLinks);
-        prerequisiteGroupRepository.deleteAll(topLevelGroups);
-
-        // ✅ Proceed to save new prerequisite structure
-        List<PrerequisiteGroup> savedGroups = new ArrayList<>();
-        PrerequisiteGroup prevGroup = null;
-
-        for (int i = 0; i < request.getPrerequisiteGroups().size(); i++) {
-            PrerequisiteGroupDTO groupDTO = request.getPrerequisiteGroups().get(i);
-            PrerequisiteGroup savedGroup = savePrerequisiteGroup(groupDTO, null);
-
-            if (prevGroup != null) {
-                prevGroup.setNextGroup(savedGroup);
-                prevGroup.setOperatorToNext(PrerequisiteType.valueOf(groupDTO.getOperatorToNext()));
-                prerequisiteGroupRepository.save(prevGroup);
-            }
-
-            prevGroup = savedGroup;
-            savedGroups.add(savedGroup);
-        }
-
-        for (int i = 0; i < savedGroups.size(); i++) {
-            saveCoursePrerequisites(course, savedGroups.get(i), request.getPrerequisiteGroups().get(i));
-        }
-    }
-
-
-
-    // ✅ Save Prerequisite Groups recursively
-    private PrerequisiteGroup savePrerequisiteGroup(PrerequisiteGroupDTO groupDTO, PrerequisiteGroup parentGroup) {
-        PrerequisiteGroup group;
-        if (groupDTO.getId() != null) {
-            group = prerequisiteGroupRepository.findById(groupDTO.getId())
-                    .orElse(new PrerequisiteGroup());
-        } else {
-            group = new PrerequisiteGroup();
-        }
-        group.setType(PrerequisiteType.valueOf(groupDTO.getType()));
-        group.setParentGroup(parentGroup);
-        PrerequisiteGroup savedGroup = prerequisiteGroupRepository.save(group);
-
-        // Recursively save subgroups
-        PrerequisiteGroup prevSubGroup = null;
-        for (PrerequisiteGroupDTO subGroupDTO : groupDTO.getSubGroups()) {
-            PrerequisiteGroup subGroup = savePrerequisiteGroup(subGroupDTO, savedGroup);
-            if (prevSubGroup != null) {
-                prevSubGroup.setNextGroup(subGroup);
-                prevSubGroup.setOperatorToNext(PrerequisiteType.valueOf(subGroupDTO.getOperatorToNext()));
-                prerequisiteGroupRepository.save(prevSubGroup);
-            }
-            prevSubGroup = subGroup;
-        }
-
-        return savedGroup;
-    }
-
-    // ✅ Save CoursePrerequisites based on groups
-    private void saveCoursePrerequisites(Course course, PrerequisiteGroup group, PrerequisiteGroupDTO groupDTO) {
-        // Create `CoursePrerequisite` entries from DTO course IDs
-        for (Long prerequisiteId : groupDTO.getCourses()) {
-            Course prerequisite = courseRepo.findById(prerequisiteId)
-                    .orElseThrow(() -> new RuntimeException("Prerequisite Course not found: " + prerequisiteId));
-
-            CoursePrerequisite coursePrerequisite = new CoursePrerequisite();
-            coursePrerequisite.setCourse(course);
-            coursePrerequisite.setPrerequisite(prerequisite);
-            coursePrerequisite.setPrerequisiteGroup(group);
-            coursePrerequisiteRepo.save(coursePrerequisite);
-        }
-
-        // Recursively handle subgroups
-        for (int i = 0; i < groupDTO.getSubGroups().size(); i++) {
-            PrerequisiteGroupDTO subGroupDTO = groupDTO.getSubGroups().get(i);
-            PrerequisiteGroup subGroup = group.getSubGroups().get(i); // Get the matching saved entity
-
-            saveCoursePrerequisites(course, subGroup, subGroupDTO);
-        }
-    }
 
     public List<CourseDto> getAllCoursesWithProgrammesAndPrereqs() {
         List<Course> allCourses = courseRepo.findAll();
@@ -132,21 +41,72 @@ public class CourseService {
             dto.setOfferedSem1(course.isOfferedSem1());
             dto.setOfferedSem2(course.isOfferedSem2());
 
-            // Fetch programme codes using CourseProgrammeRepo
+            // ✅ Fetch programme codes using CourseProgrammeRepo
             List<String> programmeCodes = courseProgrammeRepo.findProgrammesByCourseId(course.getId()).stream()
-                    .map(Programme::getProgrammeCode) // or .getName() if needed
+                    .map(Programme::getProgrammeCode)
                     .collect(Collectors.toList());
             dto.setProgrammes(programmeCodes);
 
-            // Fetch prerequisite course codes using CoursePrerequisiteRepo
-            List<String> prereqCodes = coursePrerequisiteRepo.findPrerequisitesByCourseId(course.getId()).stream()
-                    .map(Course::getCourseCode)
-                    .collect(Collectors.toList());
-            dto.setPrerequisites(prereqCodes);
+            // ✅ Fetch prerequisites
+            List<CoursePrerequisite> prerequisites = coursePrerequisiteRepo.findByCourseId(course.getId());
 
+            // ✅ Step 1: Group by groupId
+            Map<Integer, List<CoursePrerequisite>> groupedPrereqs = prerequisites.stream()
+                    .collect(Collectors.groupingBy(CoursePrerequisite::getGroupId));
+
+            // ✅ Step 2: Identify parent groups & maintain ordering
+            List<Integer> parentGroups = prerequisites.stream()
+                    .filter(CoursePrerequisite::isParent)
+                    .sorted(Comparator.comparingInt(CoursePrerequisite::getGroupId))
+                    .map(CoursePrerequisite::getGroupId)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            List<String> formattedPrereqs = new ArrayList<>();
+
+            // ✅ Step 3: Build prerequisite expressions per group
+            for (int i = 0; i < parentGroups.size(); i++) {
+                int parentGroupId = parentGroups.get(i);
+                List<CoursePrerequisite> group = groupedPrereqs.get(parentGroupId);
+                if (group == null) continue;
+
+                StringBuilder groupString = new StringBuilder();
+
+                for (int j = 0; j < group.size(); j++) {
+                    CoursePrerequisite cp = group.get(j);
+                    String courseCode = cp.getPrerequisite().getCourseCode();
+
+                    if (j > 0) {
+                        groupString.append(" ").append(cp.getOperatorToNext()).append(" ");
+                    }
+
+                    groupString.append(courseCode);
+                }
+
+                // Wrap in parentheses if multiple conditions exist
+                if (group.size() > 1) {
+                    formattedPrereqs.add("(" + groupString.toString() + ")");
+                } else {
+                    formattedPrereqs.add(groupString.toString());
+                }
+
+                // ✅ Step 4: Add `operatorToNext` between parent groups
+                if (i < parentGroups.size() - 1) {
+                    CoursePrerequisite lastInGroup = group.get(group.size() - 1);
+                    if (lastInGroup.getOperatorToNext() != null) {
+                        formattedPrereqs.add(lastInGroup.getOperatorToNext().toString());
+                    }
+                }
+            }
+
+            // ✅ Step 5: Convert to a single string expression
+            dto.setPrerequisites(List.of(String.join(" ", formattedPrereqs)));
+            dto.setHasPreReqs(!prerequisites.isEmpty());
             return dto;
         }).collect(Collectors.toList());
     }
+
+
 
     // Create a new course
     public void saveCourse(String courseCode, String title, String description, double creditPoints, Short level, Boolean offeredSem1, Boolean offeredSem2) {
@@ -227,4 +187,63 @@ public class CourseService {
             coursePrerequisiteRepo.save(coursePrerequisite);
         }
     }
+
+    @Transactional
+    public void addPrerequisites(FlatCoursePrerequisiteRequest request) {
+        Course mainCourse = courseRepo.findById(request.getCourseId())
+                .orElseThrow(() -> new IllegalArgumentException("Course not found with ID: " + request.getCourseId()));
+
+        List<CoursePrerequisite> prerequisitesToSave = new ArrayList<>();
+
+        for (FlatCoursePrerequisiteDTO dto : request.getPrerequisites()) {
+            // Skip if course is same as prerequisite
+            if (dto.getCourseId().equals(dto.getPrerequisiteId())) {
+                throw new IllegalArgumentException("A course cannot be a prerequisite to itself.");
+            }
+
+            // Fetch the referenced prerequisite course
+            Course prerequisiteCourse = courseRepo.findById(dto.getPrerequisiteId())
+                    .orElseThrow(() -> new IllegalArgumentException("Prerequisite course not found with ID: " + dto.getPrerequisiteId()));
+
+            CoursePrerequisite prerequisite = new CoursePrerequisite();
+            prerequisite.setCourse(mainCourse);
+            prerequisite.setPrerequisite(prerequisiteCourse);
+            prerequisite.setPrerequisiteType(dto.getPrerequisiteType());
+            prerequisite.setOperatorToNext(dto.getOperatorToNext());
+            prerequisite.setGroupId(dto.getGroupId());
+            prerequisite.setParent(dto.isParent());
+            prerequisite.setChild(dto.isChild());
+            prerequisite.setChildId(dto.getChildId());
+
+            prerequisitesToSave.add(prerequisite);
+        }
+
+        coursePrerequisiteRepo.saveAll(prerequisitesToSave);
+    }
+    public FlatCoursePrerequisiteRequest getPrerequisitesForCourse(Long courseId) {
+        List<CoursePrerequisite> entities = coursePrerequisiteRepo.findByCourseId(courseId);
+        System.out.println("entities count: " + entities.size());
+
+        List<FlatCoursePrerequisiteDTO> dtos = entities.stream().map(cp -> {
+            FlatCoursePrerequisiteDTO dto = new FlatCoursePrerequisiteDTO();
+            dto.setCourseId(cp.getCourse().getId());
+            dto.setPrerequisiteId(cp.getPrerequisite().getId());
+            dto.setGroupId(cp.getGroupId());
+            dto.setPrerequisiteType(cp.getPrerequisiteType());
+            dto.setOperatorToNext(cp.getOperatorToNext());
+            dto.setParent(cp.isParent());
+            dto.setChild(cp.isChild());
+            dto.setChildId(cp.getChildId());
+            return dto;
+        }).collect(Collectors.toList());
+
+        FlatCoursePrerequisiteRequest response = new FlatCoursePrerequisiteRequest();
+        response.setCourseId(courseId);
+        response.setPrerequisites(dtos);
+
+        return response;
+    }
+
+
+
 }

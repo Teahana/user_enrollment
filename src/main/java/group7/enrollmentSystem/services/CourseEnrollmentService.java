@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +24,6 @@ public class CourseEnrollmentService {
     private final StudentProgrammeRepo studentProgrammeRepo;
     private final CourseRepo courseRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
-
 
     // Cancel enrollment
     public void cancelEnrollment(Long enrollmentId) {
@@ -50,25 +48,39 @@ public class CourseEnrollmentService {
 
     // Fetch inactive (canceled) enrollments
     public List<CourseEnrollment> getCanceledEnrollments(Long studentId) {
-        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalse(studentId);
+        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalseAndCompletedFalse(studentId);
+    }
+
+    public List<CourseEnrollment> getCompletedEnrollments(Long studentId) {
+        return courseEnrollmentRepo.findByStudentIdAndCompletedTrue(studentId);
     }
 
     // Get available Courses Based on Semester
     public List<CourseProgramme> getAvailableCoursesForSemester(Long studentId, int semester) {
+
         List<CourseEnrollment> activeEnrollments = getActiveEnrollments(studentId);
+
+        // Fetch completed enrollments
+        List<CourseEnrollment> completedEnrollments = courseEnrollmentRepo.findByStudentIdAndCompletedTrue(studentId);
 
         List<Long> enrolledIds = activeEnrollments.stream()
                 .map(e -> e.getCourse().getId()).collect(Collectors.toList());
+
+        List<Long> completedIds = completedEnrollments.stream()
+                .map(e -> e.getCourse().getId())
+                .collect(Collectors.toList());
 
         List<CourseProgramme> allCourses = courseProgrammeRepo.findAll();
 
         // Fetch available courses for the semester
         //List<CourseProgramme> courses = courseProgrammeRepo.findBySemester(semester);
 
+        // Filter out courses the student is already enrolled in or has completed
         return allCourses.stream()
                 .filter(cp -> (semester == 1 && cp.getCourse().isOfferedSem1()) ||
                         (semester == 2 && cp.getCourse().isOfferedSem2()))
                 .filter(cp -> !enrolledIds.contains(cp.getCourse().getId()))
+                .filter(cp -> !completedIds.contains(cp.getCourse().getId()))
                 .collect(Collectors.toList());
     }
 
@@ -151,5 +163,4 @@ public class CourseEnrollmentService {
                 .filter(e -> semester == 1 ? e.getCourse().isOfferedSem1() : e.getCourse().isOfferedSem2())
                 .collect(Collectors.toList());
     }
-
 }

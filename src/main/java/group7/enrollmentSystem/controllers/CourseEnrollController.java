@@ -29,7 +29,6 @@ public class CourseEnrollController {
     private final StudentProgrammeService studentProgrammeService;
     private final CourseService courseService;
 
-
     @GetMapping("/enrollment/{semester}")
     public String enrollment(@PathVariable("semester") int semester, Model model, Principal principal) {
         String email = principal.getName();
@@ -50,7 +49,6 @@ public class CourseEnrollController {
 
         return "enrollment";
     }
-
 
     @PostMapping("/cancelEnrollment/{id}/{semester}")
     public String cancelEnrollment(@PathVariable Long id, @PathVariable int semester, RedirectAttributes redirectAttributes) {
@@ -115,7 +113,6 @@ public class CourseEnrollController {
             return "redirect:/courseEnroll/selectCourses/" + semester;
         }
 
-
         try {
             courseEnrollmentService.enrollStudentInCourses(student.getId(), selectedCourseIds, semester);
             redirectAttributes.addFlashAttribute("success", "Courses have been enrolled successfully for Semester " + semester);
@@ -124,5 +121,17 @@ public class CourseEnrollController {
             return "redirect:/courseEnroll/selectCourses/" + semester;
         }
          return "redirect:/courseEnroll/enrollment/" + semester;
+    }
+
+    @GetMapping("/completedCourses")
+    public String viewCompletedCourses(Model model, Principal principal) {
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Fetch completed enrollments
+        List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollments(student.getId());
+
+        model.addAttribute("completedEnrollments", completedEnrollments);
+        return "completedCourses";
     }
 }

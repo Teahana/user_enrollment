@@ -1,6 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.dtos.classDtos.AddCourseReq;
+import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteRequest;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.repos.CourseRepo;
@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -24,22 +23,23 @@ public class AdminApiController {
     private final CourseProgrammeService courseProgrammeService;
     private final CourseService courseService;
 
+
     @GetMapping("/getAllCourses")
     public ResponseEntity<?> getAllCourses() {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
         return ResponseEntity.ok(courses);
     }
-
-    //    @PostMapping("/addPreReqs")
-//    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
-//        try {
-//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-//            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
-//        } catch (Exception e) {
-//            System.out.println("Exception: "+ e.getMessage());
-//            return ResponseEntity.badRequest().body("Failed to add prerequisites");
-//        }
-//    }
+    @PostMapping("/addPreReqs")
+    public ResponseEntity<?> addPrerequisites(@RequestBody CoursePrerequisiteRequest request) {
+        try{
+            System.out.println("request: " + request);
+            courseService.addPrerequisites(request);
+            return ResponseEntity.ok(Map.of("message", "Prerequisites added successfully"));
+        }
+        catch (Exception e){
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @GetMapping("/getCoursesExcept/{id}")
     public ResponseEntity<?> getCoursePrerequisites(@PathVariable Long id) {
@@ -64,3 +64,13 @@ public class AdminApiController {
         return ResponseEntity.ok().build();
     }
 }
+//    @PostMapping("/addPreReqs")
+//    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
+//        try {
+//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
+//            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
+//        } catch (Exception e) {
+//            System.out.println("Exception: "+ e.getMessage());
+//            return ResponseEntity.badRequest().body("Failed to add prerequisites");
+//        }
+//    }

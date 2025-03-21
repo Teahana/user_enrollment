@@ -137,32 +137,22 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Form submits to /admin/addPreReqs -->
-                <form id="addPrerequisiteForm" action="/admin/addPreReqs" method="post" onsubmit="return submitAddPrerequisiteForm();">
+                <form id="addPrerequisiteForm" action="/admin/addPreReqs" method="post" onsubmit="return submitPrerequisiteForm(event)">
                     <input type="hidden" name="courseId" id="selectedCourseId">
-                    <input type="hidden" name="prerequisites" id="prerequisitesInput">
 
-                    <!-- Submit Button (Moved to the Top) -->
-                    <button type="submit" class="btn btn-success w-100 mb-3">Add Prerequisites</button>
+                    <!-- 📌 Groups container for prerequisites -->
+                    <div id="prerequisiteGroupsContainer"></div>
 
-                    <!-- Search Input for Prerequisites -->
-                    <div class="mb-3">
-                        <input type="text" id="searchPrereqInput" class="form-control" placeholder="Search for a course">
-                    </div>
+                    <!-- 📌 Button to add a new prerequisite group -->
+                    <button type="button" class="btn btn-outline-primary mt-2" onclick="addNewPrerequisiteGroup()">+ Add Prerequisite Group</button>
 
-                    <div class="mb-3">
-                        <label class="form-label">Select Prerequisites</label>
-                        <div id="prerequisitesCheckboxes"></div>
-                    </div>
+                    <!-- 📌 Submit Button -->
+                    <button type="submit" class="btn btn-success w-100 mt-3">Add Prerequisites</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
-
-
-
 
 
 

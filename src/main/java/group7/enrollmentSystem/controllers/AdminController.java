@@ -61,19 +61,19 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
-    @PostMapping("/addPreReqs")
-    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
-        try {
-            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
-        } catch (DataIntegrityViolationException e) {
-            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
-        }
-        return "redirect:/admin/courses";
-    }
 
+    //    @PostMapping("/addPreReqs")
+//    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
+//        try {
+//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
+//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
+//        } catch (DataIntegrityViolationException e) {
+//            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
+//        } catch (Exception e) {
+//            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
+//        }
+//        return "redirect:/admin/courses";
+//    }
 
 
     // Display all programmes

@@ -58,25 +58,30 @@ public class CourseEnrollmentService {
     // Get available Courses Based on Semester
     public List<CourseProgramme> getAvailableCoursesForSemester(Long studentId, int semester) {
 
-        List<CourseEnrollment> activeEnrollments = getActiveEnrollments(studentId);
+        // Fetch the student's current programme
+        Student student = studentRepo.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
+        StudentProgramme studentProgramme = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student)
+                .orElseThrow(() -> new RuntimeException("No active programme found for the student"));
 
-        // Fetch completed enrollments
+        // Fetch active and completed enrollments
+        List<CourseEnrollment> activeEnrollments = getActiveEnrollments(studentId);
         List<CourseEnrollment> completedEnrollments = courseEnrollmentRepo.findByStudentIdAndCompletedTrue(studentId);
 
+        // Extract course IDs from active and completed enrollments
         List<Long> enrolledIds = activeEnrollments.stream()
                 .map(e -> e.getCourse().getId()).collect(Collectors.toList());
-
         List<Long> completedIds = completedEnrollments.stream()
                 .map(e -> e.getCourse().getId())
                 .collect(Collectors.toList());
 
-        List<CourseProgramme> allCourses = courseProgrammeRepo.findAll();
+        // Fetch all courses linked to the student's current programme
+        List<CourseProgramme> programmeCourses = courseProgrammeRepo.findByProgramme(studentProgramme.getProgramme());
 
         // Fetch available courses for the semester
         //List<CourseProgramme> courses = courseProgrammeRepo.findBySemester(semester);
 
         // Filter out courses the student is already enrolled in or has completed
-        return allCourses.stream()
+        return programmeCourses.stream()
                 .filter(cp -> (semester == 1 && cp.getCourse().isOfferedSem1()) ||
                         (semester == 2 && cp.getCourse().isOfferedSem2()))
                 .filter(cp -> !enrolledIds.contains(cp.getCourse().getId()))
@@ -126,31 +131,6 @@ public class CourseEnrollmentService {
         }
     }
 
-    // Get available courses excluding courses already actively enrolled
-    public List<Course> getAvailableCoursesForEnrollment(Long studentId) {
-        Student student = studentRepo.findById(studentId).orElseThrow();
-        // Find the student's current programme
-        StudentProgramme studentProgramme = studentProgrammeRepo
-                .findByStudentAndCurrentProgrammeTrue(student)
-                .orElseThrow(() -> new RuntimeException("Student's current programme not found"));
-        //Get all courses linked to this programme
-        List<CourseProgramme> programmeCourses = courseProgrammeRepo
-                .findByProgramme(studentProgramme.getProgramme());
-
-        //Extract the list of courses
-        List<Course> coursesInProgramme = programmeCourses.stream()
-                .map(CourseProgramme::getCourse)
-                .collect(Collectors.toList());
-        //Get the courses the student is already enrolled in
-        List<CourseEnrollment> enrolledCourses = courseEnrollmentRepo.findByStudent(student);
-        List<Course> currentlyEnrolledCourses = enrolledCourses.stream()
-                .map(CourseEnrollment::getCourse)
-                .collect(Collectors.toList());
-        //Filter out courses the student is already enrolled in
-        return coursesInProgramme.stream()
-                .filter(course -> !currentlyEnrolledCourses.contains(course))
-                .collect(Collectors.toList());
-    }
 
     public List<CourseEnrollment> getActiveEnrollmentsBySemester(Long studentId, int semester) {
         return getActiveEnrollments(studentId).stream()

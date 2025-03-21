@@ -132,19 +132,6 @@ public class CourseService {
         }
     }
 
-    public void addPrerequisites(Long courseId, List<Long> prereqIds) {
-        Course course = courseRepo.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
-
-        List<Course> prerequisites = courseRepo.findAllById(prereqIds);
-
-        List<CoursePrerequisite> newPrereqs = prerequisites.stream()
-                .map(prereq -> new CoursePrerequisite(null, course, prereq))
-                .collect(Collectors.toList());
-
-        coursePrerequisiteRepo.saveAll(newPrereqs);
-    }
-
     //Used to fetch prerequisiteCourseCodes for Prerequisite Column in selectCourses Page
     public List<String> getPrerequisiteCodesByCourseId(Long courseId) {
         return coursePrerequisiteRepo.findPrerequisitesByCourseId(courseId).stream()
@@ -152,21 +139,17 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+//    public void addPrerequisites(Long courseId, List<Long> prereqIds) {
+//        Course course = courseRepo.findById(courseId)
+//                .orElseThrow(() -> new RuntimeException("Course not found"));
+//
+//        List<Course> prerequisites = courseRepo.findAllById(prereqIds);
+//
+//        List<CoursePrerequisite> newPrereqs = prerequisites.stream()
+//                .map(prereq -> new CoursePrerequisite(null, course, prereq))
+//                .collect(Collectors.toList());
+//
+//        coursePrerequisiteRepo.saveAll(newPrereqs);
+//    }
 
 }
-//    public void addPrerequisites(Long courseId, List<String> prerequisiteCodes) {
-//        Course course = courseRepo.findById(courseId)
-//                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
-//
-//        List<Course> prerequisiteCourses = courseRepo.findByCourseCodeIn(prerequisiteCodes);
-//        List<CoursePrerequisite> coursePrerequisites = new ArrayList<>();
-//
-//        for (Course prereq : prerequisiteCourses) {
-//            CoursePrerequisite cp = new CoursePrerequisite();
-//            cp.setCourse(course);
-//            cp.setPrerequisite(prereq);
-//            coursePrerequisites.add(cp);
-//        }
-//
-//        coursePrerequisiteRepo.saveAll(coursePrerequisites);
-//    }

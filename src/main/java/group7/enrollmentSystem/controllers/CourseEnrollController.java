@@ -79,7 +79,10 @@ public class CourseEnrollController {
     public String selectCourses(@PathVariable("semester") int semester, Model model, Principal principal) {
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow();
+
+        // Fetch available courses for the semester based on the student's current programme
         List<CourseProgramme> courses = courseEnrollmentService.getAvailableCoursesForSemester(student.getId(), semester);
+
         model.addAttribute("courses", courses);
         model.addAttribute("courseService", courseService);
         model.addAttribute("semester", semester);

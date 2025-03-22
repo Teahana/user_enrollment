@@ -319,5 +319,69 @@ public class CourseService {
     }
 
 
+    public GraphicalPrerequisiteNode buildPrerequisiteTree(Long courseId) {
+        // 1) Load the main course
+        Course mainCourse = courseRepo.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
 
+        // 2) Create the top-level node
+        GraphicalPrerequisiteNode root = new GraphicalPrerequisiteNode();
+        root.setCourseId(mainCourse.getId());
+        root.setCourseCode(mainCourse.getCourseCode());
+        root.setLevel(mainCourse.getLevel());
+        // The operator for the “root” might be null or “AND” by default
+        root.setOperator(null);
+
+        // 3) Fetch all CoursePrerequisite rows for this course
+        List<CoursePrerequisite> prereqs = coursePrerequisiteRepo.findByCourseId(courseId);
+        if (prereqs.isEmpty()) {
+            return root; // no prerequisites
+        }
+
+        // 4) Convert to subgroups: see your existing grouping logic
+        // For example, group by groupId:
+        Map<Integer, List<CoursePrerequisite>> byGroupId = prereqs.stream()
+                .collect(Collectors.groupingBy(CoursePrerequisite::getGroupId));
+
+        // Identify “parent groups” vs “child groups” if needed
+        // or just build them all into sub-nodes:
+        // For demonstration, we'll create 1 child node per unique group ID
+        List<GraphicalPrerequisiteNode> children = new ArrayList<>();
+        for (Integer groupId : byGroupId.keySet()) {
+            List<CoursePrerequisite> groupList = byGroupId.get(groupId);
+            // Suppose we assume they all share the same PrerequisiteType
+            PrerequisiteType groupType = groupList.get(0).getPrerequisiteType();
+
+            GraphicalPrerequisiteNode groupNode = new GraphicalPrerequisiteNode();
+            // You might treat the "group node" as an operator node, or
+            // you might treat each row as a child. Up to you.
+            groupNode.setOperator(groupType);
+            // If you want operatorToNext as well:
+            groupNode.setOperatorToNext(groupList.get(0).getOperatorToNext());
+
+            // For each row in this group, add a child for the actual course
+            for (CoursePrerequisite cp : groupList) {
+                Course prereqCourse = cp.getPrerequisite(); // the “prerequisite” course
+                GraphicalPrerequisiteNode childNode = new GraphicalPrerequisiteNode(
+                        prereqCourse.getId(),
+                        prereqCourse.getCourseCode(),
+                        prereqCourse.getLevel(),
+                        cp.getPrerequisiteType(),
+                        cp.getOperatorToNext(),
+                        new ArrayList<>()
+                );
+                groupNode.getChildren().add(childNode);
+
+                // If you want to go multiple levels deep (the child’s prerequisites, etc.),
+                // you could RECURSE here: childNode.setChildren( ... buildPrerequisiteTree(...) ... )
+                // But be mindful to avoid cycles in your data.
+            }
+
+            children.add(groupNode);
+        }
+
+        root.setChildren(children);
+
+        return root;
+    }
 }

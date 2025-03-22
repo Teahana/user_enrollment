@@ -1,0 +1,113 @@
+document.addEventListener("DOMContentLoaded", function () {
+    if (typeof mermaid === "undefined") {
+        console.error("Mermaid is not loaded.");
+        return;
+    } else {
+        console.log("Mermaid is loaded.");
+    }
+
+    document.querySelectorAll(".visualizeBtn").forEach(button => {
+        button.addEventListener("click", () => {
+            const courseCode = button.getAttribute("data-course-code");
+            const expression = button.getAttribute("data-expression");
+
+            const mermaidStr = convertToMermaidTree(courseCode, expression);
+            console.log("Generated Mermaid diagram:");
+            console.log(mermaidStr);
+
+            // Render the Mermaid diagram into SVG
+            mermaid.render("generatedDiagram", mermaidStr).then(({ svg }) => {
+                const container = document.getElementById("mermaidContainer");
+                container.innerHTML = svg;
+
+                const modal = new bootstrap.Modal(document.getElementById("visualizeModal"));
+                modal.show();
+            }).catch(err => {
+                console.error("Mermaid render error:", err);
+            });
+        });
+    });
+});
+
+/**
+ * Converts logical expression string into a Mermaid diagram
+ */
+function convertToMermaidTree(courseCode, expression) {
+    let nodeId = 0;
+    const nodes = [];
+    const edges = [];
+
+    function getNode(label) {
+        const id = "N" + (nodeId++);
+        const safeLabel = label.replace(/"/g, '\\"');
+        nodes.push(`${id}["${safeLabel}"]`);
+        return id;
+    }
+
+    function splitByTopLevel(expr, operator) {
+        let depth = 0;
+        let parts = [];
+        let current = "";
+
+        for (let i = 0; i < expr.length; i++) {
+            const c = expr[i];
+            if (c === "(") depth++;
+            if (c === ")") depth--;
+
+            if (
+                depth === 0 &&
+                expr.substring(i, i + operator.length + 2) === ` ${operator} `
+            ) {
+                parts.push(current.trim());
+                current = "";
+                i += operator.length + 1;
+            } else {
+                current += c;
+            }
+        }
+        if (current.trim()) parts.push(current.trim());
+        return parts;
+    }
+
+    function isFullyWrapped(str) {
+        str = str.trim();
+        if (!str.startsWith("(") || !str.endsWith(")")) return false;
+        let depth = 0;
+        for (let i = 0; i < str.length; i++) {
+            if (str[i] === "(") depth++;
+            else if (str[i] === ")") depth--;
+            if (depth === 0 && i < str.length - 1) return false;
+        }
+        return depth === 0;
+    }
+
+    function parse(expr) {
+        expr = expr.trim();
+        if (isFullyWrapped(expr)) expr = expr.slice(1, -1).trim();
+
+        let parts = splitByTopLevel(expr, "OR");
+        let operator = "OR";
+
+        if (parts.length === 1) {
+            parts = splitByTopLevel(expr, "AND");
+            operator = "AND";
+        }
+
+        if (parts.length === 1) {
+            return getNode(parts[0]);
+        }
+
+        const opNode = getNode(operator);
+        for (let part of parts) {
+            const childId = parse(part);
+            edges.push(`${opNode} --> ${childId}`);
+        }
+        return opNode;
+    }
+
+    const root = getNode(`${courseCode} (Main Course)`);
+    const body = parse(expression);
+    edges.push(`${root} --> ${body}`);
+
+    return `graph TD\n${[...nodes, ...edges].join("\n")}`;
+}

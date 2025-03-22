@@ -11,11 +11,13 @@
 <div class="container mt-4">
     <h2 class="mb-3">Welcome to the Enrollment System</h2>
 
-    <!-- Check if the user is authenticated -->
-    <div th:if="${#authentication != null}">
-        <!-- Check if the user has the STUDENT role -->
-        <div th:if="${#authentication.getAuthorities().?[#this.getAuthority() == 'ROLE_STUDENT'].size() > 0}">
-            <a href="/courseEnroll/enrollment/1" class="btn btn-primary mb-3">My Registration</a>
+
+    <div>
+
+        <div >
+            <a href="/student/enrollment/1" class="btn btn-primary mb-3">My Registrations</a>
+            <a href="/student/completedCourses" class="btn btn-info mb-3">View Completed Courses</a>
+            <a href="/student/invoice/download" class="btn btn-primary">Download Invoice</a>
         </div>
 
         <!-- Logout Button -->

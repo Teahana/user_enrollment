@@ -2,6 +2,7 @@ package group7.enrollmentSystem.repos;
 
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
+import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,5 +17,9 @@ public interface CoursePrerequisiteRepo extends JpaRepository<CoursePrerequisite
     @Query("SELECT cp FROM CoursePrerequisite cp WHERE cp.course.id = :courseId")
     List<CoursePrerequisite> findByCourseId(@Param("courseId") Long courseId);
 
+    @Query("SELECT new group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto(" +
+            "cp.course.id, cp.prerequisite.id, cp.prerequisite.courseCode, cp.prerequisiteType, cp.groupId) " +
+            "FROM CoursePrerequisite cp WHERE cp.course.id IN :courseIds")
+    List<CoursePrerequisiteDto> findPrerequisitesByCourseIds(@Param("courseIds") List<Long> courseIds);
     void deleteByCourse(Course mainCourse);
 }

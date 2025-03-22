@@ -388,4 +388,11 @@ public class CourseService {
     public void deletePrerequisites(Course course) {
         coursePrerequisiteRepo.deleteByCourse(course);
     }
+    //Temporary
+    //Used to fetch prerequisiteCourseCodes for Prerequisite Column in selectCourses Page
+    public List<String> getPrerequisiteCodesByCourseId(Long courseId) {
+        return coursePrerequisiteRepo.findPrerequisitesByCourseId(courseId).stream()
+                .map(Course::getCourseCode)
+                .collect(Collectors.toList());
+    }
 }

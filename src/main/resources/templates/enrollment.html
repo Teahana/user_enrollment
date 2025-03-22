@@ -14,11 +14,11 @@
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
             <a th:classappend="${semester == 1} ? 'active'" class="nav-link"
-               th:href="@{/courseEnroll/enrollment/1}">Semester 1</a>
+               th:href="@{/student/enrollment/1}">Semester 1</a>
         </li>
         <li class="nav-item">
             <a th:classappend="${semester == 2} ? 'active'" class="nav-link"
-               th:href="@{/courseEnroll/enrollment/2}">Semester 2</a>
+               th:href="@{/student/enrollment/2}">Semester 2</a>
         </li>
     </ul>
 
@@ -40,7 +40,7 @@
             <td th:text="${enrollment.course.description}"></td>
             <td th:text="${enrollment.course.creditPoints}"></td>
             <td>
-                <form th:action="@{/courseEnroll/cancelEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
+                <form th:action="@{/student/cancelEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
                     <button type="submit" class="btn btn-warning">Cancel</button>
                 </form>
 
@@ -48,7 +48,7 @@
         </tr>
         </tbody>
     </table>
-    <a th:href="@{'/courseEnroll/selectCourses/' + ${semester}}" class="btn btn-success">Add Course</a>
+    <a th:href="@{'/student/selectCourses/' + ${semester}}" class="btn btn-success">Add Course</a>
 
     <h3>Cancelled Courses</h3>
     <table class="table">
@@ -68,7 +68,7 @@
             <td th:text="${enrollment.course.description}"></td>
             <td th:text="${enrollment.course.creditPoints}"></td>
             <td>
-                <form th:action="@{/courseEnroll/activateEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
+                <form th:action="@{/student/activateEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
                     <button type="submit" class="btn btn-success"
                             th:disabled="${activeEnrollments.size() >= 4}">
                         Activate

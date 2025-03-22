@@ -19,6 +19,8 @@ public class CourseEnrollment {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
     private boolean completed;
+    private boolean failed;
+    private boolean cancelled;
     private LocalDate dateEnrolled;
     private boolean currentlyTaking;
     private int semesterEnrolled;

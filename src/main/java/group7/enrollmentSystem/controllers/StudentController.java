@@ -10,6 +10,7 @@ import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.StudentProgrammeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -49,7 +50,6 @@ public class StudentController {
 
         return "enrollment";
     }
-
     @PostMapping("/cancelEnrollment/{id}/{semester}")
     public String cancelEnrollment(@PathVariable Long id, @PathVariable int semester, RedirectAttributes redirectAttributes) {
         courseEnrollmentService.cancelEnrollment(id);

@@ -55,11 +55,9 @@ function handleEditPrerequisites(event) {
         .then(data => {
             if (data.prerequisites) {
                 // Convert flat prereqs to nested
-                let nestedGroups = convertFlatPrerequisitesToNested(data.prerequisites.prerequisites);
-
-                // Update our topLevelGroups array
-                topLevelGroups = nestedGroups;
-
+                topLevelGroups = convertFlatPrerequisitesToNested(data.prerequisites.prerequisites);
+                // Re-sync groupCounter
+                setGroupCounterToMaxId(topLevelGroups);
                 // Render in Edit mode
                 renderTopLevelGroups(isEditMode);
                 buildExpressionPreview(isEditMode);
@@ -73,7 +71,21 @@ function handleEditPrerequisites(event) {
             console.error("Error fetching prerequisites:", err);
         });
 }
+// Helper to find highest ID among all top-level and subgroups
+function setGroupCounterToMaxId(groups) {
+    let maxId = 0;
 
+    function traverse(arr) {
+        arr.forEach(g => {
+            if (g.id > maxId) maxId = g.id;
+            traverse(g.subGroups);
+        });
+    }
+    traverse(groups);
+
+    // The next group created will be maxId+1
+    groupCounter = maxId + 1;
+}
 function convertFlatPrerequisitesToNested(flatPrereqs) {
     let grouped = {};
     let parentMap = {}; // Map of childId → parentId for correct nesting
@@ -94,17 +106,17 @@ function convertFlatPrerequisitesToNested(flatPrereqs) {
         // Add course to its respective group
         grouped[prereq.groupId].courses.push(prereq.prerequisiteId);
 
-        // Track parent-child relationships
-        if (prereq.child && prereq.childId) {
-            parentMap[prereq.childId] = prereq.groupId; // Child points to parent
+        // If it has a valid parentId, store that relationship
+        if (prereq.parentId && prereq.parentId !== 0) {
+            parentMap[prereq.groupId] = prereq.parentId;
         }
     });
 
     // Step 2: Attach child groups to their correct parents
-    Object.keys(parentMap).forEach(childId => {
-        let parentId = parentMap[childId];
-        if (grouped[parentId] && grouped[childId]) {
-            grouped[parentId].subGroups.push(grouped[childId]);
+    Object.keys(parentMap).forEach(childGroupId => {
+        let parentGroupId = parentMap[childGroupId];
+        if (grouped[parentGroupId] && grouped[childGroupId]) {
+            grouped[parentGroupId].subGroups.push(grouped[childGroupId]);
         }
     });
 
@@ -117,7 +129,6 @@ function convertFlatPrerequisitesToNested(flatPrereqs) {
 
     return topLevelGroups;
 }
-
 // ============================================================================
 // Open the "Add Prerequisites" modal for a given course
 // ============================================================================
@@ -148,8 +159,6 @@ function handleAddPrerequisites(event) {
     let modal = new bootstrap.Modal(document.getElementById("addPrerequisiteModal"), {});
     modal.show();
 }
-
-
 // ============================================================================
 // Add a new top-level group
 // parentGroupId is null => top-level, else it is a subgroup
@@ -168,7 +177,8 @@ function addNewPrerequisiteGroup(parentGroupId = null) {
 
     if (!parentGroupId) {
         topLevelGroups.push(newGroup);
-        renderTopLevelGroups();
+        // Always render in the correct mode
+        renderTopLevelGroups(isEditMode);
     } else {
         let parent = findGroupById(parentGroupId, topLevelGroups);
         if (parent) {
@@ -176,11 +186,8 @@ function addNewPrerequisiteGroup(parentGroupId = null) {
             renderSubgroups(parentGroupId);
         }
     }
-
-    buildExpressionPreview();
+    buildExpressionPreview(isEditMode);
 }
-
-
 // ============================================================================
 // Remove a group (excluding the last top-level group)
 // ============================================================================
@@ -333,7 +340,11 @@ function buildExpressionPreview(editMode = false) {
     previewDiv.textContent = exprParts.join("");
 }
 // Rerender just the subgroups for a parent group
-function renderSubgroups(parentGroupId) {
+function renderSubgroups(parentGroupId, visited = new Set()) {
+    // If we've already visited this group ID, stop
+    if (visited.has(parentGroupId)) return;
+    visited.add(parentGroupId);
+
     let parent = findGroupById(parentGroupId, topLevelGroups);
     if (!parent) return;
 
@@ -369,8 +380,9 @@ function renderSubgroups(parentGroupId) {
         `;
 
         container.appendChild(subDiv);
+        // Pass the same visited set down so we don’t revisit sub.id
         renderGroupCourses(sub.id);
-        renderSubgroups(sub.id);
+        renderSubgroups(sub.id, visited);
 
         // 🆕 Add AND/OR selection between subgroups
         if (index < parent.subGroups.length - 1) {
@@ -388,31 +400,23 @@ function renderSubgroups(parentGroupId) {
         }
     });
 }
-
-
-
 // ============================================================================
 // Update the group's internal type ("AND" or "OR")
 function updateGroupType(groupId, newType) {
     let grp = findGroupById(groupId, topLevelGroups);
     if (grp) {
         grp.type = newType;
-        -       buildExpressionPreview();
-        +       buildExpressionPreview(isEditMode);
+        buildExpressionPreview(isEditMode)
     }
 }
-
 // Update how this group connects to the next top-level group
 function updateOperatorToNext(groupId, newOp) {
     let groupIndex = topLevelGroups.findIndex(g => g.id === groupId);
     if (groupIndex !== -1 && groupIndex < topLevelGroups.length - 1) {
         topLevelGroups[groupIndex].operatorToNext = newOp;
-        -       buildExpressionPreview();
-        +       buildExpressionPreview(isEditMode);
+        buildExpressionPreview(isEditMode)
     }
 }
-
-
 // Update how this subgroup connects to the next subgroup
 function updateSubGroupOperator(groupId, newOp) {
     let parent = findParentGroup(groupId, topLevelGroups);
@@ -425,8 +429,7 @@ function updateSubGroupOperator(groupId, newOp) {
             } else {
                 subgroup.operatorToNext = newOp;
             }
-            -           buildExpressionPreview();
-            +           buildExpressionPreview(isEditMode);
+            buildExpressionPreview(isEditMode)
         }
     }
 }
@@ -435,7 +438,6 @@ function updateSubGroupOperator(groupId, newOp) {
 function generateGroupId() {
     return groupCounter++;
 }
-
 // ============================================================================
 // Find group by ID recursively
 function findGroupById(groupId, groupArr) {
@@ -446,7 +448,6 @@ function findGroupById(groupId, groupArr) {
     }
     return null;
 }
-
 // ============================================================================
 //  OPEN "Select Course" modal for the given group
 // ============================================================================
@@ -465,8 +466,6 @@ function openSelectCourseModal(groupId) {
     let modal = new bootstrap.Modal(document.getElementById("selectCourseModal"), {});
     modal.show();
 }
-
-
 // Populate the select course list in the modal
 function populateSelectCourseList() {
     let listDiv = document.getElementById("selectCourseList");
@@ -510,8 +509,6 @@ function populateSelectCourseList() {
         listDiv.appendChild(row);
     });
 }
-
-
 function filterSelectCourseList() {
     let searchInput = document.getElementById("selectCourseSearch");
     let searchTerm = searchInput.value.toLowerCase();
@@ -559,11 +556,6 @@ function filterSelectCourseList() {
     });
 
 }
-
-
-
-
-
 // When user clicks "Add" in the course modal
 function selectCourse(courseId) {
     let group = findGroupById(currentGroupId, topLevelGroups);
@@ -577,9 +569,8 @@ function selectCourse(courseId) {
     let modal = bootstrap.Modal.getInstance(modalEl);
     modal.hide();
 
-    buildExpressionPreview();
+    buildExpressionPreview(isEditMode)
 }
-
 // ============================================================================
 // Render the "chips" for a group's courses
 function renderGroupCourses(groupId) {
@@ -607,7 +598,6 @@ function renderGroupCourses(groupId) {
         listDiv.appendChild(chip);
     });
 }
-
 // Remove a course from group
 function removeCourseFromGroup(groupId, courseId) {
     let group = findGroupById(groupId, topLevelGroups);
@@ -624,37 +614,6 @@ function removeCourseFromGroup(groupId, courseId) {
     // Also rebuild the expression in correct mode
     buildExpressionPreview(isEditMode);
 }
-
-
-// ============================================================================
-// Build and display the entire "Expression Preview"
-// ============================================================================
-function buildExpressionPreview(editMode = false) {
-    let previewDiv = editMode
-        ? document.getElementById("editExpressionPreview")
-        : document.getElementById("expressionPreview");
-
-    if (!previewDiv) return;
-
-    if (topLevelGroups.length === 0) {
-        previewDiv.textContent = "(No prerequisites)";
-        return;
-    }
-
-    let exprParts = [];
-    for (let i = 0; i < topLevelGroups.length; i++) {
-        let g = topLevelGroups[i];
-        let groupStr = buildGroupExpression(g);
-        if (i < topLevelGroups.length - 1 && g.operatorToNext) {
-            groupStr += " " + g.operatorToNext + " ";
-        }
-        exprParts.push(groupStr);
-    }
-
-    previewDiv.textContent = exprParts.join("");
-}
-
-
 // Recursively build a string for a group
 function buildGroupExpression(groupObj) {
     // 1) Build expression for courses
@@ -693,10 +652,6 @@ function cleanEmptyGroups(groups) {
             subGroups: cleanEmptyGroups(group.subGroups) // Recursively clean subgroups
         }));
 }
-
-
-
-
 // ============================================================================
 // Filter the main course list in your table (optional)
 // ============================================================================
@@ -711,7 +666,6 @@ function filterCourses() {
         row.style.display = courseCode.includes(searchTerm) ? "" : "none";
     });
 }
-
 // ============================================================================
 // Show success/error messages
 // ============================================================================
@@ -762,7 +716,6 @@ function flattenGroups(courseId, groups, parentId = 0) {
 
     return flatList;
 }
-
 function submitPrerequisiteForm(event) {
     event.preventDefault();
 
@@ -834,23 +787,34 @@ function submitEditPrerequisiteForm(event) {
         courseId: Number(courseId),
         prerequisites: flattenedPrerequisites
     };
-
+   // console.log(JSON.stringify(requestData,null,2))
     fetch("/api/admin/updatePreReqs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData)
     })
-        .then(response => response.json())
-        .then(({ status, body }) => {
-            document.getElementById("editSuccessStatus").value = status === 200 ? "true" : "false";
-            document.getElementById("editResponseMessage").value = body.message || "Updated successfully";
+        .then(async (response) => {
+            let responseData;
+            try {
+                responseData = await response.json();
+            } catch (error) {
+                responseData = { message: "Unexpected error. Please try again." };
+            }
+
+            if (!response.ok) {
+                throw new Error(responseData.message || "An unknown error occurred.");
+            }
+
+            document.getElementById("editSuccessStatus").value = "true";
+            document.getElementById("editResponseMessage").value = responseData.message || "Updated successfully";
             document.getElementById("editPrerequisiteForm").submit();
         })
-        .catch(err => {
+        .catch((err) => {
             document.getElementById("editSuccessStatus").value = "false";
             document.getElementById("editResponseMessage").value = "Error: " + err.message;
             document.getElementById("editPrerequisiteForm").submit();
         });
+
 }
 
 function validateGroups(groups) {
@@ -864,5 +828,3 @@ function validateGroups(groups) {
     }
     return true; // All groups are valid
 }
-
-

@@ -46,6 +46,16 @@ public class AdminApiController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+    @PostMapping("/updatePreReqs")
+    public ResponseEntity<?> updatePrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
+        try{
+            courseService.updatePrerequisites(request);
+            return ResponseEntity.ok(Map.of("message", "Prerequisites updated successfully"));
+        }
+        catch (Exception e){
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
     @PostMapping("/getPreReqs")
     public ResponseEntity<?> getPreReqs(@RequestBody Map<String,Long> request) {
         try{

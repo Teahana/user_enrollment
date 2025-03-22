@@ -4,12 +4,10 @@ import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
-import group7.enrollmentSystem.models.PrerequisiteGroup;
 import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.repos.CoursePrerequisiteRepo;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
 import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.PrerequisiteGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +22,6 @@ public class CourseService {
     private final CourseRepo courseRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
-    private final PrerequisiteGroupRepository prerequisiteGroupRepository;
 
     public List<CourseDto> getAllCoursesWithProgrammesAndPrereqs() {
         List<Course> allCourses = courseRepo.findAll();
@@ -219,6 +216,9 @@ public class CourseService {
         Course mainCourse = courseRepo.findById(request.getCourseId())
                 .orElseThrow(() -> new IllegalArgumentException("Course not found with ID: " + request.getCourseId()));
 
+        if (!coursePrerequisiteRepo.findByCourse(mainCourse).isEmpty()) {
+            throw new IllegalStateException("Course already has prerequisites. Use update instead.");
+        }
         List<FlatCoursePrerequisiteDTO> prerequisites = request.getPrerequisites();
 
         // ✅ Ensure prerequisites are not empty
@@ -267,7 +267,13 @@ public class CourseService {
         // ✅ Save all valid prerequisites
         coursePrerequisiteRepo.saveAll(prerequisitesToSave);
     }
-
+    @Transactional
+    public void updatePrerequisites(FlatCoursePrerequisiteRequest request) {
+        Course mainCourse = courseRepo.findById(request.getCourseId())
+                .orElseThrow(() -> new IllegalArgumentException("Course not found with ID: " + request.getCourseId()));
+        coursePrerequisiteRepo.deleteByCourse(mainCourse);
+        addPrerequisites(request);
+    }
     private void validatePrerequisiteGroups(List<FlatCoursePrerequisiteDTO> prerequisites) {
         // Count how many course entries exist per groupId
         Map<Integer, Long> courseCountPerGroup = prerequisites.stream()
@@ -287,9 +293,6 @@ public class CourseService {
             }
         }
     }
-
-
-
     public FlatCoursePrerequisiteRequest getPrerequisitesForCourse(Long courseId) {
         List<CoursePrerequisite> entities = coursePrerequisiteRepo.findByCourseId(courseId);
         System.out.println("entities count: " + entities.size());

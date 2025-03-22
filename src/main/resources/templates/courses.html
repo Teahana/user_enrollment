@@ -67,9 +67,7 @@
             <td>
                 <span th:each="prog : ${course.programmes}" th:text="${prog} + ' '"></span>
             </td>
-            <td>
-                <span th:each="pre : ${course.prerequisites}" th:text="${pre} + ' '"></span>
-            </td>
+            <td th:text="${course.prerequisites}"></td>
             <td>
                 <button class="btn btn-sm btn-secondary addPrereqBtn"
                         data-bs-toggle="modal"
@@ -81,8 +79,6 @@
                 </button>
 
                 <button class="btn btn-sm btn-warning editPrereqBtn"
-                        data-bs-toggle="modal"
-                        data-bs-target="#editPrerequisiteModal"
                         th:data-course-id="${course.id}"
                         th:data-course-code="${course.courseCode}"
                         th:if="${course.hasPreReqs}">
@@ -142,7 +138,7 @@
     </div>
 </div>
 
-<!-- ===== Add Prerequisites Modal (Fixed) ===== -->
+<!-- ===== Add Prerequisites Modal ===== -->
 <div class="modal fade" id="addPrerequisiteModal" tabindex="-1" aria-labelledby="addPrerequisiteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -189,7 +185,56 @@
         </div>
     </div>
 </div>
-<!-- ===== NEW: Select Course Modal ===== -->
+
+<!-- ===== Edit Prerequisites Modal ===== -->
+<div class="modal fade" id="editPrerequisiteModal" tabindex="-1" aria-labelledby="editPrerequisiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Edit Prerequisites for <span id="editSelectedCourseName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editPrerequisiteForm" action="/admin/confirmPreReqEdit" method="POST">
+                    <input type="hidden" name="courseId" id="editSelectedCourseId">
+                    <input type="hidden" name="successStatus" id="editSuccessStatus">
+                    <input type="hidden" name="responseMessage" id="editResponseMessage">
+
+                    <!-- Container for prerequisite groups -->
+                    <div id="editPrerequisiteGroupsContainer" class="group-container">
+                        <!-- Groups will be dynamically added here by JS -->
+                    </div>
+
+                    <!-- Button to add a new top-level prerequisite group -->
+                    <button type="button"
+                            class="btn btn-outline-primary mt-3"
+                            onclick="addNewPrerequisiteGroup(true)">
+                        + Add Prerequisite Group
+                    </button>
+
+                    <!-- Expression Preview -->
+                    <div id="editExpressionPreview" class="mt-3 p-2 border border-secondary rounded"
+                         style="font-family:monospace; background:#fafafa;">
+                        (Expression Preview will appear here)
+                    </div>
+
+                    <hr>
+
+                    <!-- Submit Button -->
+                    <button type="submit"
+                            class="btn btn-success w-100 mt-2"
+                            onclick="submitEditPrerequisiteForm(event)">
+                        Update Prerequisites
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Select Course Modal ===== -->
 <div class="modal fade" id="selectCourseModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable" style="max-height: 80vh;">
         <div class="modal-content">

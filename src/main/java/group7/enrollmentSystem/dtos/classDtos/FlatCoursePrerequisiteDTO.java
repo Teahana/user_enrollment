@@ -13,4 +13,5 @@ public class FlatCoursePrerequisiteDTO {
     private boolean parent;
     private boolean child;
     private int childId;
+    private int parentId;
 }

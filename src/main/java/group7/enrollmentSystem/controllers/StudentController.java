@@ -20,7 +20,7 @@ import java.util.List;
 @Controller
 @RequestMapping("/courseEnroll")
 @RequiredArgsConstructor
-public class CourseEnrollController {
+public class StudentController {
 
     private final CourseEnrollmentService courseEnrollmentService;
     private final StudentRepo studentRepo;

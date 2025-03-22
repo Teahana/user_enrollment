@@ -38,6 +38,7 @@ public class AdminApiController {
     @PostMapping("/addPreReqs")
     public ResponseEntity<?> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
         try{
+            System.out.println("Request: "+request);
             courseService.addPrerequisites(request);
             return ResponseEntity.ok(Map.of("message", "Prerequisites added successfully"));
         }

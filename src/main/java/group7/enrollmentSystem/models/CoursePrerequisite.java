@@ -31,6 +31,7 @@ public class CoursePrerequisite {
     private boolean isParent;
     private boolean isChild;
     private int childId;
+    private int parentId;
 }
 
 

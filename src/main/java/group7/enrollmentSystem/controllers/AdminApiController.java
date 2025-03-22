@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteRequest;
 import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteDTO;
 import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest;
+import group7.enrollmentSystem.dtos.classDtos.GraphicalPrerequisiteNode;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.repos.CourseRepo;
@@ -38,7 +39,7 @@ public class AdminApiController {
     @PostMapping("/addPreReqs")
     public ResponseEntity<?> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
         try{
-            System.out.println("Request: "+request);
+            //System.out.println("Request: "+request);
             courseService.addPrerequisites(request);
             return ResponseEntity.ok(Map.of("message", "Prerequisites added successfully"));
         }
@@ -63,6 +64,17 @@ public class AdminApiController {
             return ResponseEntity.ok(Map.of("prerequisites", prerequisites));
         }
         catch (Exception e){
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    @PostMapping("/getPreReqTree")
+    public ResponseEntity<?> getPrereqTree(@RequestBody Map<String, Long> request) {
+        try {
+            Long courseId = request.get("courseId");
+            GraphicalPrerequisiteNode root = courseService.buildPrerequisiteTree(courseId);
+            // Return “root” as JSON
+            return ResponseEntity.ok(root);
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

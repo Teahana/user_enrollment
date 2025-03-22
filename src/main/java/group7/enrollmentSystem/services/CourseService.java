@@ -384,4 +384,8 @@ public class CourseService {
 
         return root;
     }
+    @Transactional
+    public void deletePrerequisites(Course course) {
+        coursePrerequisiteRepo.deleteByCourse(course);
+    }
 }

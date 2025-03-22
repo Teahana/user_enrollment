@@ -70,30 +70,39 @@
             </td>
             <td th:text="${course.prerequisites}"></td>
             <td>
-                <button class="btn btn-sm btn-secondary addPrereqBtn"
-                        data-bs-toggle="modal"
-                        data-bs-target="#addPrerequisiteModal"
-                        th:data-course-id="${course.id}"
-                        th:data-course-code="${course.courseCode}"
-                        th:if="${not course.hasPreReqs}">
-                    Add Prerequisites
-                </button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-secondary addPrereqBtn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addPrerequisiteModal"
+                            th:data-course-id="${course.id}"
+                            th:data-course-code="${course.courseCode}"
+                            th:if="${not course.hasPreReqs}">
+                        Add Prerequisites
+                    </button>
 
-                <button class="btn btn-sm btn-warning editPrereqBtn"
-                        th:data-course-id="${course.id}"
-                        th:data-course-code="${course.courseCode}"
-                        th:if="${course.hasPreReqs}">
-                    Edit Prerequisites
-                </button>
+                    <button class="btn btn-sm btn-warning editPrereqBtn"
+                            th:data-course-id="${course.id}"
+                            th:data-course-code="${course.courseCode}"
+                            th:if="${course.hasPreReqs}">
+                        Edit Prerequisites
+                    </button>
 
-                <!-- 🆕 Visualize Button -->
-                <button class="btn btn-sm btn-info visualizeBtn"
-                        th:data-course-code="${course.courseCode}"
-                        th:data-expression="${course.prerequisites}"
-                        th:if="${course.hasPreReqs}">
-                    Visualize
-                </button>
+                    <button class="btn btn-sm btn-danger removePrereqBtn"
+                            th:data-course-id="${course.id}"
+                            th:data-course-code="${course.courseCode}"
+                            th:if="${course.hasPreReqs}">
+                        Remove
+                    </button>
+
+                    <button class="btn btn-sm btn-info visualizeBtn"
+                            th:data-course-code="${course.courseCode}"
+                            th:data-expression="${course.prerequisites}"
+                            th:if="${course.hasPreReqs}">
+                        Visualize
+                    </button>
+                </div>
             </td>
+
         </tr>
         </tbody>
     </table>
@@ -277,6 +286,24 @@
                 <div id="mermaidContainer" style="overflow-x: auto;">
                     <!-- Will be replaced dynamically -->
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 🆕 Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to remove all prerequisites for <strong id="deleteCourseName"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Yes, Remove</button>
             </div>
         </div>
     </div>

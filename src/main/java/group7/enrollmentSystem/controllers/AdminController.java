@@ -3,6 +3,7 @@ package group7.enrollmentSystem.controllers;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.classDtos.*;
+import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
@@ -77,7 +78,18 @@ public class AdminController {
 
         return "redirect:/admin/courses";
     }
-
+    @GetMapping("/deletePreReqs/{courseId}")
+    public String deletePreReqs(@PathVariable("courseId") Long courseId, RedirectAttributes redirectAttributes) {
+        try {
+            Course course = courseRepo.findById(courseId).orElse(null);
+            System.out.println("Course: "+course);
+            courseService.deletePrerequisites(course);
+            redirectAttributes.addFlashAttribute("message", "Prerequisites deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete prerequisites: " + e.getMessage());
+        }
+        return "redirect:/admin/courses";
+    }
     @PostMapping("/addCourse")
     public String addCourse(@ModelAttribute("courseDto") CourseDto courseDto, RedirectAttributes redirectAttributes) {
         try{

@@ -27,6 +27,23 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     });
+    let selectedCourseId = null;
+
+    document.querySelectorAll(".removePrereqBtn").forEach(button => {
+        button.addEventListener("click", () => {
+            selectedCourseId = button.getAttribute("data-course-id");
+            const courseCode = button.getAttribute("data-course-code");
+            document.getElementById("deleteCourseName").textContent = courseCode;
+
+            const modal = new bootstrap.Modal(document.getElementById("confirmDeleteModal"));
+            modal.show();
+        });
+    });
+
+    document.getElementById("confirmDeleteBtn").addEventListener("click", () => {
+        if (!selectedCourseId) return;
+        window.location.href = `/admin/deletePreReqs/${selectedCourseId}`;
+    });
 });
 
 /**

@@ -1,10 +1,8 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.models.CourseProgramme;
-import group7.enrollmentSystem.models.CourseEnrollment;
-import group7.enrollmentSystem.models.Student;
-import group7.enrollmentSystem.models.StudentProgramme;
+import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
+import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseService;
@@ -29,25 +27,33 @@ public class StudentController {
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final StudentProgrammeService studentProgrammeService;
     private final CourseService courseService;
+    private final EnrollmentStatusRepo enrollmentStatusRepo;
 
     @GetMapping("/enrollment/{semester}")
     public String enrollment(@PathVariable("semester") int semester, Model model, Principal principal) {
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-        StudentProgramme programme = studentProgrammeService.getAllStudentProgrammes().stream()
-                .filter(StudentProgramme::isCurrentProgramme)
-                .filter(sp -> sp.getStudent().equals(student))
-                .findFirst().orElseThrow(() -> new RuntimeException("No active programme found."));
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        if(enrollmentState.isOpen()){
+            String email = principal.getName();
+            Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+            StudentProgramme programme = studentProgrammeService.getAllStudentProgrammes().stream()
+                    .filter(StudentProgramme::isCurrentProgramme)
+                    .filter(sp -> sp.getStudent().equals(student))
+                    .findFirst().orElseThrow(() -> new RuntimeException("No active programme found."));
 
-        List<CourseEnrollment> activeEnrollments = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester);
-        List<CourseEnrollment> canceledEnrollments = courseEnrollmentService.getCanceledEnrollmentsBySemester(student.getId(), semester);
+            List<CourseEnrollment> activeEnrollments = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester);
+            List<CourseEnrollment> canceledEnrollments = courseEnrollmentService.getCanceledEnrollmentsBySemester(student.getId(), semester);
 
-        model.addAttribute("student", student);
-        model.addAttribute("programme", programme.getProgramme());
-        model.addAttribute("activeEnrollments", activeEnrollments);
-        model.addAttribute("canceledEnrollments", canceledEnrollments);
-        model.addAttribute("semester", semester);
-
+            model.addAttribute("student", student);
+            model.addAttribute("programme", programme.getProgramme());
+            model.addAttribute("activeEnrollments", activeEnrollments);
+            model.addAttribute("canceledEnrollments", canceledEnrollments);
+            model.addAttribute("semester", semester);
+            model.addAttribute("pageOpen",true);
+        }
+        else{
+            model.addAttribute("pageOpen",false);
+            model.addAttribute("message","Enrollment is currently closed");
+        }
         return "enrollment";
     }
     @PostMapping("/cancelEnrollment/{id}/{semester}")

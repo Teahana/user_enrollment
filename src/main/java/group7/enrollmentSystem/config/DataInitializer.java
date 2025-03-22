@@ -27,9 +27,10 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepo userRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final PasswordEncoder passwordEncoder;
-
+    private final EnrollmentStatusRepo enrollmentStatusRepo;
     @Override
     public void run(String... args) {
+        initializeCourseEnrollmentStatus();
         initializeAdminUser();
         initializeStudents();
         initializeCourses();
@@ -37,6 +38,17 @@ public class DataInitializer implements CommandLineRunner {
         initializeCourseProgrammes();
         linkStudentsToProgrammes();
         initializeCourseEnrollments();
+    }
+
+    private void initializeCourseEnrollmentStatus() {
+        if(enrollmentStatusRepo.count() > 0){
+            System.out.println("Enrollment status already initialized. Skipping.");
+            return;
+        }
+        EnrollmentState enrollmentState = new EnrollmentState();
+        enrollmentState.setId(1L);
+        enrollmentState.setOpen(true);
+        enrollmentStatusRepo.save(enrollmentState);
     }
 
     private void initializeAdminUser() {

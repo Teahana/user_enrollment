@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.services;
 
-import group7.enrollmentSystem.dtos.interfaceDtos.CoursePrerequisiteDto;
+import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto;
+import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CourseProgramme;
 import group7.enrollmentSystem.models.CourseEnrollment;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -69,10 +72,10 @@ public class CourseEnrollmentService {
 
         // Extract course IDs from active and completed enrollments
         List<Long> enrolledIds = activeEnrollments.stream()
-                .map(e -> e.getCourse().getId()).collect(Collectors.toList());
+                .map(e -> e.getCourse().getId()).toList();
         List<Long> completedIds = completedEnrollments.stream()
                 .map(e -> e.getCourse().getId())
-                .collect(Collectors.toList());
+                .toList();
 
         // Fetch all courses linked to the student's current programme
         List<CourseProgramme> programmeCourses = courseProgrammeRepo.findByProgramme(studentProgramme.getProgramme());
@@ -91,43 +94,80 @@ public class CourseEnrollmentService {
 
     // Handles the enrollment
     public void enrollStudentInCourses(Long studentId, List<Long> courseIds, int semester) {
-        Student student = studentRepo.findById(studentId).orElseThrow(() -> new IllegalArgumentException("Student not found"));
+        Student student = studentRepo.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found"));
+
+        // Fetch all courses in a single query
         List<Course> courses = courseRepo.findAllById(courseIds);
+        if (courses.size() != courseIds.size()) {
+            throw new IllegalArgumentException("One or more courses not found");
+        }
+
+        // Create a map of courseId -> Course for quick lookup
+        Map<Long, Course> courseMap = courses.stream()
+                .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+        // Fetch all prerequisites for the selected courses in one query
+        List<CoursePrerequisiteDto> prerequisites = coursePrerequisiteRepo.findPrerequisitesByCourseIds(courseIds);
+
+        // Group prerequisites by courseId and then by groupId
+        Map<Long, Map<Integer, List<CoursePrerequisiteDto>>> groupedPrereqs = prerequisites.stream()
+                .collect(Collectors.groupingBy(
+                        CoursePrerequisiteDto::getCourseId,
+                        Collectors.groupingBy(CoursePrerequisiteDto::getGroupId)
+                ));
 
         for (Long courseId : courseIds) {
-            // Fetch prerequisites for the course
-            List<CoursePrerequisiteDto> prerequisites = coursePrerequisiteRepo.findPrerequisitesByCourseIdForEnrollment(courseId);
-
-            // Check if all prerequisites are completed by student
-            boolean prerequisitesCompleted = prerequisites.stream().allMatch(prerequisite ->
-                    courseEnrollmentRepo.existsByStudentIdAndCourseIdAndCompletedTrue(
-                            studentId, prerequisite.getPrerequisiteId()));
-
-            if (!prerequisitesCompleted) {
-                // Fetch the course code for the error message
-                String courseCode = courseRepo.findById(courseId)
-                        .map(Course::getCourseCode)
-                        .orElseThrow(() -> new IllegalArgumentException("Course not found with ID: " + courseId));
-
-                throw new IllegalArgumentException("Cannot enroll - Prerequisites not completed for course: " + courseCode);
+            Course course = courseMap.get(courseId);
+            if (course == null) {
+                throw new IllegalArgumentException("Course not found with ID: " + courseId);
             }
 
-            // If prerequisites are completed, enroll the student
-            Course course = courseRepo.findById(courseId)
-                    .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+            // Get prerequisites for the current course
+            Map<Integer, List<CoursePrerequisiteDto>> coursePrerequisites = groupedPrereqs.get(courseId);
 
-            courses.stream()
-                    .filter(c -> (semester == 1 && c.isOfferedSem1()) ||
-                            (semester == 2 && c.isOfferedSem2()))
-                    .forEach(c -> {
-                        CourseEnrollment enrollment = new CourseEnrollment();
-                        enrollment.setStudent(student);
-                        enrollment.setCourse(c);
-                        enrollment.setCurrentlyTaking(true);
-                        enrollment.setDateEnrolled(LocalDate.now());
-                        enrollment.setSemesterEnrolled(semester);
-                        courseEnrollmentRepo.save(enrollment);
-                    });
+            // If there are no prerequisites, consider them satisfied
+            boolean allPrerequisitesSatisfied = true;
+            if (coursePrerequisites != null) {
+                // Check if all prerequisite groups are satisfied
+                allPrerequisitesSatisfied = coursePrerequisites.values().stream()
+                        .allMatch(group -> evaluatePrerequisiteGroup(studentId, group));
+            }
+
+            if (!allPrerequisitesSatisfied) {
+                throw new IllegalArgumentException("Cannot enroll - Prerequisites not completed for course: " + course.getCourseCode());
+            }
+
+            // If prerequisites are satisfied and the course is offered in the selected semester, enroll the student
+            if ((semester == 1 && course.isOfferedSem1()) || (semester == 2 && course.isOfferedSem2())) {
+                CourseEnrollment enrollment = new CourseEnrollment();
+                enrollment.setStudent(student);
+                enrollment.setCourse(course);
+                enrollment.setCurrentlyTaking(true);
+                enrollment.setDateEnrolled(LocalDate.now());
+                enrollment.setSemesterEnrolled(semester);
+                courseEnrollmentRepo.save(enrollment);
+            }
+        }
+    }
+
+    private boolean evaluatePrerequisiteGroup(Long studentId, List<CoursePrerequisiteDto> group) {
+        if (group.isEmpty()) {
+            return true; // No prerequisites in this group
+        }
+
+        PrerequisiteType groupType = group.getFirst().getPrerequisiteType();
+
+        if (groupType == PrerequisiteType.AND) {
+            // For AND, all prerequisites in the group must be completed
+            return group.stream().allMatch(prereq ->
+                    courseEnrollmentRepo.existsByStudentIdAndCourseIdAndCompletedTrue(studentId, prereq.getPrerequisiteId()));
+        } else if (groupType == PrerequisiteType.OR) {
+            // For OR, at least one prerequisite in the group must be completed
+            return group.stream().anyMatch(prereq ->
+                    courseEnrollmentRepo.existsByStudentIdAndCourseIdAndCompletedTrue(studentId, prereq.getPrerequisiteId()));
+        } else {
+            throw new IllegalArgumentException("Invalid prerequisite type: " + groupType);
         }
     }
 

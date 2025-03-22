@@ -19,9 +19,9 @@ import java.security.Principal;
 import java.util.List;
 
 @Controller
-@RequestMapping("/courseEnroll")
+@RequestMapping("/student")
 @RequiredArgsConstructor
-public class CourseEnrollController {
+public class StudentController {
 
     private final CourseEnrollmentService courseEnrollmentService;
     private final StudentRepo studentRepo;
@@ -54,7 +54,7 @@ public class CourseEnrollController {
     public String cancelEnrollment(@PathVariable Long id, @PathVariable int semester, RedirectAttributes redirectAttributes) {
         courseEnrollmentService.cancelEnrollment(id);
         redirectAttributes.addFlashAttribute("success", "Enrollment cancelled successfully.");
-        return "redirect:/courseEnroll/enrollment/" + semester;
+        return "redirect:/student/enrollment/" + semester;
     }
 
     @PostMapping("/activateEnrollment/{id}/{semester}")
@@ -67,12 +67,12 @@ public class CourseEnrollController {
 
         if (activeEnrollmentsCount >= 4) {
             redirectAttributes.addFlashAttribute("error", "You cannot activate this enrollment because you already have four active courses for this semester.");
-            return "redirect:/courseEnroll/enrollment/" + semester;
+            return "redirect:/student/enrollment/" + semester;
         }
 
         courseEnrollmentService.activateEnrollment(id);
         redirectAttributes.addFlashAttribute("success", "Enrollment activated successfully.");
-        return "redirect:/courseEnroll/enrollment/" + semester;
+        return "redirect:/student/enrollment/" + semester;
     }
 
     @GetMapping("/selectCourses/{semester}")
@@ -101,7 +101,7 @@ public class CourseEnrollController {
         // Check if no courses are selected
         if (selectedCourseIds == null || selectedCourseIds.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please select a course");
-            return "redirect:/courseEnroll/selectCourses/" + semester;
+            return "redirect:/student/selectCourses/" + semester;
         }
 
         // Check active enrollments
@@ -113,7 +113,7 @@ public class CourseEnrollController {
                     "You cannot enroll in more than four courses per semester. " +
                             "Currently enrolled: " + activeEnrollmentsCount
             );
-            return "redirect:/courseEnroll/selectCourses/" + semester;
+            return "redirect:/student/selectCourses/" + semester;
         }
 
         try {
@@ -121,9 +121,9 @@ public class CourseEnrollController {
             redirectAttributes.addFlashAttribute("success", "Courses have been enrolled successfully for Semester " + semester);
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/courseEnroll/selectCourses/" + semester;
+            return "redirect:/student/selectCourses/" + semester;
         }
-         return "redirect:/courseEnroll/enrollment/" + semester;
+         return "redirect:/student/enrollment/" + semester;
     }
 
     @GetMapping("/completedCourses")

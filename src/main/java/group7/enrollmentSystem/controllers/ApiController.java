@@ -2,7 +2,7 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseDto;
 import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
-import group7.enrollmentSystem.dtos.interfaceDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
 import group7.enrollmentSystem.repos.StudentRepo;

@@ -1,13 +1,11 @@
 package group7.enrollmentSystem.repos;
 
-import group7.enrollmentSystem.dtos.interfaceDtos.CourseEnrollmentDto;
-import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.models.CourseEnrollment;
 import group7.enrollmentSystem.models.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 

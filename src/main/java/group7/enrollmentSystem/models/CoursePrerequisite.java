@@ -23,8 +23,15 @@ public class CoursePrerequisite {
     @ManyToOne
     @JoinColumn(name = "prerequisite_id", nullable = false)
     private Course prerequisite; // The prerequisite course
-
-    @ManyToOne
-    @JoinColumn(name = "prerequisite_group_id", nullable = false)
-    private PrerequisiteGroup prerequisiteGroup; // Belongs to a prerequisite group
+    @Enumerated(EnumType.STRING)
+    private PrerequisiteType prerequisiteType;
+    @Enumerated(EnumType.STRING)
+    private PrerequisiteType operatorToNext;
+    private int groupId;
+    private boolean isParent;
+    private boolean isChild;
+    private int childId;
+    private int parentId;
 }
+
+

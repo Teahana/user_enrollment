@@ -13,7 +13,7 @@ import java.util.Map;
 public class StudentApiController {
     private final CourseService courseService;
     @PostMapping("/getMermaidCode")
-    public ResponseEntity<?> getMermaidCode(@RequestBody Map<String, Long> request) {
-        return ResponseEntity.ok(Map.of("mermaidCode",courseService.getMermaidDiagramForCourse(request.get("courseId"))));
+    public ResponseEntity<String> getMermaidCode(@RequestBody Map<String, Long> request) {
+        return ResponseEntity.ok(courseService.getMermaidDiagramForCourse(request.get("courseId")));
     }
 }

@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -404,6 +406,150 @@ public class CourseService {
 
         return root;
     }
+    public String getMermaidDiagramForCourse(Long courseId) {
+        Optional<Course> courseOpt = courseRepo.findById(courseId);
+        if (courseOpt.isEmpty()) {
+            return "%% Error: Course not found";
+        }
+
+        Course course = courseOpt.get();
+        List<CoursePrerequisite> prerequisites = coursePrerequisiteRepo.findByCourseId(courseId);
+
+        if (prerequisites.isEmpty()) {
+            return "%% No prerequisites found for this course";
+        }
+
+        // Group prerequisites
+        Map<Integer, List<CoursePrerequisite>> groupedPrereqs = prerequisites.stream()
+                .collect(Collectors.groupingBy(CoursePrerequisite::getGroupId));
+
+        List<Integer> parentGroups = prerequisites.stream()
+                .filter(cp -> cp.isParent() && !cp.isChild())
+                .sorted(Comparator.comparingInt(CoursePrerequisite::getGroupId))
+                .map(CoursePrerequisite::getGroupId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Integer, Set<Integer>> parentToChildGroupMap = new HashMap<>();
+        for (CoursePrerequisite cp : prerequisites) {
+            if (cp.isChild()) {
+                parentToChildGroupMap
+                        .computeIfAbsent(cp.getParentId(), k -> new HashSet<>())
+                        .add(cp.getGroupId());
+            }
+        }
+
+        StringBuilder prerequisiteExpression = new StringBuilder();
+        for (int i = 0; i < parentGroups.size(); i++) {
+            int parentGroupId = parentGroups.get(i);
+            String expr = buildGroupExpression(parentGroupId, groupedPrereqs, parentToChildGroupMap);
+            prerequisiteExpression.append(expr);
+
+            if (i < parentGroups.size() - 1) {
+                PrerequisiteType op = groupedPrereqs.get(parentGroupId).get(0).getOperatorToNext();
+                if (op != null) {
+                    prerequisiteExpression.append(" ").append(op).append(" ");
+                }
+            }
+        }
+
+        return convertToMermaid(course.getCourseCode(), prerequisiteExpression.toString());
+    }
+    public String convertToMermaid(String courseCode, String expression) {
+        StringBuilder sb = new StringBuilder("graph TD\n");
+        AtomicInteger nodeId = new AtomicInteger(0);
+        List<String> nodes = new ArrayList<>();
+        List<String> edges = new ArrayList<>();
+
+        // Generate unique node
+        Function<String, String> getNode = label -> {
+            String id = "N" + nodeId.getAndIncrement();
+            String safeLabel = label.replace("\"", "\\\"");
+            nodes.add(id + "[\"" + safeLabel + "\"]");
+            return id;
+        };
+
+        // Fully wrapped check
+        Function<String, Boolean> isFullyWrapped = str -> {
+            str = str.trim();
+            if (!str.startsWith("(") || !str.endsWith(")")) return false;
+            int depth = 0;
+            for (int i = 0; i < str.length(); i++) {
+                char c = str.charAt(i);
+                if (c == '(') depth++;
+                if (c == ')') depth--;
+                if (depth == 0 && i < str.length() - 1) return false;
+            }
+            return depth == 0;
+        };
+
+        // Recursive parser
+        Function<String, String> parse = new Function<>() {
+            @Override
+            public String apply(String expr) {
+                expr = expr.trim();
+                if (isFullyWrapped.apply(expr)) {
+                    expr = expr.substring(1, expr.length() - 1).trim();
+                }
+
+                List<String> parts = splitByTopLevel(expr, "OR");
+                String operator = "OR";
+
+                if (parts.size() == 1) {
+                    parts = splitByTopLevel(expr, "AND");
+                    operator = "AND";
+                }
+
+                if (parts.size() == 1) {
+                    return getNode.apply(parts.get(0));
+                }
+
+                String opNode = getNode.apply(operator);
+                for (String part : parts) {
+                    String childId = this.apply(part);
+                    edges.add(opNode + " --> " + childId);
+                }
+                return opNode;
+            }
+        };
+
+        // Root
+        String root = getNode.apply(courseCode + " (Main Course)");
+        String body = parse.apply(expression);
+        edges.add(root + " --> " + body);
+
+        nodes.forEach(line -> sb.append(line).append("\n"));
+        edges.forEach(line -> sb.append(line).append("\n"));
+
+
+        return sb.toString();
+    }
+    private List<String> splitByTopLevel(String expr, String operator) {
+        List<String> parts = new ArrayList<>();
+        int depth = 0;
+        StringBuilder current = new StringBuilder();
+
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+            if (c == '(') depth++;
+            else if (c == ')') depth--;
+
+            if (depth == 0 && expr.startsWith(" " + operator + " ", i)) {
+                parts.add(current.toString().trim());
+                current.setLength(0);
+                i += operator.length() + 1;
+            } else {
+                current.append(c);
+            }
+        }
+
+        if (current.length() > 0) {
+            parts.add(current.toString().trim());
+        }
+
+        return parts;
+    }
+
     @Transactional
     public void deletePrerequisites(Course course) {
         coursePrerequisiteRepo.deleteByCourse(course);

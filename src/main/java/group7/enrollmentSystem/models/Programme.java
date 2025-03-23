@@ -23,10 +23,15 @@ public class Programme {
     @OneToMany(mappedBy = "programme", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CourseProgramme> courseProgrammes;
 
+    @OneToMany(mappedBy = "programme")
+    private List<StudentProgramme> studentProgrammes;
+
+
     public Programme(String programmeCode, String name, String faculty) {
         this.programmeCode = programmeCode;
         this.name = name;
         this.faculty = faculty;
     }
+
 }
 

@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.io.Serializable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -15,7 +19,7 @@ import lombok.NoArgsConstructor;
         @AttributeOverride(name = "lastName", column = @Column(name = "last_name"))
 })
 @NoArgsConstructor
-public class Student extends User {
+public class Student extends User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String studentId;
     private String phoneNumber;
@@ -29,4 +33,10 @@ public class Student extends User {
         this.phoneNumber = phoneNumber;
         this.getRoles().add("ROLE_STUDENT");
     }
+    @OneToMany(mappedBy = "student")
+    private List<CourseEnrollment> enrollments;
+
+    @OneToMany(mappedBy = "student")
+    private List<StudentProgramme> studentProgrammes;
+
 }

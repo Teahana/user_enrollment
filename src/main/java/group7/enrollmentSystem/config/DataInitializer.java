@@ -104,7 +104,7 @@ public class DataInitializer implements CommandLineRunner {
             String email = student.getStudentId() + "@student.usp.ac.fj";
             student.setEmail(email);
             student.setPassword(passwordEncoder.encode("12345")); // Encrypt password
-            student.setRoles(Set.of("STUDENT"));
+            student.setRoles(Set.of("ROLE_STUDENT"));
 
             studentRepo.save(student);
             System.out.println("Registered student: " + email);

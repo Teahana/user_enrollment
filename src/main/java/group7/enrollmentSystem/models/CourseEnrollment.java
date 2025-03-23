@@ -15,11 +15,12 @@ public class CourseEnrollment {
     @ManyToOne
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
-
     @ManyToOne
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
     private boolean completed;
+    private boolean failed;
+    private boolean cancelled;
     private LocalDate dateEnrolled;
     private boolean currentlyTaking;
     private int semesterEnrolled;

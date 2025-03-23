@@ -1,10 +1,13 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.dtos.classDtos.AddCourseReq;
-import group7.enrollmentSystem.dtos.classDtos.CourseDto;
-import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import group7.enrollmentSystem.dtos.classDtos.*;
+import group7.enrollmentSystem.models.Course;
+import group7.enrollmentSystem.models.EnrollmentState;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
+import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
@@ -28,7 +31,7 @@ import java.util.Map;
 public class AdminController {
     private final CourseRepo courseRepo;
     private final CourseService courseService;
-    private final CourseRepo coursePrerequisiteRepo;
+    private final EnrollmentStatusRepo enrollmentStatusRepo;
 
     private final CourseProgrammeService courseProgrammeService;
     private final ProgrammeRepo programmeRepo;
@@ -40,6 +43,11 @@ public class AdminController {
         String email = authentication.getName();
         User user = userRepo.findByEmail(email).orElse(null);
         model.addAttribute("user", user);
+
+        // Fetch the enrollment state
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        model.addAttribute("enrollmentState", enrollmentState);
+
         return "admin";
     }
 
@@ -48,6 +56,46 @@ public class AdminController {
         List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
         model.addAttribute("courses", courseDtos);
         return "courses";
+    }
+    @PostMapping("/confirmPreReqAdd")
+    public String confirmPreReqAdd(
+            @RequestParam("successStatus") String successStatus,
+            @RequestParam("responseMessage") String responseMessage,
+            RedirectAttributes redirectAttributes) {
+
+        if ("true".equals(successStatus)) {
+            redirectAttributes.addFlashAttribute("message", responseMessage);
+        } else {
+            redirectAttributes.addFlashAttribute("error", responseMessage);
+        }
+
+        return "redirect:/admin/courses";
+    }
+    @PostMapping("/confirmPreReqEdit")
+    public String confirmPreReqEdit(
+            @RequestParam("successStatus") String successStatus,
+            @RequestParam("responseMessage") String responseMessage,
+            RedirectAttributes redirectAttributes) {
+
+        if ("true".equals(successStatus)) {
+            redirectAttributes.addFlashAttribute("message", responseMessage);
+        } else {
+            redirectAttributes.addFlashAttribute("error", responseMessage);
+        }
+
+        return "redirect:/admin/courses";
+    }
+    @GetMapping("/deletePreReqs/{courseId}")
+    public String deletePreReqs(@PathVariable("courseId") Long courseId, RedirectAttributes redirectAttributes) {
+        try {
+            Course course = courseRepo.findById(courseId).orElse(null);
+            System.out.println("Course: "+course);
+            courseService.deletePrerequisites(course);
+            redirectAttributes.addFlashAttribute("message", "Prerequisites deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete prerequisites: " + e.getMessage());
+        }
+        return "redirect:/admin/courses";
     }
     @PostMapping("/addCourse")
     public String addCourse(@ModelAttribute("courseDto") CourseDto courseDto, RedirectAttributes redirectAttributes) {
@@ -61,20 +109,17 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
-//    @PostMapping("/addPreReqs")
-//    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
-//        try {
-//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
-//        } catch (DataIntegrityViolationException e) {
-//            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
-//        } catch (Exception e) {
-//            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
-//        }
-//        return "redirect:/admin/courses";
-//    }
 
-
+    @PostMapping("/updateCourse")
+    public String updateCourse(@ModelAttribute CourseDto dto, RedirectAttributes redirectAttributes) {
+        try {
+            courseService.updateCourse(dto);
+            redirectAttributes.addFlashAttribute("message", "Course updated successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/courses";
+    }
 
     // Display all programmes
     @GetMapping("/programmes")
@@ -111,4 +156,29 @@ public class AdminController {
         }
         return "redirect:/admin/programmes";
     }
+
+    //---------Control for Admin to turn off/on students' access to enrollment page-----------------
+    @PostMapping("/toggleEnrollment")
+    public String toggleEnrollment(RedirectAttributes redirectAttributes) {
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        enrollmentState.setOpen(!enrollmentState.isOpen());
+        enrollmentStatusRepo.save(enrollmentState);
+
+        String message = enrollmentState.isOpen() ? "Student registration is now open." : "Student registration is now closed.";
+        redirectAttributes.addFlashAttribute("message", message);
+
+        return "redirect:/admin/dashboard";
+    }
 }
+//    @PostMapping("/addPreReqs")
+//    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
+//        try {
+//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
+//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
+//        } catch (DataIntegrityViolationException e) {
+//            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
+//        } catch (Exception e) {
+//            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
+//        }
+//        return "redirect:/admin/courses";
+//    }

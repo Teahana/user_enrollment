@@ -21,6 +21,10 @@ public class StudentProgrammeService {
     private final StudentRepo studentRepo;
     private final ProgrammeRepo programmeRepo;
 
+    public Optional<StudentProgramme> getCurrentProgramme(Student student) {
+        return studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
+    }
+
     // Create a new StudentProgramme
     public void saveStudentProgramme(Long studentId, Long programmeId, boolean currentProgramme) {
         Optional<Student> student = studentRepo.findById(studentId);
@@ -72,4 +76,8 @@ public class StudentProgrammeService {
         studentProgrammeRepo.deleteById(id);
     }
 
+    public Programme getStudentProgramme(Student student) {
+        Optional<StudentProgramme> studentProgramme = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
+        return studentProgramme.map(StudentProgramme::getProgramme).orElse(null);
+    }
 }

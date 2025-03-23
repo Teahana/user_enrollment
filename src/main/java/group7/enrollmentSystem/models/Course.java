@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.lang.reflect.Type;
+
 @Entity
 @Data
 @AllArgsConstructor
@@ -16,6 +18,7 @@ public class Course {
     private String title;
     @Column(unique = true)
     private String courseCode;
+    @Column(columnDefinition = "text")
     private String description;
     private double creditPoints;
     private Short level;

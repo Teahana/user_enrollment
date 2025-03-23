@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.models;
 
 import group7.enrollmentSystem.enums.PrerequisiteType;
+import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,25 +11,34 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "course_prerequisite",
-        uniqueConstraints = {@UniqueConstraint(columnNames = {"course_id", "prerequisite_id", "group_id"})})
+@Table(name = "course_prerequisite")
 public class CoursePrerequisite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne
     @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
-
+    private Course course; // The main course
     @ManyToOne
-    @JoinColumn(name = "prerequisite_id", nullable = false)
-    private Course prerequisite;
-
+    @JoinColumn(name = "prerequisite_id", nullable = true)
+    private Course prerequisite; // The prerequisite course
+    @ManyToOne
+    @JoinColumn(name = "programme_id", nullable = true)
+    private Programme programme;
     @Enumerated(EnumType.STRING)
-    private PrerequisiteType prerequisiteType; // AND / OR
-
-    @Column(nullable = false)
-    private int groupId; // Groups related AND/OR conditions
+    private PrerequisiteType prerequisiteType;
+    @Enumerated(EnumType.STRING)
+    private PrerequisiteType operatorToNext;
+    private int groupId;
+    private boolean isParent;
+    private boolean isChild;
+    private int childId;
+    private int parentId;
+    private boolean special;
+    @Enumerated(EnumType.STRING)
+    private SpecialPrerequisiteType specialType;
+    private short targetLevel;
+    private double percentageValue;
 }
+
 

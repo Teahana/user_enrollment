@@ -5,8 +5,10 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
-<div th:if="${pageOpen}" class="container">
+<!-- Include the navigation bar fragment -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
 
+<div th:if="${pageOpen}" class="container">
     <h2>Welcome, <span th:text="${student.firstName}"></span></h2>
     <h3>Your Programme: <span th:text="${programme.name}"></span></h3>
 

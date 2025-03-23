@@ -91,10 +91,30 @@ public class MainController {
     }
 
     //student view progAud
-    @GetMapping("/studentAudit/{studentId}")
-    public String loadStudentAuditPage(@PathVariable String studentId, Model model) {
-        model.addAttribute("studentId", studentId);
+    @GetMapping("/student/audit")
+    public String loadStudentAuditPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepo.findByEmail(email).orElse(null);
+
+        if (user instanceof Student student) {
+            model.addAttribute("studentId", student.getStudentId());
+            model.addAttribute("studentName", student.getFirstName() + " " + student.getLastName());
+        }
+
         return "studentAudit";
+    }
+
+
+    @GetMapping("student/dashboard")
+    public String getAdminPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepo.findByEmail(email).orElse(null);
+        if (user != null) {
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            model.addAttribute("studentName", studentName);
+            model.addAttribute("user", user);
+        }
+        return "studentDashboard";
     }
 
 

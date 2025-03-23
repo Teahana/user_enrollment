@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+<body style="margin: 0; display: flex;">
+
+<!-- Sidebar fragment -->
+<div style="width: 200px; background: #f0f0f0; height: 100vh; padding: 20px;">
+  <h3 th:text="${studentName}">Student</h3>
+  <ul style="list-style: none; padding-left: 0;">
+    <li><a th:href="@{/student/dashboard}">Dashboard</a></li>
+    <li><a th:href="@{/student/profile}"> Profile</a></li>
+    <li><a th:href="@{/student/course-registration}">Course Reg</a></li>
+    <li><a th:href="@{/student/audit}"> Audit</a></li>
+  </ul>
+</div>
+
+<!-- Page content -->
+<div style="padding: 20px; flex-grow: 1;">
+
+  <p>This is your student home page.</p>
+  <h2>Welcome, <span th:text="${studentName}">Student</span> 👋</h2>
+</div>
+
+</body>
+</html>

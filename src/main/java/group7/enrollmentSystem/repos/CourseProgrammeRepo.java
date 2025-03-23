@@ -29,4 +29,6 @@ public interface CourseProgrammeRepo extends JpaRepository<CourseProgramme, Long
     List<CourseProgramme> findByProgramme(Programme programme);
     @Query("SELECT cp.course FROM CourseProgramme cp WHERE cp.programme = :currentProgramme")
     List<Course> findAllByProgramme(Programme currentProgramme);
+
+    void deleteByCourse(Course course);
 }

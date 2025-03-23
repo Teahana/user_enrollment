@@ -19,10 +19,12 @@ public class CoursePrerequisite {
     @ManyToOne
     @JoinColumn(name = "course_id", nullable = false)
     private Course course; // The main course
-
     @ManyToOne
     @JoinColumn(name = "prerequisite_id", nullable = false)
     private Course prerequisite; // The prerequisite course
+    @ManyToOne
+    @JoinColumn(name = "programme_id", nullable = true)
+    private Programme programme;
     @Enumerated(EnumType.STRING)
     private PrerequisiteType prerequisiteType;
     @Enumerated(EnumType.STRING)

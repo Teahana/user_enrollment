@@ -55,4 +55,9 @@ td span.completed {
 .student-info p {
     margin: 5px 0;
 }
+/* Vertical divider between columns */
+td:not(:last-child),
+th:not(:last-child) {
+    border-right: 1px solid #ddd;
+}
 

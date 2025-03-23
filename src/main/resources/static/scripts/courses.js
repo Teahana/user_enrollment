@@ -5,7 +5,8 @@
 // ============================================================================
 let allCourses = [];     // from API
 let allProgrammes = [];  // from API
-
+let specialTypes = []; // We'll store the enum names from the server
+let hasFetchedSpecialTypes = false; // We only fetch once
 let selectedCourseId;    // The main course for which we add/edit prereqs
 let topLevelGroups = []; // Array of top-level groups
 let groupCounter = 1;
@@ -30,6 +31,22 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch(err => console.error("Error fetching programmes:", err));
 
+    fetch("/api/admin/getSpecialTypes")
+        .then(res => res.json())
+        .then(data => {
+            // According to your endpoint, you may get something like:
+            // { specialTypes: " [ADMISSION_PROGRAMME, COMPLETION_LEVEL_PERCENT]" }
+            // So we need to parse that string carefully.
+            if (data.specialTypes) {
+                // e.g. " [ADMISSION_PROGRAMME, COMPLETION_LEVEL_PERCENT]"
+                // remove brackets and spaces:
+                let clean = data.specialTypes.replace(/[\[\]\s]/g, "");
+                // => "ADMISSION_PROGRAMME,COMPLETION_LEVEL_PERCENT"
+                specialTypes = clean.split(",");
+                hasFetchedSpecialTypes = true;
+            }
+        })
+        .catch(err => console.error("Error fetching special types:", err));
     // 3) Add/Edit button listeners
     document.querySelectorAll(".addPrereqBtn").forEach(btn => {
         btn.addEventListener("click", handleAddPrerequisites);
@@ -181,18 +198,51 @@ function convertFlatPrerequisitesToNested(flat) {
             groupMap[pr.groupId] = {
                 id: pr.groupId,
                 type: pr.prerequisiteType || "AND",
-                courses: [],
+                prereqItems: [],
                 subGroups: [],
                 operatorToNext: pr.operatorToNext || null
             };
         }
-        groupMap[pr.groupId].courses.push({
-            courseId: pr.prerequisiteId,
-            programmeId: pr.programmeId || null
-        });
 
+        // Detect if this is a special item
+        if (pr.special && specialTypes.includes(pr.specialType)) {
+            if (pr.specialType === "ADMISSION_PROGRAMME") {
+                // Try to group same ADMISSION_PROGRAMME items with same groupId and targetLevel
+                let existingSpecial = groupMap[pr.groupId].prereqItems.find(it =>
+                    it.special &&
+                    it.specialType === "ADMISSION_PROGRAMME"
+                );
 
-        if (pr.parentId && pr.parentId!==0) {
+                if (existingSpecial) {
+                    // Append to existing programmeIds array
+                    if (!existingSpecial.programmeIds.includes(pr.programmeId)) {
+                        existingSpecial.programmeIds.push(pr.programmeId);
+                    }
+                } else {
+                    groupMap[pr.groupId].prereqItems.push({
+                        special: true,
+                        specialType: pr.specialType,
+                        programmeIds: pr.programmeId ? [pr.programmeId] : []
+                    });
+                }
+            }
+            else if (pr.specialType === "COMPLETION_LEVEL_PERCENT") {
+                groupMap[pr.groupId].prereqItems.push({
+                    special: true,
+                    specialType: pr.specialType,
+                    targetLevel: pr.targetLevel,
+                    percentageValue: pr.percentageValue
+                });
+            }
+        } else {
+            // Normal item
+            groupMap[pr.groupId].prereqItems.push({
+                courseId: pr.prerequisiteId,
+                programmeId: pr.programmeId || null
+            });
+        }
+
+        if (pr.child && pr.parentId && pr.parentId !== 0) {
             parentMap[pr.groupId] = pr.parentId;
         }
     });
@@ -205,12 +255,14 @@ function convertFlatPrerequisitesToNested(flat) {
     });
 
     Object.values(groupMap).forEach(g => {
-        if(!parentMap[g.id]) {
+        if (!parentMap[g.id]) {
             topLevel.push(g);
         }
     });
+
     return topLevel;
 }
+
 
 /******************************************************************************
  *  convertToProgrammeStyle(nestedGroups)
@@ -220,13 +272,11 @@ function convertFlatPrerequisitesToNested(flat) {
  ******************************************************************************/
 function convertToProgrammeStyle(groups) {
     return groups.map(g => {
-        // build a new subGroup array
-        let subG = convertToProgrammeStyle(g.subGroups);
-        // Convert the "courses" array to "prereqItems"
-        let items = g.courses.map(c => ({
-            courseId: typeof c === 'object' ? c.courseId : c,
-            programmeId: typeof c === 'object' ? c.programmeId || null : null
-        }));
+        // Convert subGroups recursively
+        let subG = convertToProgrammeStyle(g.subGroups || []);
+
+        // Just pass through prereqItems as-is
+        let items = g.prereqItems || [];
 
         return {
             id: g.id,
@@ -237,6 +287,7 @@ function convertToProgrammeStyle(groups) {
         };
     });
 }
+
 
 /******************************************************************************
  *  setGroupCounterToMaxId
@@ -522,7 +573,7 @@ function filterSelectCourseList() {
 function populateProgrammeDropdown() {
     let progSelect = document.getElementById("selectProgrammeDropdown");
     if(!progSelect) return;
-    progSelect.innerHTML = `<option value="">(All programmes)</option>`;
+    progSelect.innerHTML = `<option value="">(Any programmes)</option>`;
     allProgrammes.forEach(p => {
         let opt = document.createElement("option");
         opt.value = p.id;
@@ -606,79 +657,190 @@ function renderGroupCourses(groupId) {
 
     if (group.prereqItems) {
         group.prereqItems.forEach(item => {
-           // console.log("Rendering course:", item); // <== ADD THIS
+            if (item.special) {
+                // === Special item ===
+                let chipLabel = "";
+                if (item.specialType === "COMPLETION_LEVEL_PERCENT") {
+                    let lvl = item.targetLevel || 0;
+                    let pct = (item.percentageValue || 0) * 100; // convert back to 75, etc.
+                    chipLabel = `${pct}% of ${lvl}-level courses`;
+                }
+                else if (item.specialType === "ADMISSION_PROGRAMME") {
+                    chipLabel = "Admission into: ";
+                    let progNames = [];
+                    if (item.programmeIds && item.programmeIds.length > 0) {
+                        for (let pid of item.programmeIds) {
+                            let pObj = allProgrammes.find(x => x.id === pid);
+                            if (pObj) progNames.push(pObj.programmeCode);
+                        }
+                        chipLabel += progNames.join(", ");
+                    } else {
+                        // If no programmes selected, fallback text
+                        chipLabel += "(no programmes?)";
+                    }
+                }
+                else {
+                    chipLabel = item.specialType; // fallback
+                }
 
-            let cObj = allCourses.find(c => c.id === item.courseId);
-            if (!cObj) {
-                console.warn("No course found for ID", item.courseId);
-                return;
+                let chip = document.createElement("div");
+                chip.classList.add("chip");
+                chip.innerHTML = `
+                    ${chipLabel}
+                    <span class="remove-chip"
+                        onclick="removePrereqItem(${groupId}, null, null, '${item.specialType}', ${item.targetLevel || 0}, ${item.percentageValue || 0}, '${(item.programmeIds||[]).join(",")}')">
+                        &times;
+                    </span>
+                `;
+                container.appendChild(chip);
             }
+            else {
+                // === Normal item (course) ===
+                let cObj = allCourses.find(c => c.id === item.courseId);
+                if (!cObj) {
+                    console.warn("No course found for ID", item.courseId);
+                    return;
+                }
+                let label = cObj.courseCode;
+                if (item.programmeId) {
+                    let pObj = allProgrammes.find(p => p.id === item.programmeId);
+                    label += pObj ? ` (${pObj.programmeCode})` : " (??)";
+                } else {
+                    label += " (Any)";
+                }
 
-            let label = cObj.courseCode;
-            if (item.programmeId) {
-                let pObj = allProgrammes.find(p => p.id === item.programmeId);
-                label += pObj ? ` (${pObj.programmeCode})` : " (??)";
-            } else {
-                label += " (All)";
+                let chip = document.createElement("div");
+                chip.classList.add("chip");
+                chip.innerHTML = `
+                  ${label}
+                  <span class="remove-chip"
+                        onclick="removePrereqItem(${groupId}, ${item.courseId}, ${item.programmeId || 0})">
+                    &times;
+                  </span>
+                `;
+                container.appendChild(chip);
             }
-
-            let chip = document.createElement("div");
-            chip.classList.add("chip");
-            chip.innerHTML = `
-              ${label}
-              <span class="remove-chip"
-                    onclick="removePrereqItem(${groupId}, ${item.courseId}, ${item.programmeId || 0})">
-                &times;
-              </span>
-            `;
-            container.appendChild(chip);
         });
     }
 }
 
 
+
 /******************************************************************************
  *  removePrereqItem
  ******************************************************************************/
-function removePrereqItem(groupId, courseId, programmeId) {
+function removePrereqItem(groupId, courseId, programmeId,
+                          specialType=null, targetLevel=0, percentageValue=0, programmeIdsCsv="") {
     let group = findGroupById(groupId, topLevelGroups);
-    if(!group || !group.prereqItems) return;
-    group.prereqItems = group.prereqItems.filter(
-        it => !(it.courseId===courseId && (it.programmeId||0)===programmeId)
-    );
+    if (!group || !group.prereqItems) return;
+
+    if (!specialType) {
+        // Normal course-based removal
+        group.prereqItems = group.prereqItems.filter(
+            it => !(it.courseId === courseId && (it.programmeId || 0) === (programmeId || 0))
+        );
+    } else {
+        // Special item removal
+        let progIds = programmeIdsCsv
+            ? programmeIdsCsv.split(",").map(x => parseInt(x.trim())).filter(Boolean)
+            : [];
+        group.prereqItems = group.prereqItems.filter(it => {
+            if (!it.special) return true; // keep normal items
+
+            let sameProgrammes = JSON.stringify((it.programmeIds || []).sort()) ===
+                JSON.stringify(progIds.sort());
+            return !(
+                it.specialType === specialType &&
+                (it.targetLevel || 0) === parseInt(targetLevel) &&
+                (it.percentageValue || 0) === parseFloat(percentageValue) &&
+                sameProgrammes
+            );
+        });
+    }
+
     renderGroupCourses(groupId);
     buildExpressionPreview(isEditMode);
 }
+
 
 /******************************************************************************
  *  buildGroupExpression(...) => includes programme info
  *    - if group.prereqItems => use them, else fallback to group.courses
  ******************************************************************************/
 function buildGroupExpression(g) {
-    let items = g.prereqItems
-        ? g.prereqItems.map(it => {
-            let c = allCourses.find(cx=>cx.id===it.courseId);
-            let lbl = c ? c.courseCode : "???";
-            if(it.programmeId) {
-                let p = allProgrammes.find(px=>px.id===it.programmeId);
-                lbl += p ? `(${p.programmeCode})` : "(??)";
-            } else {
-                lbl+="(All)";
-            }
-            return lbl;
-        })
-        : g.courses.map(cid => {
-            let c=allCourses.find(cx=>cx.id===cid);
-            return c ? c.courseCode+"(All)" : "???(All)";
-        });
+    // 1) Build an array of item labels
+    let items = [];
+    if (g.prereqItems) {
+        items = g.prereqItems.map(it => {
+            if (it.special) {
+                // ---------- SPECIAL ITEM ----------
+                if (it.specialType === "COMPLETION_LEVEL_PERCENT") {
+                    const lvl = it.targetLevel || 0;
+                    const pct = (it.percentageValue || 0) * 100; // e.g. 0.75 -> 75
+                    return `{${pct}% of ${lvl}-level courses}`;
+                }
+                else if (it.specialType === "ADMISSION_PROGRAMME") {
+                    // build a list of programme codes, e.g. ["BSE", "BNS"]
+                    const pCodes = (it.programmeIds || []).map(pid => {
+                        let pObj = allProgrammes.find(px => px.id === pid);
+                        return pObj ? pObj.programmeCode : "??";
+                    });
 
-    let subExprs = g.subGroups.map(s=> buildGroupExpression(s));
-    let joiner = (g.type==="AND") ? " AND " : " OR ";
-    let all = [...items, ...subExprs];
-    if(all.length===0) return "( )";
-    if(all.length===1) return all[0];
-    return `(${all.join(joiner)})`;
+                    if (pCodes.length > 1) {
+                        // e.g. "{Admission into (BSE OR BNS)}"
+                        return `{Admission into (${pCodes.join(" OR ")})}`;
+                    } else if (pCodes.length === 1) {
+                        // e.g. "{Admission into BSE}"
+                        return `{Admission into ${pCodes[0]}}`;
+                    } else {
+                        // e.g. "{Admission into (none)}"
+                        return `{Admission into (none)}`;
+                    }
+                }
+                else {
+                    // fallback if new specialType is added
+                    return `{${it.specialType}}`;
+                }
+            } else {
+                // ---------- NORMAL ITEM (course) ----------
+                let cObj = allCourses.find(cx => cx.id === it.courseId);
+                let label = cObj ? cObj.courseCode : "???";
+                // If there's a programmeId, e.g. for major-specific prereq
+                if (it.programmeId) {
+                    let p = allProgrammes.find(px => px.id === it.programmeId);
+                    label += p ? `(${p.programmeCode})` : "(??)";
+                } else {
+                    label += "(Any)";
+                }
+                return label;
+            }
+        });
+    } else {
+        // fallback if using older group.courses
+        items = (g.courses || []).map(cid => {
+            let c = allCourses.find(cx => cx.id === cid);
+            return c ? c.courseCode + "(Any)" : "???(Any)";
+        });
+    }
+
+    // 2) Recursively build sub-group expressions
+    let subExprs = g.subGroups.map(s => buildGroupExpression(s));
+
+    // 3) Combine all items and sub-groups with AND/OR
+    let joiner = (g.type === "AND") ? " AND " : " OR ";
+    let allParts = [...items, ...subExprs];
+
+    // If the group only has 0 or 1 items, don't add parentheses
+    if (allParts.length <= 1) {
+        return allParts.join("");
+    } else {
+        // If multiple items, wrap them in parentheses
+        return `(${allParts.join(joiner)})`;
+    }
 }
+
+
+
 
 /******************************************************************************
  *  buildExpressionPreview(editMode)
@@ -793,39 +955,92 @@ function removeGroupRecursive(id, arr){
 /******************************************************************************
  * flattenGroups => we store {courseId, programmeId} => see flattenPrereqItems
  ******************************************************************************/
-function flattenGroups(courseId, groups, parentId=0){
-    let list=[];
-    for(let g of groups){
-        let currentId=g.id;
-        let isChild= parentId!==0;
+function flattenGroups(courseId, groups, parentId = 0) {
+    let list = [];
+    for (let g of groups) {
+        let currentId = g.id;
+        let isChild = parentId !== 0;
 
-        // if g.prereqItems => flatten them
+        // If g.prereqItems => flatten them
         let items = g.prereqItems
             ? g.prereqItems
-            : (g.courses||[]).map(cid=>({courseId:cid,programmeId:null}));
+            : (g.courses || []).map(cid => ({ courseId: cid, programmeId: null }));
 
-        items.forEach(it=>{
-            list.push({
-                courseId:Number(courseId),
-                prerequisiteId: it.courseId,
+        for (let it of items) {
+
+            // Common fields for all items
+            const baseFields = {
+                courseId: Number(courseId),
                 groupId: currentId,
-                prerequisiteType: g.type,
-                operatorToNext: isChild?null:g.operatorToNext,
-                parent:!isChild,
-                child:isChild,
-                parentId:parentId,
-                childId: (g.subGroups.length>0)?g.subGroups[0].id:0,
-                // NEW: store programmeId
-                programmeId: it.programmeId
-            });
-        });
+                prerequisiteType: g.type,                // AND/OR
+                operatorToNext: isChild ? null : g.operatorToNext,
+                parent: !isChild,
+                child: isChild,
+                parentId: parentId,
+                childId: (g.subGroups.length > 0) ? g.subGroups[0].id : 0,
 
-        if(g.subGroups.length>0){
+                // "special" might be true or false
+                special: !!it.special,
+                specialType: it.specialType || null,
+                targetLevel: it.targetLevel || null,
+                percentageValue: it.percentageValue || null
+            };
+
+            if (it.special) {
+                // ===== SPECIAL ITEM =====
+                if (it.specialType === "ADMISSION_PROGRAMME") {
+                    // If user selected multiple programmes in one special item,
+                    // we split it into multiple DTOs (one per programme).
+                    if (Array.isArray(it.programmeIds) && it.programmeIds.length > 0) {
+                        it.programmeIds.forEach(pid => {
+                            list.push({
+                                ...baseFields,
+                                // "programmeId" becomes the single ID for this DTO
+                                programmeId: pid,
+                            });
+                        });
+                    } else {
+                        // if no programmeIds, we still push one item with programmeId=null
+                        list.push({
+                            ...baseFields,
+                            programmeId: null
+                        });
+                    }
+                }
+                else if (it.specialType === "COMPLETION_LEVEL_PERCENT") {
+                    // Only one item needed
+                    list.push({
+                        ...baseFields,
+                        programmeId: null  // not applicable
+                    });
+                }
+                else {
+                    // Fallback for other special types
+                    list.push({
+                        ...baseFields,
+                        programmeId: null
+                    });
+                }
+            }
+            else {
+                // ===== NORMAL ITEM =====
+                list.push({
+                    ...baseFields,
+                    prerequisiteId: it.courseId,
+                    programmeId: it.programmeId || null
+                });
+            }
+        }
+
+        // Recurse down subGroups
+        if (g.subGroups.length > 0) {
             list.push(...flattenGroups(courseId, g.subGroups, currentId));
         }
     }
     return list;
 }
+
+
 
 /******************************************************************************
  * cleanEmptyGroups, validateGroups => same as old
@@ -889,7 +1104,7 @@ function submitPrerequisiteForm(evt){
         courseId:Number(courseId),
         prerequisites:flattened
     };
-  //  console.log(JSON.stringify(requestData,null,2))
+    console.log(JSON.stringify(requestData,null,2))
     fetch("/api/admin/addPreReqs", {
         method:"POST",
         headers:{"Content-Type":"application/json"},

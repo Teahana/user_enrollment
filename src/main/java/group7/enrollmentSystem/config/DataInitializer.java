@@ -55,6 +55,7 @@ public class DataInitializer implements CommandLineRunner {
         EnrollmentState enrollmentState = new EnrollmentState();
         enrollmentState.setId(1L);
         enrollmentState.setOpen(true);
+        enrollmentState.setSemesterOne(true);
         enrollmentStatusRepo.save(enrollmentState);
     }
 

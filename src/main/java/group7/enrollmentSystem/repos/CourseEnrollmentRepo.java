@@ -25,6 +25,7 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingTrueAndSemesterEnrolled(Long studentId, int semester);
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalseAndCancelledTrueAndSemesterEnrolled(Long studentId, int semester);
 
+    List<CourseEnrollment> findByStudentId(Long studentId);
 }
 
 

@@ -72,4 +72,8 @@ public class StudentProgrammeService {
         studentProgrammeRepo.deleteById(id);
     }
 
+    public Programme getStudentProgramme(Student student) {
+        Optional<StudentProgramme> studentProgramme = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
+        return studentProgramme.map(StudentProgramme::getProgramme).orElse(null);
+    }
 }

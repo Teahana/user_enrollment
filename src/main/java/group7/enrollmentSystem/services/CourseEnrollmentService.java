@@ -1,12 +1,9 @@
 package group7.enrollmentSystem.services;
 
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto;
+import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.enums.PrerequisiteType;
-import group7.enrollmentSystem.models.Course;
-import group7.enrollmentSystem.models.CourseProgramme;
-import group7.enrollmentSystem.models.CourseEnrollment;
-import group7.enrollmentSystem.models.Student;
-import group7.enrollmentSystem.models.StudentProgramme;
+import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -190,4 +188,37 @@ public class CourseEnrollmentService {
         }
     }
 
+    public EnrollmentPageData getEnrollmentPageData(Student student, Programme programme, int currentSemester) {
+        Long studentId = student.getId();
+
+        // Fetch all course enrollments for this student
+        List<CourseEnrollment> allEnrollments = courseEnrollmentRepo.findByStudentId(studentId);
+
+        // Active enrollments for the current semester
+        List<CourseEnrollment> active = allEnrollments.stream()
+                .filter(e -> e.isCurrentlyTaking() && e.getSemesterEnrolled() == currentSemester)
+                .toList();
+
+        // Cancelled enrollments for the current semester
+        List<CourseEnrollment> cancelled = allEnrollments.stream()
+                .filter(e -> e.isCancelled() && e.getSemesterEnrolled() == currentSemester)
+                .toList();
+
+        // Set of ineligible course IDs: already completed, currently taking, or cancelled
+        Set<Long> ineligibleCourseIds = allEnrollments.stream()
+                .filter(e -> e.isCompleted() || e.isCurrentlyTaking() || e.isCancelled())
+                .map(e -> e.getCourse().getId())
+                .collect(Collectors.toSet());
+
+        // All courses from student's programme offered in current semester
+        List<CourseProgramme> programmeCourses = courseProgrammeRepo.findByProgramme(programme);
+        List<Course> eligible = programmeCourses.stream()
+                .map(CourseProgramme::getCourse)
+                .filter(course -> (currentSemester == 1 && course.isOfferedSem1()) ||
+                        (currentSemester == 2 && course.isOfferedSem2()))
+                .filter(course -> !ineligibleCourseIds.contains(course.getId()))
+                .toList();
+
+        return new EnrollmentPageData(active, cancelled, eligible);
+    }
 }

@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
 import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
@@ -30,33 +31,36 @@ public class StudentController {
     private final EnrollmentStatusRepo enrollmentStatusRepo;
 
 
-    @GetMapping("/enrollment/{semester}")
-    public String enrollment(@PathVariable("semester") int semester, Model model, Principal principal) {
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
-        if(enrollmentState.isOpen()){
-            String email = principal.getName();
-            Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-            StudentProgramme programme = studentProgrammeService.getAllStudentProgrammes().stream()
-                    .filter(StudentProgramme::isCurrentProgramme)
-                    .filter(sp -> sp.getStudent().equals(student))
-                    .findFirst().orElseThrow(() -> new RuntimeException("No active programme found."));
+    @GetMapping("/enrollment")
+    public String enrollment(Model model, Principal principal) {
+        EnrollmentState state = enrollmentStatusRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
-            List<CourseEnrollment> activeEnrollments = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester);
-            List<CourseEnrollment> canceledEnrollments = courseEnrollmentService.getCanceledEnrollmentsBySemester(student.getId(), semester);
+        if (!state.isOpen()) {
+            model.addAttribute("pageOpen", false);
+            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
+            return "enrollment";
+        }
 
-            model.addAttribute("student", student);
-            model.addAttribute("programme", programme.getProgramme());
-            model.addAttribute("activeEnrollments", activeEnrollments);
-            model.addAttribute("canceledEnrollments", canceledEnrollments);
-            model.addAttribute("semester", semester);
-            model.addAttribute("pageOpen",true);
-        }
-        else{
-            model.addAttribute("pageOpen",false);
-            model.addAttribute("message","The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
-        }
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email).orElseThrow();
+        Programme programme = studentProgrammeService.getStudentProgramme(student);
+
+        int semester = state.isSemesterOne() ? 1 : 2;
+        EnrollmentPageData data = courseEnrollmentService.getEnrollmentPageData(student, programme, semester);
+
+        model.addAttribute("student", student);
+        model.addAttribute("programme", programme.getName());
+        model.addAttribute("semester", semester);
+        model.addAttribute("pageOpen", true);
+        model.addAttribute("activeEnrollments", data.getActiveEnrollments());
+        model.addAttribute("canceledEnrollments", data.getCanceledEnrollments());
+        model.addAttribute("eligibleCourses", data.getEligibleCourses()); // optional for selectCourses view
+
         return "enrollment";
     }
+
+
 
     @PostMapping("/cancelEnrollment/{id}/{semester}")
     public String cancelEnrollment(@PathVariable Long id, @PathVariable int semester, RedirectAttributes redirectAttributes) {

@@ -6,8 +6,10 @@ import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteDTO;
 import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest;
 import group7.enrollmentSystem.dtos.classDtos.GraphicalPrerequisiteNode;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
+import group7.enrollmentSystem.dtos.interfaceDtos.ProgrammeIdAndCode;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.repos.CourseRepo;
+import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +29,8 @@ public class AdminApiController {
     private final CourseRepo courseRepo;
     private final CourseProgrammeService courseProgrammeService;
     private final CourseService courseService;
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ProgrammeRepo programmeRepo;
+
 
 
     @GetMapping("/getAllCourses")
@@ -36,10 +38,15 @@ public class AdminApiController {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
         return ResponseEntity.ok(courses);
     }
+    @GetMapping("/getAllProgrammes")
+    public ResponseEntity<?> getAllProgrammes() {
+        List<ProgrammeIdAndCode> programmes = programmeRepo.findAllBy();
+        return ResponseEntity.ok(programmes);
+    }
     @PostMapping("/addPreReqs")
     public ResponseEntity<?> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
         try{
-            //System.out.println("Request: "+request);
+            System.out.println("Request: "+request);
             courseService.addPrerequisites(request);
             return ResponseEntity.ok(Map.of("message", "Prerequisites added successfully"));
         }

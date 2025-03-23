@@ -110,6 +110,17 @@ public class AdminController {
         }
     }
 
+    @PostMapping("/updateCourse")
+    public String updateCourse(@ModelAttribute CourseDto dto, RedirectAttributes redirectAttributes) {
+        try {
+            courseService.updateCourse(dto);
+            redirectAttributes.addFlashAttribute("message", "Course updated successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/courses";
+    }
+
     // Display all programmes
     @GetMapping("/programmes")
     public String getProgrammes(Model model) {
@@ -159,4 +170,15 @@ public class AdminController {
         return "redirect:/admin/dashboard";
     }
 }
-
+//    @PostMapping("/addPreReqs")
+//    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
+//        try {
+//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
+//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
+//        } catch (DataIntegrityViolationException e) {
+//            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
+//        } catch (Exception e) {
+//            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
+//        }
+//        return "redirect:/admin/courses";
+//    }

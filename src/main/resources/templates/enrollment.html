@@ -29,7 +29,7 @@
             <td th:text="${enrollment.course.description}"></td>
             <td th:text="${enrollment.course.creditPoints}"></td>
             <td>
-                <form th:action="@{/student/cancelEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
+                <form th:action="@{/student/cancelEnrollment/{id}(id=${enrollment.id})}" method="post">
                     <button type="submit" class="btn btn-warning">Cancel</button>
                 </form>
             </td>
@@ -55,9 +55,9 @@
             <td th:text="${enrollment.course.description}"></td>
             <td th:text="${enrollment.course.creditPoints}"></td>
             <td>
-                <form th:action="@{/student/activateEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
-                    <button type="submit" class="btn btn-success"
-                            th:disabled="${activeEnrollments.size() >= 4}">
+                <!-- Activate Enrollment -->
+                <form th:action="@{/student/activateEnrollment/{id}(id=${enrollment.id})}" method="post">
+                    <button type="submit" class="btn btn-success" th:disabled="${activeEnrollments.size() >= 4}">
                         Activate
                     </button>
                     <div th:if="${activeEnrollments.size() >= 4}" class="alert alert-warning">

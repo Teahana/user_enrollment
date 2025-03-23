@@ -102,26 +102,16 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
-//    @PostMapping("/addPreReqs")
-//    public String addPrerequisites(
-//            @ModelAttribute CoursePrerequisiteRequest request,
-//            RedirectAttributes redirectAttributes) {
-//
-//        try {
-//
-//            // Call service function
-//            courseService.addPrerequisites(request);
-//
-//            // Redirect with success message
-//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully.");
-//            return "redirect:/admin/courses"; // Redirect back to courses page
-//        } catch (Exception e) {
-//            redirectAttributes.addFlashAttribute("error", e.getMessage());
-//            return "redirect:/admin/courses"; // Redirect back with error
-//        }
-//    }
-
-
+    @PostMapping("/updateCourse")
+    public String updateCourse(@ModelAttribute CourseDto dto, RedirectAttributes redirectAttributes) {
+        try {
+            courseService.updateCourse(dto);
+            redirectAttributes.addFlashAttribute("message", "Course updated successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/courses";
+    }
 
     // Display all programmes
     @GetMapping("/programmes")

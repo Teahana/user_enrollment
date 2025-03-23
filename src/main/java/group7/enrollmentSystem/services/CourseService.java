@@ -4,6 +4,7 @@ import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
+import group7.enrollmentSystem.models.CourseProgramme;
 import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.repos.CoursePrerequisiteRepo;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
@@ -178,23 +179,30 @@ public class CourseService {
     public Optional<Course> getCourseByCode(String courseCode) {
         return courseRepo.findByCourseCode(courseCode);
     }
+    @Transactional
+    public void updateCourse(CourseDto dto) {
+        Course course = courseRepo.findById(dto.getId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
-    // Update a course
-    public void updateCourse(String courseCode, String title, String description, double creditPoints, Short level, Boolean offeredSem1, Boolean offeredSem2) {
-        Optional<Course> optionalCourse = courseRepo.findByCourseCode(courseCode);
-        if (optionalCourse.isPresent()) {
-            Course course = optionalCourse.get();
-            course.setTitle(title);
-            course.setDescription(description);
-            course.setCreditPoints(creditPoints);
-            course.setLevel(level);
-            course.setOfferedSem1(offeredSem1);
-            course.setOfferedSem2(offeredSem2);
-            courseRepo.save(course);
-        } else {
-            throw new RuntimeException("Course not found with code: " + courseCode);
+        course.setCourseCode(dto.getCourseCode());
+        course.setTitle(dto.getTitle());
+        course.setDescription(dto.getDescription());
+        course.setCreditPoints(dto.getCreditPoints());
+        course.setLevel(dto.getLevel());
+        course.setOfferedSem1(dto.isOfferedSem1());
+        course.setOfferedSem2(dto.isOfferedSem2());
+        courseRepo.save(course);
+
+        // Update CourseProgrammes
+        courseProgrammeRepo.deleteByCourse(course);
+        if (dto.getProgrammeIds() != null) {
+            for (Long pid : dto.getProgrammeIds()) {
+                Programme p = programmeRepo.findById(pid).orElseThrow();
+                courseProgrammeRepo.save(new CourseProgramme(null, course, p, false));
+            }
         }
     }
+
 
     // Delete a course record
     public void deleteCourse(String courseCode) {
@@ -216,8 +224,23 @@ public class CourseService {
         course.setLevel(courseDto.getLevel());
         course.setOfferedSem1(courseDto.isOfferedSem1());
         course.setOfferedSem2(courseDto.isOfferedSem2());
-        courseRepo.save(course); // Save the new course first
+
+        courseRepo.save(course);
+
+        // Save CourseProgramme entries
+        if (courseDto.getProgrammeIds() != null) {
+            for (Long programmeId : courseDto.getProgrammeIds()) {
+                Programme programme = programmeRepo.findById(programmeId)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid programme ID: " + programmeId));
+                CourseProgramme cp = new CourseProgramme();
+                cp.setCourse(course);
+                cp.setProgramme(programme);
+                cp.setOptional(false);
+                courseProgrammeRepo.save(cp);
+            }
+        }
     }
+
     @Transactional
     public void addPrerequisites(FlatCoursePrerequisiteRequest request) {
         Course mainCourse = courseRepo.findById(request.getCourseId())

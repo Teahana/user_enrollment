@@ -26,7 +26,8 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             allProgrammes = data;
-            populateProgrammeDropdown(); // Fill dropdown in course modal
+            populateProgrammeDropdown();
+            populateProgrammeCheckboxes();
         })
         .catch(err => console.error("Error fetching programmes:", err));
 
@@ -78,6 +79,48 @@ document.addEventListener("DOMContentLoaded", function () {
             document.body.classList.remove("modal-open");
             document.body.style = "";
         }
+    });
+    document.querySelectorAll(".editCourseBtn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const id = btn.getAttribute("data-course-id");
+            const code = btn.getAttribute("data-course-code");
+            const title = btn.getAttribute("data-title");
+            const desc = btn.getAttribute("data-description");
+            const credit = btn.getAttribute("data-credit");
+            const level = btn.getAttribute("data-level");
+            const sem1 = btn.getAttribute("data-sem1") === "true";
+            const sem2 = btn.getAttribute("data-sem2") === "true";
+            const programmes = btn.getAttribute("data-programmes").split(',').map(p => p.trim());
+
+            document.getElementById("editCourseId").value = id;
+            document.getElementById("editCourseCode").value = code;
+            document.getElementById("editTitle").value = title;
+            document.getElementById("editDescription").value = desc;
+            document.getElementById("editCredit").value = credit;
+            document.getElementById("editLevel").value = level;
+            document.getElementById("editSem1").checked = sem1;
+            document.getElementById("editSem2").checked = sem2;
+
+            // Programmes
+            const container = document.getElementById("editProgrammeCheckboxContainer");
+            container.innerHTML = "";
+            allProgrammes.forEach(prog => {
+                const div = document.createElement("div");
+                div.classList.add("form-check");
+
+                const isChecked = programmes.includes(prog.programmeCode);
+                div.innerHTML = `
+                    <input class="form-check-input" type="checkbox"
+                           name="programmeIds" value="${prog.id}"
+                           id="editProgCheck${prog.id}"
+                           ${isChecked ? "checked" : ""}>
+                    <label class="form-check-label" for="editProgCheck${prog.id}">
+                        ${prog.programmeCode} - ${prog.name}
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+        });
     });
 });
 
@@ -483,8 +526,8 @@ function populateSelectCourseList() {
 /******************************************************************************
  *  filterSelectCourseList
  ******************************************************************************/
-function filterSelectCourseList() {
-    let searchTerm = this.value.toLowerCase();
+function filterSelectCourseList(inputEl) {
+    let searchTerm = inputEl.value.toLowerCase();
     let listDiv = document.getElementById("selectCourseList");
     if (!listDiv) return;
 
@@ -968,5 +1011,27 @@ function filterCourses(){
         if(!codeCell)return;
         let code=codeCell.textContent.toLowerCase();
         r.style.display=(code.includes(term))?"":"none";
+    });
+}
+function populateProgrammeCheckboxes() {
+    const container = document.getElementById("programmeCheckboxContainer");
+    if (!container) return;
+
+    container.innerHTML = ""; // Clear any old checkboxes
+
+    allProgrammes.forEach(prog => {
+        const div = document.createElement("div");
+        div.classList.add("form-check");
+
+        div.innerHTML = `
+            <input class="form-check-input" type="checkbox" 
+                   name="programmeIds" value="${prog.id}" 
+                   id="progCheck${prog.id}">
+            <label class="form-check-label" for="progCheck${prog.id}">
+                ${prog.programmeCode} - ${prog.name}
+            </label>
+        `;
+
+        container.appendChild(div);
     });
 }

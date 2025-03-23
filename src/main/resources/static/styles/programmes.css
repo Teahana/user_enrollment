@@ -1,0 +1,107 @@
+/* General Styling */
+body {
+    background-color: #f8f9fa; /* Light gray background */
+    font-family: 'Arial', sans-serif;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h2 {
+    color: #0d6efd; /* Bootstrap primary blue */
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+/* Table Styling */
+.table {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.table thead {
+    background-color: #0d6efd; /* Blue header */
+    color: white;
+}
+
+.table th, .table td {
+    padding: 12px;
+    vertical-align: top; /* Align content to the top */
+    font-size: 14px; /* Slightly larger font size */
+    font-weight: bold; /* Bold text */
+}
+
+.table th {
+    text-align: left; /* Align headers to the left */
+}
+
+.table tbody tr:hover {
+    background-color: #f1f1f1; /* Light gray hover effect */
+}
+
+/* Checkbox Styling */
+.checkbox-cell {
+    text-align: center;
+}
+
+/* Bulk Actions Styling */
+.bulk-actions {
+    display: flex;
+    gap: 10px; /* Space between buttons */
+    margin-top: 10px;
+}
+
+.bulk-actions button {
+    padding: 5px 10px;
+    font-size: 12px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+}
+
+.bulk-actions .btn-danger {
+    background-color: #dc3545; /* Red */
+}
+
+.bulk-actions .btn-danger:hover {
+    background-color: #bb2d3b; /* Darker red on hover */
+}
+
+.bulk-actions .btn-secondary {
+    background-color: #6c757d; /* Gray */
+}
+
+.bulk-actions .btn-secondary:hover {
+    background-color: #5a6268; /* Darker gray on hover */
+}
+
+/* Modal Styling */
+.modal-content {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    background-color: #0d6efd; /* Blue */
+    color: white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.modal-title {
+    font-weight: bold;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+/* Add Programme Button */
+.add-programme-btn {
+    margin-bottom: 20px;
+}

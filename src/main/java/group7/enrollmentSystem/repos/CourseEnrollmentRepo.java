@@ -1,12 +1,14 @@
 package group7.enrollmentSystem.repos;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CourseEnrollment;
 import group7.enrollmentSystem.models.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Long> {
@@ -25,6 +27,15 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingTrueAndSemesterEnrolled(Long studentId, int semester);
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalseAndCancelledTrueAndSemesterEnrolled(Long studentId, int semester);
 
+    List<CourseEnrollment> findByStudentId(Long studentId);
+
+    int countByStudentAndSemesterEnrolledAndCurrentlyTakingIsTrue(Student student, int semester);
+
+    boolean existsByStudentAndCourseAndCompletedIsTrue(Student student, Course preCourse);
+
+    Collection<Object> findByStudentAndCourseInAndCompletedIsTrue(Student student, List<Course> sameLevelCourses);
+
+    List<CourseEnrollment> findByStudent(Student student);
 }
 
 

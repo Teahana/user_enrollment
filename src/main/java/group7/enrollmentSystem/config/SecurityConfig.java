@@ -28,11 +28,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())  // Disable CSRF
             .cors(cors -> cors.disable())  // Disable CORS
             .authorizeHttpRequests(auth -> auth
-                    .anyRequest().permitAll()
-                   // .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
-                   // .requestMatchers("/courseEnroll/**").hasRole("STUDENT")
-                   // .requestMatchers("/home","/register","/login", "/").permitAll()  // Allow access to home and login pages
-                  //  .anyRequest().authenticated()  // Require authentication for all other endpoints
+                    //.requestMatchers("/api/**").permitAll()
+                    .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
+                    .requestMatchers("/student/**").hasRole("STUDENT")
+                    .requestMatchers("/login","/styles/**","/images/**").permitAll()
+                    .anyRequest().authenticated()
             )
                 .formLogin(login -> login
                         .loginPage("/login")

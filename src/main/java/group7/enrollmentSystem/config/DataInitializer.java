@@ -10,10 +10,15 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
@@ -31,6 +36,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final EnrollmentStatusRepo enrollmentStatusRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
+    private final StudentProgrammeRepo studentProgrammeRepo;
 
     @Override
     public void run(String... args) {
@@ -42,7 +48,67 @@ public class DataInitializer implements CommandLineRunner {
         initializeCourseProgrammes();   // Link BSE & BNS
         linkStudentsToProgrammes();     // Assign students to BSE or BNS
         initializeCourseEnrollments();
+        restoreCoursePrerequisiteFromBackup();
     }
+    private void restoreCoursePrerequisiteFromBackup() {
+        if (coursePrerequisiteRepo.count() > 0) {
+            System.out.println("course_prerequisite already exists. Skipping restore.");
+            return;
+        }
+
+        String dbUser = "root";
+        String dbPassword = "12345";
+        String dbName = "enrollment_database";
+        String mysqlBinary = "mysql";
+
+        try {
+            // Step 1: Load SQL from resources
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("backup/course_prerequisite_backup.sql");
+            if (inputStream == null) {
+                throw new FileNotFoundException("course_prerequisite_backup.sql not found in resources!");
+            }
+
+            // Step 2: Save it temporarily
+            Path tempFile = Files.createTempFile("course_prerequisite_backup", ".sql");
+            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            inputStream.close();
+
+            // Step 3: Build MySQL command
+            List<String> command = Arrays.asList(
+                    mysqlBinary,
+                    "-u" + dbUser,
+                    "-p" + dbPassword,
+                    "-D", dbName,
+                    "--execute", "source " + tempFile.toAbsolutePath()
+            );
+
+            // Step 4: Run it
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("✅ course_prerequisite restored successfully from backup!");
+            } else {
+                System.err.println("❌ Error restoring course_prerequisite. Exit code: " + exitCode);
+            }
+
+            Files.deleteIfExists(tempFile); // Cleanup
+
+        } catch (Exception e) {
+            System.err.println("❌ Exception during course_prerequisite restore: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
 
     // --------------------------------------------------------------
     //  1) Enrollment Status
@@ -55,6 +121,7 @@ public class DataInitializer implements CommandLineRunner {
         EnrollmentState enrollmentState = new EnrollmentState();
         enrollmentState.setId(1L);
         enrollmentState.setOpen(true);
+        enrollmentState.setSemesterOne(true);
         enrollmentStatusRepo.save(enrollmentState);
     }
 
@@ -740,8 +807,6 @@ public class DataInitializer implements CommandLineRunner {
             throw new RuntimeException("Must initialize students and programmes first!");
         }
 
-        // Suppose we link first 3 to BSE, last 2 to BNS, as an example
-        // (Or however you wish)
         studentProgrammeService.saveStudentProgramme(students.get(0).getId(), programmes.get(0).getId(), true); // BSE
         studentProgrammeService.saveStudentProgramme(students.get(1).getId(), programmes.get(0).getId(), true); // BSE
         studentProgrammeService.saveStudentProgramme(students.get(2).getId(), programmes.get(0).getId(), true); // BSE
@@ -767,12 +832,11 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         // 2) Find the student's *current* StudentProgramme
-        StudentProgramme studentProg = studentProgrammeService.getAllStudentProgrammes().stream()
-                .filter(sp -> sp.getStudent().equals(student) && sp.isCurrentProgramme())
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No current programme found for student " + studentId));
-
-        Programme currentProgramme = studentProg.getProgramme();
+        Optional<StudentProgramme> studentProg = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
+        if(studentProg.isEmpty()){
+            throw new RuntimeException("Student " + studentId + " is not linked to any programme!");
+        }
+        Programme currentProgramme = studentProg.get().getProgramme();
         List<Course> programmeCourses = courseProgrammeRepo.findAllByProgramme(currentProgramme);
         if (programmeCourses.size() < 8) {
             throw new RuntimeException("Not enough courses in the " + currentProgramme.getName() + " programme!");

@@ -10,4 +10,5 @@ public class EnrollmentState {
     @Id
     private Long id;
     private boolean open;
+    private boolean semesterOne;
 }

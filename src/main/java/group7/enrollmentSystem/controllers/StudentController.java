@@ -1,9 +1,9 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollDto;
+import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.models.*;
-import group7.enrollmentSystem.repos.CourseProgrammeRepo;
-import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
-import group7.enrollmentSystem.repos.StudentRepo;
+import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.StudentProgrammeService;
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -28,111 +29,187 @@ public class StudentController {
     private final StudentProgrammeService studentProgrammeService;
     private final CourseService courseService;
     private final EnrollmentStatusRepo enrollmentStatusRepo;
+    private final CourseRepo courseRepo;
+    private final CourseEnrollmentRepo courseEnrollmentRepo;
 
 
-    @GetMapping("/enrollment/{semester}")
-    public String enrollment(@PathVariable("semester") int semester, Model model, Principal principal) {
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
-        if(enrollmentState.isOpen()){
-            String email = principal.getName();
-            Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-            StudentProgramme programme = studentProgrammeService.getAllStudentProgrammes().stream()
-                    .filter(StudentProgramme::isCurrentProgramme)
-                    .filter(sp -> sp.getStudent().equals(student))
-                    .findFirst().orElseThrow(() -> new RuntimeException("No active programme found."));
+    @GetMapping("/enrollment")
+    public String enrollment(Model model, Principal principal) {
+        EnrollmentState state = enrollmentStatusRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
-            List<CourseEnrollment> activeEnrollments = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester);
-            List<CourseEnrollment> canceledEnrollments = courseEnrollmentService.getCanceledEnrollmentsBySemester(student.getId(), semester);
-
-            model.addAttribute("student", student);
-            model.addAttribute("programme", programme.getProgramme());
-            model.addAttribute("activeEnrollments", activeEnrollments);
-            model.addAttribute("canceledEnrollments", canceledEnrollments);
-            model.addAttribute("semester", semester);
-            model.addAttribute("pageOpen",true);
+        if (!state.isOpen()) {
+            model.addAttribute("pageOpen", false);
+            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
+            return "enrollment";
         }
-        else{
-            model.addAttribute("pageOpen",false);
-            model.addAttribute("message","The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
-        }
+
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email).orElseThrow();
+        Programme programme = studentProgrammeService.getStudentProgramme(student);
+
+        int semester = state.isSemesterOne() ? 1 : 2;
+        EnrollmentPageData data = courseEnrollmentService.getEnrollmentPageData(student, programme, semester);
+
+        model.addAttribute("student", student);
+        model.addAttribute("programme", programme.getName());
+        model.addAttribute("semester", semester);
+        model.addAttribute("pageOpen", true);
+        model.addAttribute("activeEnrollments", data.getActiveEnrollments());
+        model.addAttribute("canceledEnrollments", data.getCanceledEnrollments());
+        model.addAttribute("eligibleCourses", data.getEligibleCourses()); // optional for selectCourses view
+
         return "enrollment";
     }
 
-    @PostMapping("/cancelEnrollment/{id}/{semester}")
-    public String cancelEnrollment(@PathVariable Long id, @PathVariable int semester, RedirectAttributes redirectAttributes) {
-        courseEnrollmentService.cancelEnrollment(id);
-        redirectAttributes.addFlashAttribute("success", "Enrollment cancelled successfully.");
-        return "redirect:/student/enrollment/" + semester;
-    }
-
-    @PostMapping("/activateEnrollment/{id}/{semester}")
-    public String activateEnrollment(@PathVariable Long id, @PathVariable int semester,  Principal principal, RedirectAttributes redirectAttributes) {
-
+    @GetMapping("/selectCourses")
+    public String selectCourses(Model model, Principal principal) {
+        // Fetch current student
         String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        int activeEnrollmentsCount = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester).size();
+        // Determine current semester from enrollment state
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        int semester = enrollmentState.isSemesterOne() ? 1 : 2;
 
-        if (activeEnrollmentsCount >= 4) {
-            redirectAttributes.addFlashAttribute("error", "You cannot activate this enrollment because you already have four active courses for this semester.");
-            return "redirect:/student/enrollment/" + semester;
-        }
+        // Fetch eligible courses
+        List<CourseEnrollDto> eligibleCourses = courseEnrollmentService.getEligibleCoursesForEnrollment(student, semester);
 
-        courseEnrollmentService.activateEnrollment(id);
-        redirectAttributes.addFlashAttribute("success", "Enrollment activated successfully.");
-        return "redirect:/student/enrollment/" + semester;
-    }
-
-    @GetMapping("/selectCourses/{semester}")
-    public String selectCourses(@PathVariable("semester") int semester, Model model, Principal principal) {
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow();
-
-        // Fetch available courses for the semester based on the student's current programme
-        List<CourseProgramme> courses = courseEnrollmentService.getAvailableCoursesForSemester(student.getId(), semester);
-
-        model.addAttribute("courses", courses);
-        model.addAttribute("courseService", courseService);
+        // Pass to view
+        model.addAttribute("courses", eligibleCourses);
         model.addAttribute("semester", semester);
+
         return "courseEnroll";
     }
 
-    @PostMapping("/enrollCourses/{semester}")
-    public String enrollCourses(@PathVariable("semester") int semester,
-                                @RequestParam(value = "selectedCourses", required = false) List<Long> selectedCourseIds,
+
+
+
+    @PostMapping("/cancelEnrollment/{id}")
+    public String cancelEnrollment(@PathVariable Long id,
+                                   RedirectAttributes redirectAttributes)
+    {
+        // Just call your service to handle cancellation
+        courseEnrollmentService.cancelEnrollment(id);
+
+        redirectAttributes.addFlashAttribute("success", "Enrollment cancelled successfully.");
+        // Redirect to /student/enrollment (no semester in path)
+        return "redirect:/student/enrollment";
+    }
+
+
+    @PostMapping("/activateEnrollment/{id}")
+    public String activateEnrollment(@PathVariable Long id,
+                                     Principal principal,
+                                     RedirectAttributes redirectAttributes)
+    {
+        // 1) Identify the student
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // 2) Retrieve the enrollment record
+        CourseEnrollment enrollment = courseEnrollmentRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enrollment record not found"));
+
+        // 3) If you still want to limit 4 courses per semester, figure out the semester.
+        //    Option A: The enrollment itself might have a getSemesterEnrolled() property:
+        int semester = enrollment.getSemesterEnrolled();
+
+        //    Option B: If you store "current semester" in an EnrollmentState table:
+        //    EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+        //        .orElseThrow(...);
+        //    int semester = enrollmentState.isSemesterOne() ? 1 : 2;
+
+        // 4) Count how many courses are already active in that semester
+        int activeEnrollmentsCount =
+                courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester)
+                        .size();
+
+        if (activeEnrollmentsCount >= 4) {
+            redirectAttributes.addFlashAttribute("error",
+                    "You already have four active courses this semester.");
+            return "redirect:/student/enrollment";
+        }
+
+        // 5) Otherwise, activate the enrollment
+        courseEnrollmentService.activateEnrollment(id);
+        redirectAttributes.addFlashAttribute("success", "Enrollment activated successfully.");
+
+        // 6) Redirect to a single page that lists all enrollments for the user
+        return "redirect:/student/enrollment";
+    }
+
+
+    @PostMapping("/enrollCourses")
+    public String enrollCourses(@RequestParam(value = "selectedCourses", required = false) List<Long> selectedCourseIds,
                                 Principal principal,
+                                Model model,
                                 RedirectAttributes redirectAttributes) {
 
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-
-        // Check if no courses are selected
+        // 1) If no courses were selected, handle gracefully
         if (selectedCourseIds == null || selectedCourseIds.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Please select a course");
-            return "redirect:/student/selectCourses/" + semester;
+            redirectAttributes.addFlashAttribute("error", "No courses were selected.");
+            return "redirect:/student/selectCourses";
         }
 
-        // Check active enrollments
-        int activeEnrollmentsCount = courseEnrollmentService.getActiveEnrollmentsBySemester(student.getId(), semester).size();
+        // 2) Get the student
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        if (activeEnrollmentsCount + selectedCourseIds.size() > 4) {
-            redirectAttributes.addFlashAttribute(
-                    "error",
-                    "You cannot enroll in more than four courses per semester. " +
-                            "Currently enrolled: " + activeEnrollmentsCount
-            );
-            return "redirect:/student/selectCourses/" + semester;
+        // 3) Determine current semester from your enrollment state
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        int semester = enrollmentState.isSemesterOne() ? 1 : 2;
+
+        // 4) Count how many courses the student is already taking this semester
+        int currentlyTakingCount = courseEnrollmentRepo
+                .countByStudentAndSemesterEnrolledAndCurrentlyTakingIsTrue(student, semester);
+
+        // 5) Check if adding these new courses would exceed the maximum (4 total)
+        int totalCoursesIfAdded = currentlyTakingCount + selectedCourseIds.size();
+        if (totalCoursesIfAdded > 4) {
+            redirectAttributes.addFlashAttribute("error",
+                    "You cannot enroll in more than 4 courses this semester. "
+                            + "You are already taking " + currentlyTakingCount
+                            + " course(s) and tried to add " + selectedCourseIds.size() + " more.");
+            return "redirect:/student/selectCourses";
         }
 
-        try {
-            courseEnrollmentService.enrollStudentInCourses(student.getId(), selectedCourseIds, semester);
-            redirectAttributes.addFlashAttribute("success", "Courses have been enrolled successfully for Semester " + semester);
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/student/selectCourses/" + semester;
+        // 6) Perform the enrollment logic (saving to database)
+        //    - For each selected course, create a CourseEnrollment entity, set
+        //      'currentlyTaking = true', 'semesterEnrolled = semester', etc.
+        //    - Example:
+        List<CourseEnrollment> newEnrollments = new ArrayList<>();
+        for (Long courseId : selectedCourseIds) {
+            Course course = courseRepo.findById(courseId)
+                    .orElseThrow(() -> new RuntimeException("Course not found (ID: " + courseId + ")"));
+
+            // Create the enrollment record (or delegate to a service method)
+            CourseEnrollment enrollment = new CourseEnrollment();
+            enrollment.setStudent(student);
+            enrollment.setCourse(course);
+            enrollment.setSemesterEnrolled(semester);
+            enrollment.setCurrentlyTaking(true);
+            enrollment.setCompleted(false); // presumably false if you’re just enrolling
+
+            newEnrollments.add(enrollment);
         }
-         return "redirect:/student/enrollment/" + semester;
+
+        // 7) Save all new enrollments
+        courseEnrollmentRepo.saveAll(newEnrollments);
+
+        // 8) Provide a success message
+        redirectAttributes.addFlashAttribute("success",
+                "Enrollment successful! You have enrolled in " + newEnrollments.size() + " course(s).");
+
+        // 9) Redirect back to the course selection or some summary page
+        return "redirect:/student/selectCourses";
     }
+
 
     @GetMapping("/completedCourses")
     public String viewCompletedCourses(Model model, Principal principal) {

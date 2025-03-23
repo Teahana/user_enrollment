@@ -1,0 +1,35 @@
+/* Custom styles for the enrollCourses page */
+
+/* Fixed bottom section */
+.fixed-bottom-section {
+    background-color: white;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    position: sticky;
+    bottom: 0;
+    transition: transform 0.3s ease;
+}
+
+.container {
+    padding-bottom: 30px;
+}
+
+/* Loading text for prerequisites */
+.loading-text {
+    font-style: italic;
+    color: #6c757d;
+}
+
+/* Prerequisite expression styling */
+.prerequisite-expression {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+/* Table row hover effect */
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}

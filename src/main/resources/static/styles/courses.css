@@ -1,0 +1,31 @@
+/* Group boxes, subgroups, chips – same as before */
+.group-box {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+.subgroups-container {
+    margin-left: 1.5rem;  /* indent subgroups visually */
+    margin-top: 1rem;
+    border-left: 2px dashed #ccc;
+    padding-left: 1rem;
+}
+.chip {
+    display: inline-block;
+    background: #e0e0e0;
+    border-radius: 16px;
+    padding: 4px 8px;
+    margin: 0 4px 4px 0;
+    font-size: 0.85rem;
+}
+.chip .remove-chip {
+    cursor: pointer;
+    margin-left: 6px;
+    font-weight: bold;
+}
+.chip .remove-chip:hover {
+    color: red;
+}

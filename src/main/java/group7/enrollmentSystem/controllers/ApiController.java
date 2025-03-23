@@ -3,7 +3,7 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.dtos.classDtos.CourseDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
-import group7.enrollmentSystem.dtos.interfaceDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
@@ -123,21 +123,21 @@ public class ApiController {
         return course.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/courses/{courseCode}")
-    public ResponseEntity<?> updateCourse(@PathVariable String courseCode, @RequestBody CourseDto courseDto) {
-        courseService.updateCourse(
-                courseCode,
-                courseDto.getTitle(),
-                courseDto.getDescription(),
-                courseDto.getCreditPoints(),
-                courseDto.getLevel(),
-                courseDto.isOfferedSem1(),
-                courseDto.isOfferedSem2()
-        );
-        return ResponseEntity.ok().body(new HashMap<>() {{
-            put("message", "Course updated");
-        }});
-    }
+//    @PutMapping("/courses/{courseCode}")
+//    public ResponseEntity<?> updateCourse(@PathVariable String courseCode, @RequestBody CourseDto courseDto) {
+//        courseService.updateCourse(
+//                courseCode,
+//                courseDto.getTitle(),
+//                courseDto.getDescription(),
+//                courseDto.getCreditPoints(),
+//                courseDto.getLevel(),
+//                courseDto.isOfferedSem1(),
+//                courseDto.isOfferedSem2()
+//        );
+//        return ResponseEntity.ok().body(new HashMap<>() {{
+//            put("message", "Course updated");
+//        }});
+//    }
 
     @DeleteMapping("/courses/{courseCode}")
     public ResponseEntity<?> deleteCourse(@PathVariable String courseCode) {

@@ -1,26 +1,25 @@
 package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseDto;
+import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
-import group7.enrollmentSystem.services.CoursePrerequisiteService;
-import group7.enrollmentSystem.services.CourseProgrammeService;
-import group7.enrollmentSystem.services.CourseService;
-import group7.enrollmentSystem.services.ProgrammeService;
+import group7.enrollmentSystem.services.*;
 //import group7.enrollmentSystem.services.StudentProgrammeService;
-import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -36,6 +35,7 @@ public class ApiController {
    // private final StudentProgrammeService studentProgrammeService;
     private final CoursePrerequisiteService coursePrerequisiteService;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
+    private final StudentProgrammeAuditService studentProgrammeAuditService;
     private final StudentRepo studentRepo;
 
     @PostMapping("/test")
@@ -193,7 +193,7 @@ public class ApiController {
         }});
     }
 
-//--------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------
     //**CourseProgram CRUD**//
     @PostMapping("/courseProgramme")
     public ResponseEntity<?> saveCourseProgramme(@RequestBody HashMap<String, String> data) {
@@ -233,7 +233,7 @@ public class ApiController {
             put("message", "CourseProgramme deleted");
         }});
     }
-//--------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------
     //**CoursePrerequisite CRUD**//
     @PostMapping("/coursePrerequisite")
     public ResponseEntity<?> saveCoursePrerequisite(@RequestBody HashMap<String, String> data) {
@@ -273,4 +273,47 @@ public class ApiController {
             put("message", "CoursePrerequisite deleted");
         }});
     }
+
+
+    //-----------------------------------------------------------------------------------------
+    //STUDENT API CONTROLS
+
+
+    @PostMapping("/studentAudit/{studentId}")
+    public ResponseEntity<?> viewStudentAudit(@PathVariable String studentId, @RequestBody(required = false) Map<String, String> filters) {
+        try {
+            StudentFullAuditDto result = studentProgrammeAuditService.getFullAudit(studentId);
+
+            // Optional filter check (just for status comparison)
+            if (filters != null && filters.containsKey("status")) {
+                String statusFilter = filters.get("status").toUpperCase();
+                if (!result.getStatus().equalsIgnoreCase(statusFilter)) {
+                    return ResponseEntity.ok("No audit found for given status filter.");
+                }
+            }
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("message", "Failed to retrieve programme audit.");
+            error.put("error", e.getMessage());
+            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    @GetMapping("/studentAudit/{studentId}")
+    public ResponseEntity<?> getStudentAudit(@PathVariable String studentId) {
+        try {
+            return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(studentId));
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("message", "Failed to retrieve programme audit.");
+            error.put("error", e.getMessage());
+            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+
 }

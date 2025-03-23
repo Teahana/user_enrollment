@@ -10,19 +10,8 @@
 
 <div th:if="${pageOpen}" class="container">
     <h2>Welcome, <span th:text="${student.firstName}"></span></h2>
-    <h3>Your Programme: <span th:text="${programme.name}"></span></h3>
-
-    <!-- Semester Tabs -->
-    <ul class="nav nav-tabs mb-3">
-        <li class="nav-item">
-            <a th:classappend="${semester == 1} ? 'active'" class="nav-link"
-               th:href="@{/student/enrollment/1}">Semester 1</a>
-        </li>
-        <li class="nav-item">
-            <a th:classappend="${semester == 2} ? 'active'" class="nav-link"
-               th:href="@{/student/enrollment/2}">Semester 2</a>
-        </li>
-    </ul>
+    <h3>Your Programme: <span th:text="${programme}"></span></h3>
+    <h5 class="text-muted mb-3">Enrolling for Semester <span th:text="${semester}"></span></h5>
 
     <h3>Your Enrolled Courses</h3>
     <table class="table">
@@ -49,8 +38,7 @@
         </tr>
         </tbody>
     </table>
-    <a th:href="@{'/student/selectCourses/' + ${semester}}" class="btn btn-success">Add Course</a>
-
+    <a th:href="@{'/student/selectCourses'}" class="btn btn-success">Add Course</a>
     <h3>Cancelled Courses</h3>
     <table class="table">
         <thead>

@@ -42,11 +42,19 @@ public class SecurityConfig {
 
                             boolean isAdmin = authentication.getAuthorities().stream()
                                     .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+                            boolean isStudent = authentication.getAuthorities().stream()
+                                    .anyMatch(s -> s.getAuthority().equals("ROLE_STUDENT"));
+
 
                             if (isAdmin) {
                                 System.out.println("Admin logged in");
                                 redirectUrl = "/admin/dashboard";
+                            } else if (isStudent) {
+                                System.out.println("Student logged in");
+                                redirectUrl = "/student/dashboard";
+
                             }
+
 
                             response.sendRedirect(redirectUrl);
                         })

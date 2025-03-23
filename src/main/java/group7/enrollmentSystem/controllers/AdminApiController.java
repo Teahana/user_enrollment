@@ -7,6 +7,7 @@ import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest;
 import group7.enrollmentSystem.dtos.classDtos.GraphicalPrerequisiteNode;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.dtos.interfaceDtos.ProgrammeIdAndCode;
+import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +34,10 @@ public class AdminApiController {
     private final ProgrammeRepo programmeRepo;
 
 
-
+    @GetMapping("/getSpecialTypes")
+    public ResponseEntity<?> getSpecialTypes() {
+        return ResponseEntity.ok(Map.of("specialTypes", Arrays.toString(SpecialPrerequisiteType.values())));
+    }
     @GetMapping("/getAllCourses")
     public ResponseEntity<?> getAllCourses() {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
@@ -79,7 +84,6 @@ public class AdminApiController {
         try {
             Long courseId = request.get("courseId");
             GraphicalPrerequisiteNode root = courseService.buildPrerequisiteTree(courseId);
-            // Return “root” as JSON
             return ResponseEntity.ok(root);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

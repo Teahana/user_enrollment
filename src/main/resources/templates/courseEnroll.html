@@ -36,22 +36,20 @@
             </thead>
             <tbody>
             <tr th:each="cp : ${courses}">
-                <td><input type="checkbox" name="selectedCourses" th:value="${cp.course.id}" /></td>
-                <td th:text="${cp.course.courseCode}"></td>
-                <td th:text="${cp.course.title}"></td>
-                <td th:text="${cp.course.description}"></td>
                 <td>
-
-                    <!-- Fetch prerequisites using the service -->
-                    <span th:with="prerequisites=${courseService.getPrerequisiteCodesByCourseId(cp.course.id)}">
-                        <span th:if="${!prerequisites.isEmpty()}">
-                            <span th:each="prereq, iterStat : ${prerequisites}">
-                                <span th:text="${prereq}"></span>
-                                <span th:if="${!iterStat.last}">, </span>
-                            </span>
-                        </span>
-                        <span th:if="${prerequisites.isEmpty()}">None</span>
-                    </span>
+                    <input type="checkbox" name="selectedCourses" th:value="${cp.courseId}" />
+                </td>
+                <td th:text="${cp.courseCode}"></td>
+                <td th:text="${cp.courseTitle}"></td>
+                <td th:text="${cp.description}"></td>  <!-- only works if the DTO has description -->
+                <td>
+        <span th:if="${!cp.prerequisiteCodes.isEmpty()}">
+            <span th:each="code, iterStat : ${cp.prerequisiteCodes}">
+                <span th:text="${code}"></span>
+                <span th:if="${!iterStat.last}">, </span>
+            </span>
+        </span>
+                    <span th:if="${cp.prerequisiteCodes.isEmpty()}">None</span>
                 </td>
             </tr>
             </tbody>

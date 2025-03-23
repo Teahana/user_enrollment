@@ -2,6 +2,7 @@ package group7.enrollmentSystem.services;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.enums.PrerequisiteType;
+import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
 import group7.enrollmentSystem.models.CourseProgramme;
@@ -123,37 +124,90 @@ public class CourseService {
         StringBuilder groupExpression = new StringBuilder();
         PrerequisiteType groupType = group.get(0).getPrerequisiteType();
 
-        // Build expression for current group's courses
-        for (int i = 0; i < group.size(); i++) {
-            CoursePrerequisite cp = group.get(i);
-            String courseCode = cp.getPrerequisite().getCourseCode();
-            String programmeCode = cp.getProgramme() != null
-                    ? cp.getProgramme().getProgrammeCode()
-                    : "All";
+        // Separate admission items
+        List<CoursePrerequisite> admissionItems = group.stream()
+                .filter(cp -> cp.isSpecial() && cp.getSpecialType() == SpecialPrerequisiteType.ADMISSION_PROGRAMME)
+                .collect(Collectors.toList());
 
-            if (i > 0) {
-                groupExpression.append(" ").append(groupType).append(" ");
+        List<CoursePrerequisite> normalAndOtherSpecialItems = group.stream()
+                .filter(cp -> !(cp.isSpecial() && cp.getSpecialType() == SpecialPrerequisiteType.ADMISSION_PROGRAMME))
+                .collect(Collectors.toList());
+
+        List<String> expressions = new ArrayList<>();
+
+        // Handle combined admission string
+        if (!admissionItems.isEmpty()) {
+            Set<String> admissionProgrammes = admissionItems.stream()
+                    .map(cp -> cp.getProgramme() != null
+                            ? cp.getProgramme().getProgrammeCode()
+                            : "Any")
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+
+            if (admissionProgrammes.size() == 1) {
+                expressions.add("{Admission into " + admissionProgrammes.iterator().next() + "}");
+            } else {
+                expressions.add("{Admission into " + String.join(" OR ", admissionProgrammes) + "}");
             }
+        }
 
-            // No space between courseCode and programmeCode
-            groupExpression.append(courseCode).append("(").append(programmeCode).append(")");
+        // Handle remaining items
+        for (int i = 0; i < normalAndOtherSpecialItems.size(); i++) {
+            CoursePrerequisite cp = normalAndOtherSpecialItems.get(i);
+            expressions.add(buildPrerequisiteLabel(cp));
         }
 
         // Add subgroups
         if (parentToChildGroupMap.containsKey(groupId)) {
             for (int childGroupId : parentToChildGroupMap.get(groupId)) {
-                String childExpression = buildGroupExpression(childGroupId, groupedPrereqs, parentToChildGroupMap);
-                if (!childExpression.isEmpty()) {
-                    groupExpression.append(" ").append(groupType).append(" ").append(childExpression);
+                String childExpr = buildGroupExpression(childGroupId, groupedPrereqs, parentToChildGroupMap);
+                if (!childExpr.isEmpty()) {
+                    expressions.add(childExpr);
                 }
             }
         }
 
-        // Wrap in parentheses if more than one element
-        if (group.size() > 1 || parentToChildGroupMap.containsKey(groupId)) {
-            return "(" + groupExpression + ")";
+        // Combine expressions
+        String joined = String.join(" " + groupType + " ", expressions);
+
+        // Wrap in parentheses if needed
+        if (expressions.size() > 1) {
+            return "(" + joined + ")";
         }
-        return groupExpression.toString();
+        return joined;
+    }
+
+    private String buildPrerequisiteLabel(CoursePrerequisite cp) {
+        // If it's NOT special, we do the usual courseCode(programmeCode)
+        if (!cp.isSpecial()) {
+            // Normal item
+            String courseCode = cp.getPrerequisite() != null
+                    ? cp.getPrerequisite().getCourseCode()
+                    : "???";  // or handle if null
+            String programmeCode = cp.getProgramme() != null
+                    ? cp.getProgramme().getProgrammeCode()
+                    : "Any";
+
+            return courseCode + "(" + programmeCode + ")";
+        }
+
+        // ========== SPECIAL ITEM ==========
+        // If cp.isSpecial() is true, check cp.getSpecialType()
+        if (cp.getSpecialType() == SpecialPrerequisiteType.ADMISSION_PROGRAMME) {
+            // Single programme or "Any" if none
+            String prog = (cp.getProgramme() != null)
+                    ? cp.getProgramme().getProgrammeCode()
+                    : "Any";
+            return "{Admission into " + prog + "}";
+        }
+        else if (cp.getSpecialType() == SpecialPrerequisiteType.COMPLETION_LEVEL_PERCENT) {
+            // e.g. 75% of 300-level courses
+            // getTargetLevel() is short, getPercentageValue() is double
+            double pct = cp.getPercentageValue() * 100; // 0.75 -> 75
+            return "{" + (int)pct + "% of " + cp.getTargetLevel() + "-level courses}";
+        }
+
+        // fallback if new types are added
+        return "{Special: " + cp.getSpecialType() + "}";
     }
 
 
@@ -257,53 +311,113 @@ public class CourseService {
         if (prerequisites.isEmpty()) {
             throw new IllegalArgumentException("No prerequisites provided.");
         }
-        // Validate groups if needed
+
+        // Optional: validate groups
         validatePrerequisiteGroups(prerequisites);
 
         List<CoursePrerequisite> prerequisitesToSave = new ArrayList<>();
 
         for (FlatCoursePrerequisiteDTO dto : prerequisites) {
-            if (dto.getCourseId().equals(dto.getPrerequisiteId())) {
-                throw new IllegalArgumentException(
-                        "A course cannot be a prerequisite to itself.");
-            }
 
-            Course prerequisiteCourse = courseRepo.findById(dto.getPrerequisiteId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Prerequisite course not found: " + dto.getPrerequisiteId()));
-
-            // *** Handle the programmeId possibly being null:
-            Programme programme = null;
-            if (dto.getProgrammeId() != null) {
-                programme = programmeRepo.findById(dto.getProgrammeId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Programme not found with ID: " + dto.getProgrammeId()));
-            }
-
-            CoursePrerequisite prerequisite = new CoursePrerequisite();
-            prerequisite.setCourse(mainCourse);
-            prerequisite.setPrerequisite(prerequisiteCourse);
-            prerequisite.setProgramme(programme);  // will be null if "All"
-            prerequisite.setPrerequisiteType(dto.getPrerequisiteType());
-            prerequisite.setOperatorToNext(dto.getOperatorToNext());
-            prerequisite.setGroupId(dto.getGroupId());
-            prerequisite.setParent(dto.isParent());
-            prerequisite.setChild(dto.isChild());
-            prerequisite.setChildId(dto.getChildId());
+            // Build a new CoursePrerequisite
+            CoursePrerequisite cp = new CoursePrerequisite();
+            cp.setCourse(mainCourse);
+            cp.setGroupId(dto.getGroupId());
+            cp.setPrerequisiteType(dto.getPrerequisiteType());
+            cp.setOperatorToNext(dto.getOperatorToNext());
+            cp.setParent(dto.isParent());
+            cp.setChild(dto.isChild());
+            cp.setChildId(dto.getChildId());
 
             if (dto.isChild()) {
                 if (dto.getParentId() == 0 || dto.getParentId() == dto.getGroupId()) {
                     throw new IllegalArgumentException("Invalid parentId for child group: "
                             + dto.getGroupId());
                 }
-                prerequisite.setParentId(dto.getParentId());
+                cp.setParentId(dto.getParentId());
             }
 
-            prerequisitesToSave.add(prerequisite);
+            // ---------- Check if this DTO is "special" or normal ----------
+            if (dto.isSpecial()) {
+                // ========== SPECIAL ITEM ==========
+
+                cp.setSpecial(true);
+
+                // 1) Convert string to enum, e.g. "ADMISSION_PROGRAMME" => SpecialPrerequisiteType.ADMISSION_PROGRAMME
+                if (dto.getSpecialType() == null) {
+                    throw new IllegalArgumentException("specialType is missing for a special prerequisite item.");
+                }
+
+                // Attempt to parse the string.
+                SpecialPrerequisiteType parsedType;
+                try {
+                    parsedType = SpecialPrerequisiteType.valueOf(dto.getSpecialType());
+                } catch (IllegalArgumentException ex) {
+                    throw new IllegalArgumentException("Unknown specialType: " + dto.getSpecialType(), ex);
+                }
+                cp.setSpecialType(parsedType);
+
+                // 2) If COMPLETION_LEVEL_PERCENT => set targetLevel & percentageValue
+                if (parsedType == SpecialPrerequisiteType.COMPLETION_LEVEL_PERCENT) {
+                    // default to 0 if null
+                    cp.setTargetLevel((short) (dto.getTargetLevel() == null ? 0 : dto.getTargetLevel()));
+                    cp.setPercentageValue(dto.getPercentageValue() == null ? 0.0 : dto.getPercentageValue());
+                }
+                else if (parsedType == SpecialPrerequisiteType.ADMISSION_PROGRAMME) {
+                    // If you want to store exactly one programme in "programme_id":
+                    // (Your front-end flattening is already splitting multiple IDs into separate DTOs).
+                    if (dto.getProgrammeId() != null) {
+                        Programme p = programmeRepo.findById(dto.getProgrammeId())
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                        "Programme not found with ID: " + dto.getProgrammeId()));
+                        cp.setProgramme(p);
+                    }
+                    // If there's no programmeId here, that's fine; it remains null.
+                }
+                else{
+                    throw new IllegalArgumentException("Unknown specialType: " + dto.getSpecialType());
+                }
+                cp.setPrerequisite(null);
+
+            }
+            else {
+                // ========== NORMAL (non-special) ITEM ==========
+                cp.setSpecial(false);
+                cp.setSpecialType(null);
+                cp.setTargetLevel((short) 0);
+                cp.setPercentageValue(0.0);
+
+                // Must have a real prerequisite course
+                if (dto.getPrerequisiteId() == null) {
+                    throw new IllegalArgumentException("prerequisiteId is required for normal items.");
+                }
+                if (dto.getCourseId().equals(dto.getPrerequisiteId())) {
+                    throw new IllegalArgumentException(
+                            "A course cannot be a prerequisite to itself.");
+                }
+
+                Course prerequisiteCourse = courseRepo.findById(dto.getPrerequisiteId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Prerequisite course not found: " + dto.getPrerequisiteId()));
+                cp.setPrerequisite(prerequisiteCourse);
+
+                // Possibly set the single programme if present
+                if (dto.getProgrammeId() != null) {
+                    Programme programme = programmeRepo.findById(dto.getProgrammeId())
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Programme not found: " + dto.getProgrammeId()));
+                    cp.setProgramme(programme);
+                } else {
+                    cp.setProgramme(null);
+                }
+            }
+
+            prerequisitesToSave.add(cp);
         }
 
         coursePrerequisiteRepo.saveAll(prerequisitesToSave);
     }
+
 
     @Transactional
     public void updatePrerequisites(FlatCoursePrerequisiteRequest request) {
@@ -338,7 +452,6 @@ public class CourseService {
                 .map(cp -> {
                     FlatCoursePrerequisiteDTO dto = new FlatCoursePrerequisiteDTO();
                     dto.setCourseId(cp.getCourse().getId());
-                    dto.setPrerequisiteId(cp.getPrerequisite().getId());
                     dto.setGroupId(cp.getGroupId());
                     dto.setPrerequisiteType(cp.getPrerequisiteType());
                     dto.setOperatorToNext(cp.getOperatorToNext());
@@ -347,9 +460,35 @@ public class CourseService {
                     dto.setChildId(cp.getChildId());
                     dto.setParentId(cp.getParentId());
 
-                    // If programme is null => means "All"
-                    Programme prog = cp.getProgramme();
-                    dto.setProgrammeId(prog == null ? null : prog.getId());
+                    if (cp.isSpecial()) {
+                        dto.setSpecial(true);
+                        dto.setSpecialType(cp.getSpecialType().name());
+
+                        if (cp.getSpecialType() == SpecialPrerequisiteType.ADMISSION_PROGRAMME) {
+                            // One per programme
+                            dto.setProgrammeId(cp.getProgramme() != null ? cp.getProgramme().getId() : null);
+                            dto.setTargetLevel(null);
+                            dto.setPercentageValue(null);
+                        } else if (cp.getSpecialType() == SpecialPrerequisiteType.COMPLETION_LEVEL_PERCENT) {
+                            dto.setProgrammeId(null);
+                            dto.setTargetLevel((int) cp.getTargetLevel());
+                            dto.setPercentageValue(cp.getPercentageValue());
+                        } else {
+                            // Handle any future special types
+                            dto.setProgrammeId(null);
+                            dto.setTargetLevel(null);
+                            dto.setPercentageValue(null);
+                        }
+
+                        dto.setPrerequisiteId(null); // no course attached
+                    } else {
+                        dto.setSpecial(false);
+                        dto.setSpecialType(null);
+                        dto.setTargetLevel(null);
+                        dto.setPercentageValue(null);
+                        dto.setPrerequisiteId(cp.getPrerequisite() != null ? cp.getPrerequisite().getId() : null);
+                        dto.setProgrammeId(cp.getProgramme() != null ? cp.getProgramme().getId() : null);
+                    }
 
                     return dto;
                 })
@@ -358,9 +497,10 @@ public class CourseService {
         FlatCoursePrerequisiteRequest response = new FlatCoursePrerequisiteRequest();
         response.setCourseId(courseId);
         response.setPrerequisites(dtos);
-
         return response;
     }
+
+
 
 
 
@@ -537,7 +677,7 @@ public class CourseService {
         };
 
         // Root
-        String root = getNode.apply(courseCode + " (Main Course)");
+        String root = getNode.apply(courseCode + "\n(Main Course)");
         String body = parse.apply(expression);
         edges.add(root + " --> " + body);
 
@@ -550,14 +690,18 @@ public class CourseService {
     private List<String> splitByTopLevel(String expr, String operator) {
         List<String> parts = new ArrayList<>();
         int depth = 0;
+        int braceDepth = 0;
         StringBuilder current = new StringBuilder();
 
         for (int i = 0; i < expr.length(); i++) {
             char c = expr.charAt(i);
             if (c == '(') depth++;
             else if (c == ')') depth--;
+            else if (c == '{') braceDepth++;
+            else if (c == '}') braceDepth--;
 
-            if (depth == 0 && expr.startsWith(" " + operator + " ", i)) {
+            // Check for operator at top level (outside both () and {})
+            if (depth == 0 && braceDepth == 0 && expr.startsWith(" " + operator + " ", i)) {
                 parts.add(current.toString().trim());
                 current.setLength(0);
                 i += operator.length() + 1;
@@ -572,6 +716,7 @@ public class CourseService {
 
         return parts;
     }
+
 
     @Transactional
     public void deletePrerequisites(Course course) {

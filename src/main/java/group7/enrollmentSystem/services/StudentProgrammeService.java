@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.services;
 
+import group7.enrollmentSystem.enums.ProgrammeStatus;
 import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.StudentProgramme;
 import group7.enrollmentSystem.models.Programme;
@@ -34,6 +35,9 @@ public class StudentProgrammeService {
             studentProgramme.setStudent(student.get());
             studentProgramme.setProgramme(programme.get());
             studentProgramme.setCurrentProgramme(currentProgramme);
+            studentProgramme.setStatus(ProgrammeStatus.ENROLLED);
+            studentProgramme.setDateEnrolled(java.time.LocalDate.now());
+
             studentProgrammeRepo.save(studentProgramme);
         } else {
             throw new RuntimeException("Student or Programme not found");
@@ -72,4 +76,8 @@ public class StudentProgrammeService {
         studentProgrammeRepo.deleteById(id);
     }
 
+    public Programme getStudentProgramme(Student student) {
+        Optional<StudentProgramme> studentProgramme = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
+        return studentProgramme.map(StudentProgramme::getProgramme).orElse(null);
+    }
 }

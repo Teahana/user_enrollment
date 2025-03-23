@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Programme Audit</title>
+    <link rel="stylesheet" th:href="@{/scripts/css/audit.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2 id="studentHeader">Programme Audit</h2>
+<div id="studentInfo" class="student-info"></div>
+
+<!-- Filter Buttons -->
+<div style="margin-top: 20px;">
+    <strong>Filter:</strong>
+    <button onclick="setFilter('all')">All</button>
+    <button onclick="setFilter('enrolled')">Enrolled</button>
+    <button onclick="setFilter('completed')">Completed</button>
+    <button onclick="setFilter('notTaken')">Not Taken</button>
+</div>
+
+<!-- Table -->
+<table id="auditTable" style="display:none;">
+    <thead><tr></tr></thead>
+    <tbody id="courseTableBody"></tbody>
+</table>
+
+<!-- Pie Chart -->
+<div style="width: 100%; max-width: 250px; margin: 30px auto;">
+    <canvas id="auditChart"></canvas>
+</div>
+
+<!-- Legend -->
+<div id="legend" style="margin-top: 15px;">
+    <p>
+        <span style="margin-right: 20px;">Ⓡ = Currently Enrolled</span>
+        <span style="margin-right: 20px;">&#x2713; = Completed</span>
+    </p>
+    <p>
+        <strong>Completed:</strong> <span id="completedCount">0</span> |
+        <strong>Remaining:</strong> <span id="remainingCount">0</span> |
+        <strong>Total:</strong> <span id="totalCount">0</span>
+    </p>
+</div>
+
+<!-- Thymeleaf JS Var -->
+<script th:inline="javascript">
+    let studentId = /*[[${studentId}]]*/ "fallbackId";
+</script>
+
+<!-- JS Logic -->
+<script>
+    let rawData = null;
+    let currentFilter = 'all';
+    let chartInstance = null;
+
+    function setFilter(filter) {
+        currentFilter = filter;
+        if (rawData) renderAuditTable(rawData);
+    }
+
+    fetch(`/api/studentAudit/${studentId}`)
+        .then(res => res.json())
+        .then(data => {
+            rawData = data;
+            renderAuditTable(data);
+
+            // ✅ Chart logic based on full data, not filtered
+            let total = data.programmeCourses.length;
+            let completed = data.programmeCourses.filter(c => c.completed).length;
+            renderChart(completed, total - completed);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("studentInfo").innerText = "❌ Failed to load audit.";
+        });
+
+    function renderAuditTable(data) {
+        document.getElementById("studentHeader").innerText = `Programme Audit for ${data.studentName}`;
+        document.getElementById("studentInfo").innerHTML = `
+      <p><strong>Student ID:</strong> ${data.studentId}</p>
+      <p><strong>Programme:</strong> ${data.programmeName || "N/A"}</p>
+      <p><strong>Status:</strong> ${data.status}</p>
+    `;
+
+        const levels = [100, 200, 300, 400];
+        const grouped = {};
+        const levelStats = {};
+        let totalCourses = 0;
+        let totalCompleted = 0;
+
+        levels.forEach(level => {
+            grouped[level] = [];
+            levelStats[level] = { total: 0, completed: 0 };
+        });
+
+        data.programmeCourses.forEach(course => {
+            const level = course.level || 100;
+            const isEnrolled = course.enrolled;
+            const isCompleted = course.completed;
+
+            if (currentFilter === 'enrolled' && !isEnrolled) return;
+            if (currentFilter === 'completed' && !isCompleted) return;
+            if (currentFilter === 'notTaken' && (isEnrolled || isCompleted)) return;
+
+            let status = '';
+            if (isEnrolled) status += '<span class="enrolled">Ⓡ</span>';
+            if (isCompleted) status += '<span class="completed">&#x2713;</span>';
+            grouped[level].push(`${course.courseCode} ${status}`);
+
+            levelStats[level].total += 1;
+            if (isCompleted) levelStats[level].completed += 1;
+
+            totalCourses += 1;
+            if (isCompleted) totalCompleted += 1;
+        });
+
+        // Table Header
+        const thead = document.querySelector("#auditTable thead tr");
+        thead.innerHTML = levels.map(level => {
+            const stat = levelStats[level];
+            return `<th>Level ${level}<br><span style="font-size: 12px;">${stat.completed}/${stat.total}</span></th>`;
+        }).join('');
+
+        // Table Body
+        const tbody = document.getElementById("courseTableBody");
+        tbody.innerHTML = '';
+        const maxRows = Math.max(...Object.values(grouped).map(list => list.length));
+        for (let i = 0; i < maxRows; i++) {
+            let row = '<tr>';
+            levels.forEach(level => {
+                const course = grouped[level][i] || '';
+                row += `<td>${course}</td>`;
+            });
+            row += '</tr>';
+            tbody.innerHTML += row;
+        }
+
+        document.getElementById("auditTable").style.display = "table";
+
+        // Update summary counts
+        document.getElementById("completedCount").innerText = totalCompleted;
+        document.getElementById("remainingCount").innerText = totalCourses - totalCompleted;
+        document.getElementById("totalCount").innerText = totalCourses;
+    }
+
+    function renderChart(completed, remaining) {
+        const ctx = document.getElementById("auditChart").getContext("2d");
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Completed', 'Remaining'],
+                datasets: [{
+                    data: [completed, remaining],
+                    backgroundColor: ['#4caf50', '#cccccc'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                responsive: true
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

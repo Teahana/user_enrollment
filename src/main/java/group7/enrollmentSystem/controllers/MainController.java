@@ -6,12 +6,17 @@ import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.security.Principal;
+import java.util.Optional;
 
 
 @Controller
@@ -84,4 +89,42 @@ public class MainController {
 
         return "redirect:/register";
     }
+
+    //student view progAud
+    @GetMapping("/student/audit")
+    public String loadStudentAuditPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepo.findByEmail(email).orElse(null);
+
+        if (user instanceof Student student) {
+            model.addAttribute("studentId", student.getStudentId());
+            model.addAttribute("studentName", student.getFirstName() + " " + student.getLastName());
+        }
+
+        return "studentAudit";
+    }
+
+
+    @GetMapping("student/dashboard")
+    public String getAdminPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepo.findByEmail(email).orElse(null);
+        if (user != null) {
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            model.addAttribute("studentName", studentName);
+            model.addAttribute("user", user);
+        }
+        return "studentDashboard";
+    }
+
+
+  //global method yet to be used if needed
+    private String getStudentId(Authentication auth) {
+        Object principal = auth.getPrincipal();
+        if (principal instanceof Student student) {
+            return student.getStudentId();
+        }
+        return "fallbackId"; // or redirect logic if you want
+    }
+
 }

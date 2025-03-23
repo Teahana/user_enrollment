@@ -10,10 +10,19 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
@@ -41,7 +50,67 @@ public class DataInitializer implements CommandLineRunner {
         initializeCourseProgrammes();   // Link BSE & BNS
         linkStudentsToProgrammes();     // Assign students to BSE or BNS
         initializeCourseEnrollments();
+        restoreCoursePrerequisiteFromBackup();
     }
+    private void restoreCoursePrerequisiteFromBackup() {
+        if (coursePrerequisiteRepo.count() > 0) {
+            System.out.println("course_prerequisite already exists. Skipping restore.");
+            return;
+        }
+
+        String dbUser = "root";
+        String dbPassword = "12345";
+        String dbName = "enrollment_database";
+        String mysqlBinary = "mysql";
+
+        try {
+            // Step 1: Load SQL from resources
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("backup/course_prerequisite_backup.sql");
+            if (inputStream == null) {
+                throw new FileNotFoundException("course_prerequisite_backup.sql not found in resources!");
+            }
+
+            // Step 2: Save it temporarily
+            Path tempFile = Files.createTempFile("course_prerequisite_backup", ".sql");
+            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            inputStream.close();
+
+            // Step 3: Build MySQL command
+            List<String> command = Arrays.asList(
+                    mysqlBinary,
+                    "-u" + dbUser,
+                    "-p" + dbPassword,
+                    "-D", dbName,
+                    "--execute", "source " + tempFile.toAbsolutePath()
+            );
+
+            // Step 4: Run it
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("✅ course_prerequisite restored successfully from backup!");
+            } else {
+                System.err.println("❌ Error restoring course_prerequisite. Exit code: " + exitCode);
+            }
+
+            Files.deleteIfExists(tempFile); // Cleanup
+
+        } catch (Exception e) {
+            System.err.println("❌ Exception during course_prerequisite restore: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
 
     // --------------------------------------------------------------
     //  1) Enrollment Status
@@ -54,6 +123,7 @@ public class DataInitializer implements CommandLineRunner {
         EnrollmentState enrollmentState = new EnrollmentState();
         enrollmentState.setId(1L);
         enrollmentState.setOpen(true);
+        enrollmentState.setSemesterOne(true);
         enrollmentStatusRepo.save(enrollmentState);
     }
 
@@ -93,6 +163,7 @@ public class DataInitializer implements CommandLineRunner {
 
         List<Student> students = List.of(
                 new Student("s11212749", "Tino", "Potoi", "12 Bakshi Street, Suva", "1234567"),
+                new Student("s11209521", "Adrian","Alamu", "12 Bakshi Street, Suva", "9429576"),
                 new Student("s11212750", "Jane", "Qio", "57 Ratu Mara Rd, Nabua", "2345678"),
                 new Student("s11212751", "Pita", "Kumar", "Lot 5 Brown Street, Lautoka", "3456789"),
                 new Student("s11212752", "Mary", "Singh", "Lot 3 Princes Rd, Tamavua", "4567890"),
@@ -103,7 +174,7 @@ public class DataInitializer implements CommandLineRunner {
             String email = student.getStudentId() + "@student.usp.ac.fj";
             student.setEmail(email);
             student.setPassword(passwordEncoder.encode("12345")); // Encrypt password
-            student.setRoles(Set.of("STUDENT"));
+            student.setRoles(Set.of("ROLE_STUDENT"));
 
             studentRepo.save(student);
             System.out.println("Registered student: " + email);
@@ -115,141 +186,528 @@ public class DataInitializer implements CommandLineRunner {
     // --------------------------------------------------------------
     private void initializeCourses() {
         if (courseRepo.count() == 0) {
-            /*
-             * We keep BSE and BNS only. We'll remove all BEE references,
-             * and add the BNS courses (including new ones: CS150, CS215, CS317, CS350, CS351).
-             */
-            List<Course> courses = List.of(
-                    // ---------- Shared or BSE-lower-level courses ----------
-                    new Course("CS001",  "Foundations of Professional Practice",
-                            "Professional practice basics",
-                            7.5, (short)200, 600.0,  true, true),
+            List<Course> courses = new ArrayList<>();
 
-                    new Course("CS111", "Introduction to Programming",
-                            "Introductory programming concepts",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("CS112", "Intermediate Programming",
-                            "Intermediate-level programming",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("CS140", "Web Development Fundamentals",
-                            "Basic web tech & design",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("MA111", "Calculus I",
-                            "Introduction to calculus",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("MA161", "Algebra & Trigonometry",
-                            "Core algebra and trig",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("MG101", "Introduction to Management",
-                            "Basic management principles",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("ST131", "Statistics I",
-                            "Basic statistics",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("UU100A","Communication & Information Literacy",
-                            "Academic writing & research",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("UU114", "English for Academic Purposes",
-                            "Academic English skills",
-                            7.5, (short)100, 500.0,  true, true),
-                    new Course("UU200", "Ethics & Governance",
-                            "Social ethics and governance",
-                            7.5, (short)200, 600.0,  true, true),
+            // Helper lambdas to pick cost & level from the course code
+            Function<String, Short> deriveLevel = code -> {
+                if (code.equals("CS001")) return (short) 200;
+                // extract numeric portion from code
+                int num = Integer.parseInt(code.replaceAll("\\D", ""));
+                int hundreds = num / 100;
+                return (short) (hundreds * 100);
+            };
+            Function<Short, Double> deriveCost = lvl -> {
+                switch (lvl) {
+                    case 100: return 500.0;
+                    case 200: return 600.0;
+                    case 300: return 700.0;
+                    case 400: return 800.0;
+                    default:  return 600.0; // fallback
+                }
+            };
 
-                    // ---------- Additional BNS-lower-level courses ----------
-                    // BNS Year I has CS150
-                    new Course("CS150", "Computing Fundamentals",
-                            "Basic computing principles",
-                            7.5, (short)100, 500.0,  true, true),
-                    // BNS Year II has CS215
-                    new Course("CS215", "Software Engineering Basics",
-                            "Fundamentals of SE",
-                            7.5, (short)200, 600.0,  true, true),
+            // MA111
+            courses.add(new Course(
+                    "MA111",
+                    "Calculus I",
+                    "Introductory calculus: limits, derivatives, and integrals.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
 
-                    // ---------- BSE-specific courses (existing) ----------
-                    new Course("CS211", "Data Structures & Algorithms",
-                            "Fundamental data structures",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("CS214", "Computer Organization",
-                            "Intro to computer architecture",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("CS218", "Discrete Mathematics for Computing",
-                            "Sets, logic, combinatorics",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("CS219", "Systems Programming",
-                            "Low-level programming concepts",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("CS230", "Object-Oriented Analysis & Design",
-                            "OO methodologies",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("CS241", "Mobile App Development",
-                            "Developing mobile apps",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("CS310", "Computer Networks",
-                            "Principles of networking",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS311", "Operating Systems",
-                            "OS concepts & design",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS324", "Cybersecurity Fundamentals",
-                            "Security concepts & practice",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS341", "Advanced Software Engineering",
-                            "Design patterns & architecture",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS352", "Advanced Networking",
-                            "Advanced network architectures",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS400", "Industry Experience Project",
-                            "Practical software/network project",
-                            7.5, (short)400, 800.0,  true, true),
-                    new Course("CS403", "Network Security Advanced Topics",
-                            "In-depth security protocols",
-                            7.5, (short)400, 800.0,  true, true),
-                    new Course("CS412", "Advanced Database Systems",
-                            "Complex DB design & optimization",
-                            7.5, (short)400, 800.0,  true, true),
-                    new Course("CS415", "Software Testing & Quality Assurance",
-                            "Testing methodologies",
-                            7.5, (short)400, 800.0,  true, true),
-                    new Course("CS424", "Cloud & Virtualization Security",
-                            "Secure virtualization & cloud",
-                            7.5, (short)400, 800.0,  true, true),
-                    new Course("IS221", "Information Systems Principles",
-                            "Intro to IS in organizations",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("IS222", "Systems Analysis & Design",
-                            "Methods for analyzing systems",
-                            7.5, (short)200, 600.0,  true, true),
-                    new Course("IS314", "Database Management Systems",
-                            "Fundamentals of databases",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("IS328", "E-Commerce Systems",
-                            "Online business & technology",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("IS333", "Cloud Computing",
-                            "Cloud infra & design",
-                            7.5, (short)300, 700.0,  true, true),
+            // MA161
+            courses.add(new Course(
+                    "MA161",
+                    "Algebra and Trigonometry",
+                    "Basic algebraic operations, functions, trig identities, and equations.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
 
-                    // ---------- Additional BNS courses not in BSE ----------
-                    // BNS Year III references: CS317, CS350, CS351
-                    new Course("CS317", "Machine Learning",
-                            "Intro to ML algorithms",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS350", "Artificial Intelligence",
-                            "Basic AI concepts",
-                            7.5, (short)300, 700.0,  true, true),
-                    new Course("CS351", "Software Project Management",
-                            "Managing software projects",
-                            7.5, (short)300, 700.0,  true, true)
-            );
+            // MG101
+            courses.add(new Course(
+                    "MG101",
+                    "Introduction to Management",
+                    "Overview of management principles and organizational behavior.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
+
+            // ST131
+            courses.add(new Course(
+                    "ST131",
+                    "Introduction to Statistics",
+                    "Basic statistical methods, probability, and data analysis.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
+
+            // YEAR-2 MISSING COURSES
+            // UU200
+            courses.add(new Course(
+                    "UU200",
+                    "Ethics & Governance",
+                    "Explores ethics, governance, and civic responsibility in the modern world.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    true,
+                    true
+            ));
+
+            // IS221
+            courses.add(new Course(
+                    "IS221",
+                    "Introduction to Information Systems",
+                    "Focuses on how IS support organizations; covers hardware, software, and databases.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    true,
+                    true
+            ));
+
+            // IS222
+            courses.add(new Course(
+                    "IS222",
+                    "Systems Analysis & Design",
+                    "Covers requirements gathering, system modeling, and design approaches.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    true,
+                    true
+            ));
+
+            // YEAR-3 MISSING COURSES
+            // IS314
+            courses.add(new Course(
+                    "IS314",
+                    "Database Systems",
+                    "Relational models, SQL, and fundamentals of database design.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    true,
+                    true
+            ));
+
+            // IS328
+            courses.add(new Course(
+                    "IS328",
+                    "E-Commerce Systems",
+                    "Study of e-business frameworks, payment systems, and online security.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    true,
+                    true
+            ));
+
+            // IS333
+            courses.add(new Course(
+                    "IS333",
+                    "Cloud Infrastructure",
+                    "Introduction to cloud environments, virtualization, and deployment models.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    true,
+                    true
+            ));
+
+            // UU114
+            courses.add(new Course(
+                    "UU114",
+                    "English Language Skills for Tertiary Studies",
+                    "Focuses on academic reading, writing, listening, and speaking at tertiary level.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
+
+            // UU100A
+            courses.add(new Course(
+                    "UU100A",
+                    "Communications & Information Literacy",
+                    "Develops capacity to locate, evaluate and use information effectively; RSD framework.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
+
+            // CS001
+            courses.add(new Course(
+                    "CS001",
+                    "Foundations of Professional Practice (FPP)",
+                    "Intro to ICT professional roles, e-Portfolio use, and mentoring for skill development.",
+                    15.0,
+                    deriveLevel.apply("CS001"),
+                    deriveCost.apply(deriveLevel.apply("CS001")),
+                    true,
+                    true
+            ));
+
+            // CS111
+            courses.add(new Course(
+                    "CS111",
+                    "Introduction to Computing Science",
+                    "Covers programming basics, problem solving, and intro to computer organization.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    true,
+                    true
+            ));
+
+            // CS112
+            courses.add(new Course(
+                    "CS112",
+                    "Data Structures & Algorithms",
+                    "Focus on C++ programming, arrays, queues, stacks, trees; searching and sorting.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    false,
+                    true
+            ));
+
+            // CS140
+            courses.add(new Course(
+                    "CS140",
+                    "Introduction to Software Engineering",
+                    "Covers the basics of software development life cycle, design, and testing.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    false,
+                    true
+            ));
+
+            // CS150
+            courses.add(new Course(
+                    "CS150",
+                    "Introduction to Computer Networks & Security",
+                    "Fundamentals of network topologies, operating systems, and basic security concepts.",
+                    15.0,
+                    (short)100,
+                    500.0,
+                    false,
+                    true
+            ));
+
+            // CS211
+            courses.add(new Course(
+                    "CS211",
+                    "Computer Organisation",
+                    "Data representation, logic circuits, CPU architecture, and assembly language.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    true,
+                    false
+            ));
+
+            // CS214
+            courses.add(new Course(
+                    "CS214",
+                    "Design & Analysis of Algorithms",
+                    "Dynamic programming, divide-and-conquer, greedy strategies, and complexity.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    false,
+                    true
+            ));
+
+            // CS215
+            courses.add(new Course(
+                    "CS215",
+                    "Computer Communications & Management",
+                    "TCP/IP fundamentals, access control, wireless network components, routing, subnetting.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    false,
+                    true
+            ));
+
+            // CS218
+            courses.add(new Course(
+                    "CS218",
+                    "Mobile Computing",
+                    "Intro to mobile devices, networks, telephony, and hands-on mobile app development.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    false,
+                    true
+            ));
+
+            // CS219
+            courses.add(new Course(
+                    "CS219",
+                    "Cloud Computing",
+                    "Covers cloud models, standards, deployment, privacy, and security issues.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    false,
+                    true
+            ));
+
+            // CS230
+            courses.add(new Course(
+                    "CS230",
+                    "Requirements Engineering",
+                    "Requirement elicitation, analysis, validation, prioritization, and basic design.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    true,
+                    false
+            ));
+
+            // CS241
+            courses.add(new Course(
+                    "CS241",
+                    "Software Design & Implementation",
+                    "Covers design, testing, documentation, and project-based software implementation.",
+                    15.0,
+                    (short)200,
+                    600.0,
+                    false,
+                    true
+            ));
+
+            // CS310
+            courses.add(new Course(
+                    "CS310",
+                    "Computer Networks",
+                    "Focus on TCP/IP, IP addressing, routing, transport layers, and modern network concepts.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    true,
+                    false
+            ));
+
+            // CS311
+            courses.add(new Course(
+                    "CS311",
+                    "Operating Systems",
+                    "OS architectures, resource allocation, process scheduling, and memory management.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    true,
+                    false
+            ));
+
+            // CS317
+            courses.add(new Course(
+                    "CS317",
+                    "Computer & Network Security",
+                    "Intro to cryptography, network attacks, security protocols, and mitigation strategies.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    false,
+                    true
+            ));
+
+            // CS324
+            courses.add(new Course(
+                    "CS324",
+                    "Distributed Computing",
+                    "Distributed systems, interprocess communication, multi-tier architectures, file sharing.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    false,
+                    true
+            ));
+
+            // CS341
+            courses.add(new Course(
+                    "CS341",
+                    "Software Quality Assurance & Testing",
+                    "Static/dynamic testing, metrics, quality plans, testing tools, and risk assessment.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    false,
+                    true
+            ));
+
+            // CS350
+            courses.add(new Course(
+                    "CS350",
+                    "Wireless Networks",
+                    "Covers wireless protocols, methods, standards, and emerging wireless technologies.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    false,
+                    true
+            ));
+
+            // CS351
+            courses.add(new Course(
+                    "CS351",
+                    "Network Design & Administration",
+                    "Advanced networking problems, system administration, and resilient network strategies.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    false,
+                    true
+            ));
+
+            // CS352
+            courses.add(new Course(
+                    "CS352",
+                    "Cybersecurity Principles",
+                    "Covers information assurance, cyber threats, defensive controls, and risk management.",
+                    15.0,
+                    (short)300,
+                    700.0,
+                    true,
+                    false
+            ));
+
+            // CS400
+            courses.add(new Course(
+                    "CS400",
+                    "Industry Experience Project",
+                    "Capstone: real-life ICT project applying advanced skills in a professional setting.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    false,
+                    true
+            ));
+
+            // CS401
+            courses.add(new Course(
+                    "CS401",
+                    "Cybersecurity Principles (PG)",
+                    "Foundations of cybersecurity threats, controls, and risk management for PG students.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    true,
+                    false
+            ));
+
+            // CS402
+            courses.add(new Course(
+                    "CS402",
+                    "Cybercrime",
+                    "Overview of risks, threats, vulnerabilities, and strategies to combat cybercrime.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    false,
+                    true
+            ));
+
+            // CS403
+            courses.add(new Course(
+                    "CS403",
+                    "Cyber Defense: Governance & Risk Management",
+                    "Focus on cyber governance, managing key systems, and risk policies (e.g., e-commerce).",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    true,
+                    false
+            ));
+
+            // CS404
+            courses.add(new Course(
+                    "CS404",
+                    "Network Security Operations",
+                    "Examines network threats, defense mechanisms, and hands-on mitigation strategies.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    false,
+                    true
+            ));
+
+            // CS412
+            courses.add(new Course(
+                    "CS412",
+                    "Artificial Intelligence",
+                    "Explores AI areas: data science, ML, optimization, robotics, pattern recognition.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    true,
+                    false
+            ));
+
+            // CS415
+            courses.add(new Course(
+                    "CS415",
+                    "Advanced Software Engineering",
+                    "Advanced theory, design, measurement, metrics, and testing in software engineering.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    true,
+                    false
+            ));
+
+            // CS424
+            courses.add(new Course(
+                    "CS424",
+                    "Big Data Technologies",
+                    "Big data fundamentals, Hadoop ecosystem, Spark, and column-based DBMS (HBase, Cassandra).",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    false,
+                    true
+            ));
+
+            // CS427
+            courses.add(new Course(
+                    "CS427",
+                    "Mobile Communications",
+                    "Study of mobile communication principles, applications, and current developments.",
+                    15.0,
+                    (short)400,
+                    800.0,
+                    false,
+                    true
+            ));
 
             courseRepo.saveAll(courses);
-            System.out.println("Courses (for BSE & BNS) initialized successfully.");
+            System.out.println("Courses initialized successfully.");
         } else {
-            System.out.println("Courses already exist. Skipping.");
+            System.out.println("Courses already exist. Skipping initialization.");
         }
     }
+
+
 
     // --------------------------------------------------------------
     //  5) Programmes (BSE, BNS)

@@ -1,830 +1,972 @@
+/* Updated prerequisites.js */
+
 // ============================================================================
 // Global variables
 // ============================================================================
-let allCourses = [];          // All available courses from the API
-let selectedCourseId;         // The Course ID for which we’re adding prerequisites
-let topLevelGroups = [];      // Array of top-level groups
-let groupCounter = 1;         // Unique group ID generator
-let currentGroupId = null;    // The group we're currently adding a course to
-let isEditMode = false;        // false => Add modal, true => Edit modal
-// ============================================================================
-// On page load, fetch courses, attach event listeners
-// ============================================================================
-document.addEventListener("DOMContentLoaded", function() {
-    // Fetch all courses
+let allCourses = [];     // from API
+let allProgrammes = [];  // from API
+
+let selectedCourseId;    // The main course for which we add/edit prereqs
+let topLevelGroups = []; // Array of top-level groups
+let groupCounter = 1;
+let currentGroupId = null; // The group to which we are adding a new course
+let isEditMode = false;  // false => Add mode, true => Edit mode
+
+document.addEventListener("DOMContentLoaded", function () {
+    // 1) Fetch courses
     fetch("/api/admin/getAllCourses")
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
             allCourses = data;
         })
         .catch(err => console.error("Error fetching courses:", err));
 
-    // Attach event listeners to "Add Prereq" buttons
-    document.querySelectorAll(".addPrereqBtn").forEach(button => {
-        button.addEventListener("click", handleAddPrerequisites);
+    // 2) Fetch programmes
+    fetch("/api/admin/getAllProgrammes")
+        .then(res => res.json())
+        .then(data => {
+            allProgrammes = data;
+            populateProgrammeDropdown(); // Fill dropdown in course modal
+        })
+        .catch(err => console.error("Error fetching programmes:", err));
+
+    // 3) Add/Edit button listeners
+    document.querySelectorAll(".addPrereqBtn").forEach(btn => {
+        btn.addEventListener("click", handleAddPrerequisites);
+    });
+    document.querySelectorAll(".editPrereqBtn").forEach(btn => {
+        btn.addEventListener("click", handleEditPrerequisites);
     });
 
-    // Optional: attach event listener for main search input
-    let searchInput = document.getElementById("searchInput");
+    // 4) Search filter
+    const searchInput = document.getElementById("searchInput");
     if (searchInput) {
         searchInput.addEventListener("input", filterCourses);
     }
-    document.querySelectorAll(".editPrereqBtn").forEach(button => {
-        button.addEventListener("click", handleEditPrerequisites);
+
+    // 5) Modal cleanup for ADD
+    document.getElementById("addPrerequisiteModal").addEventListener("hidden.bs.modal", () => {
+        document.getElementById("prerequisiteGroupsContainer").innerHTML = "";
+        document.getElementById("expressionPreview").textContent = "";
+
+        // BONUS TIP: Reset global state
+        selectedCourseId = null;
+        topLevelGroups = [];
+        groupCounter = 1;
+        currentGroupId = null;
+
+        document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
+        if (!document.querySelector(".modal.show")) {
+            document.body.classList.remove("modal-open");
+            document.body.style = "";
+        }
+    });
+
+    // 6) Modal cleanup for EDIT
+    document.getElementById("editPrerequisiteModal").addEventListener("hidden.bs.modal", () => {
+        document.getElementById("editPrerequisiteGroupsContainer").innerHTML = "";
+        document.getElementById("editExpressionPreview").textContent = "";
+
+        // BONUS TIP: Reset global state
+        selectedCourseId = null;
+        topLevelGroups = [];
+        groupCounter = 1;
+        currentGroupId = null;
+
+        document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
+        if (!document.querySelector(".modal.show")) {
+            document.body.classList.remove("modal-open");
+            document.body.style = "";
+        }
     });
 });
-function handleEditPrerequisites(event) {
-    let button = event.currentTarget;
-    let courseId = button.getAttribute("data-course-id");
 
-    document.getElementById("editSelectedCourseId").value = courseId;
-    document.getElementById("editSelectedCourseName").textContent = button.getAttribute("data-course-code");
 
-    // Switch to Edit mode
-    isEditMode = true;
+/******************************************************************************
+ *  handleAddPrerequisites(event)
+ *    - user clicked "Add Prerequisites" for a course without prereqs
+ ******************************************************************************/
+function handleAddPrerequisites(evt) {
+    let btn = evt.currentTarget;
+    let courseId = btn.getAttribute("data-course-id");
+    let courseCode = btn.getAttribute("data-course-code");
 
-    // Clear the Edit container
-    document.getElementById("editPrerequisiteGroupsContainer").innerHTML = "";
+    selectedCourseId = courseId;  // store globally
+    document.getElementById("selectedCourseId").value = courseId;
+    document.getElementById("selectedCourseName").textContent = courseCode;
 
-    fetch("/api/admin/getPreReqs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId: Number(courseId) })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.prerequisites) {
-                // Convert flat prereqs to nested
-                topLevelGroups = convertFlatPrerequisitesToNested(data.prerequisites.prerequisites);
-                // Re-sync groupCounter
-                setGroupCounterToMaxId(topLevelGroups);
-                // Render in Edit mode
-                renderTopLevelGroups(isEditMode);
-                buildExpressionPreview(isEditMode);
-
-                // Show the modal
-                let modal = new bootstrap.Modal(document.getElementById("editPrerequisiteModal"), {});
-                modal.show();
-            }
-        })
-        .catch(err => {
-            console.error("Error fetching prerequisites:", err);
-        });
-}
-// Helper to find highest ID among all top-level and subgroups
-function setGroupCounterToMaxId(groups) {
-    let maxId = 0;
-
-    function traverse(arr) {
-        arr.forEach(g => {
-            if (g.id > maxId) maxId = g.id;
-            traverse(g.subGroups);
-        });
-    }
-    traverse(groups);
-
-    // The next group created will be maxId+1
-    groupCounter = maxId + 1;
-}
-function convertFlatPrerequisitesToNested(flatPrereqs) {
-    let grouped = {};
-    let parentMap = {}; // Map of childId → parentId for correct nesting
-    let topLevelGroups = [];
-
-    // Step 1: Create all groups
-    flatPrereqs.forEach(prereq => {
-        if (!grouped[prereq.groupId]) {
-            grouped[prereq.groupId] = {
-                id: prereq.groupId,
-                type: prereq.prerequisiteType || "AND",
-                courses: [],
-                subGroups: [],
-                operatorToNext: prereq.operatorToNext
-            };
-        }
-
-        // Add course to its respective group
-        grouped[prereq.groupId].courses.push(prereq.prerequisiteId);
-
-        // If it has a valid parentId, store that relationship
-        if (prereq.parentId && prereq.parentId !== 0) {
-            parentMap[prereq.groupId] = prereq.parentId;
-        }
-    });
-
-    // Step 2: Attach child groups to their correct parents
-    Object.keys(parentMap).forEach(childGroupId => {
-        let parentGroupId = parentMap[childGroupId];
-        if (grouped[parentGroupId] && grouped[childGroupId]) {
-            grouped[parentGroupId].subGroups.push(grouped[childGroupId]);
-        }
-    });
-
-    // Step 3: Identify top-level groups (those not assigned as a child)
-    Object.values(grouped).forEach(group => {
-        if (!parentMap[group.id]) {
-            topLevelGroups.push(group);
-        }
-    });
-
-    return topLevelGroups;
-}
-// ============================================================================
-// Open the "Add Prerequisites" modal for a given course
-// ============================================================================
-function handleAddPrerequisites(event) {
-    let button = event.currentTarget;
-    selectedCourseId = button.getAttribute("data-course-id");
-    document.getElementById("selectedCourseId").value = selectedCourseId;
-    document.getElementById("selectedCourseName").textContent = button.getAttribute("data-course-code");
-
-    // Switch to Add mode
     isEditMode = false;
 
-    // Clear existing content
-    document.getElementById("prerequisiteGroupsContainer").innerHTML = "";
-
+    // Reset topLevelGroups, etc.
     topLevelGroups = [];
     groupCounter = 1;
     currentGroupId = null;
 
-    // Start with one blank top-level group (optional)
+    // Clear the container
+    let container = document.getElementById("prerequisiteGroupsContainer");
+    container.innerHTML = "";
+
+    // Start with 1 empty group if you want:
     addNewPrerequisiteGroup();
 
-    // Render
-    renderTopLevelGroups(isEditMode);
-    buildExpressionPreview(isEditMode);
+    buildExpressionPreview(false);
 
-    // Show the modal
+    // show the "addPrerequisiteModal"
     let modal = new bootstrap.Modal(document.getElementById("addPrerequisiteModal"), {});
     modal.show();
 }
-// ============================================================================
-// Add a new top-level group
-// parentGroupId is null => top-level, else it is a subgroup
-// ============================================================================
-function addNewPrerequisiteGroup(parentGroupId = null) {
-    let groupId = generateGroupId();
 
-    let newGroup = {
-        id: groupId,
-        type: "AND",
-        courses: [],
-        subGroups: [],
-        operatorToNext: "AND",
-        parentId: parentGroupId || 0 // ✅ Set parentId correctly
-    };
+/******************************************************************************
+ *  handleEditPrerequisites(event)
+ *    - user clicked "Edit Prerequisites" for a course with existing prereqs
+ ******************************************************************************/
+function handleEditPrerequisites(evt) {
+    let btn = evt.currentTarget;
+    let courseId = btn.getAttribute("data-course-id");
+    let courseCode = btn.getAttribute("data-course-code");
 
-    if (!parentGroupId) {
-        topLevelGroups.push(newGroup);
-        // Always render in the correct mode
-        renderTopLevelGroups(isEditMode);
-    } else {
-        let parent = findGroupById(parentGroupId, topLevelGroups);
-        if (parent) {
-            parent.subGroups.push(newGroup);
-            renderSubgroups(parentGroupId);
-        }
-    }
-    buildExpressionPreview(isEditMode);
-}
-// ============================================================================
-// Remove a group (excluding the last top-level group)
-// ============================================================================
-function removeGroup(groupId) {
-    let isTopLevel = topLevelGroups.some(g => g.id === groupId);
+    document.getElementById("editSelectedCourseId").value = courseId;
+    document.getElementById("editSelectedCourseName").textContent = courseCode;
 
-    if (isTopLevel) {
-        if (topLevelGroups.length === 1) {
-            alert("You must have at least one prerequisite group.");
-            return;
-        }
-        topLevelGroups = topLevelGroups.filter(g => g.id !== groupId);
-    } else {
-        removeGroupRecursive(groupId, topLevelGroups);
-    }
+    selectedCourseId = courseId;
+    isEditMode = true;
 
-    renumberGroups();
+    // Reset
+    document.getElementById("editPrerequisiteGroupsContainer").innerHTML = "";
+    topLevelGroups = [];
+    groupCounter = 1;
+    currentGroupId = null;
 
-    // Re-render in whichever mode we’re in
-    renderTopLevelGroups(isEditMode);
-    buildExpressionPreview(isEditMode);
-}
+    // fetch existing prereqs
+    fetch("/api/admin/getPreReqs", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ courseId: Number(courseId) })
+    })
+        .then(res=>res.json())
+        .then(data => {
+            if (data.prerequisites && data.prerequisites.prerequisites.length > 0) {
+                let nested = convertFlatPrerequisitesToNested(data.prerequisites.prerequisites);
+                topLevelGroups = convertToProgrammeStyle(nested);
+                setGroupCounterToMaxId(topLevelGroups);
+                renderTopLevelGroups(true);
+                buildExpressionPreview(true);
+            } else {
+                // Reset if there are no prerequisites
+                topLevelGroups = [];
+                groupCounter = 1;
+                currentGroupId = null;
+                document.getElementById("editPrerequisiteGroupsContainer").innerHTML = "";
+                buildExpressionPreview(true);
+            }
 
-function removeGroupRecursive(groupId, groupArr) {
-    for (let i = 0; i < groupArr.length; i++) {
-        let group = groupArr[i];
-        let index = group.subGroups.findIndex(sub => sub.id === groupId);
-        if (index !== -1) {
-            group.subGroups.splice(index, 1);
-            return;
-        }
-        removeGroupRecursive(groupId, group.subGroups);
-    }
+            // Show modal regardless
+            let modal = new bootstrap.Modal(document.getElementById("editPrerequisiteModal"), {});
+            modal.show();
+        })
+        .catch(err => console.error("Error fetching prereqs:", err));
 }
 
+/******************************************************************************
+ *  convertFlatPrerequisitesToNested(...)
+ *    - your existing logic that returns {id, type, courses[], subGroups[], ...}
+ ******************************************************************************/
+function convertFlatPrerequisitesToNested(flat) {
+    let groupMap = {};
+    let parentMap = {};
+    let topLevel = [];
 
-function renumberGroups() {
-    let newCounter = 1;
+    flat.forEach(pr => {
+        if (!groupMap[pr.groupId]) {
+            groupMap[pr.groupId] = {
+                id: pr.groupId,
+                type: pr.prerequisiteType || "AND",
+                courses: [],
+                subGroups: [],
+                operatorToNext: pr.operatorToNext || null
+            };
+        }
+        groupMap[pr.groupId].courses.push({
+            courseId: pr.prerequisiteId,
+            programmeId: pr.programmeId || null
+        });
 
-    function traverseAndRenumber(groups) {
-        groups.forEach(group => {
-            group.id = newCounter++; // Assign new ID sequentially
-            traverseAndRenumber(group.subGroups);
+
+        if (pr.parentId && pr.parentId!==0) {
+            parentMap[pr.groupId] = pr.parentId;
+        }
+    });
+
+    Object.keys(parentMap).forEach(childId => {
+        let pId = parentMap[childId];
+        if (groupMap[pId] && groupMap[childId]) {
+            groupMap[pId].subGroups.push(groupMap[childId]);
+        }
+    });
+
+    Object.values(groupMap).forEach(g => {
+        if(!parentMap[g.id]) {
+            topLevel.push(g);
+        }
+    });
+    return topLevel;
+}
+
+/******************************************************************************
+ *  convertToProgrammeStyle(nestedGroups)
+ *    We want each group to have "prereqItems" = [{courseId, programmeId}, ...]
+ *    For now, we set programmeId=null for all existing items (since old records
+ *    didn't store programme).
+ ******************************************************************************/
+function convertToProgrammeStyle(groups) {
+    return groups.map(g => {
+        // build a new subGroup array
+        let subG = convertToProgrammeStyle(g.subGroups);
+        // Convert the "courses" array to "prereqItems"
+        let items = g.courses.map(c => ({
+            courseId: typeof c === 'object' ? c.courseId : c,
+            programmeId: typeof c === 'object' ? c.programmeId || null : null
+        }));
+
+        return {
+            id: g.id,
+            type: g.type,
+            prereqItems: items,
+            subGroups: subG,
+            operatorToNext: g.operatorToNext || null
+        };
+    });
+}
+
+/******************************************************************************
+ *  setGroupCounterToMaxId
+ ******************************************************************************/
+function setGroupCounterToMaxId(groups) {
+    let maxId = 0;
+    function traverse(arr) {
+        arr.forEach(g => {
+            if (g.id>maxId) maxId=g.id;
+            traverse(g.subGroups);
         });
     }
-
-    traverseAndRenumber(topLevelGroups);
-    groupCounter = newCounter; // 🆕 Update groupCounter to reflect actual groups
+    traverse(groups);
+    groupCounter = maxId+1;
 }
 
+/******************************************************************************
+ *  addNewPrerequisiteGroup(parentId)
+ ******************************************************************************/
+function addNewPrerequisiteGroup(parentId=null) {
+    let gid = groupCounter++;
+    let newGroup = {
+        id: gid,
+        type:"AND",
+        prereqItems: [],
+        subGroups: [],
+        operatorToNext:"AND"
+    };
 
-
-// Create a subgroup inside an existing group
-function addSubGroup(parentGroupId) {
-    addNewPrerequisiteGroup(parentGroupId);
+    if (!parentId) {
+        topLevelGroups.push(newGroup);
+        renderTopLevelGroups(isEditMode);
+    } else {
+        let p = findGroupById(parentId, topLevelGroups);
+        if (p) {
+            p.subGroups.push(newGroup);
+            renderSubgroups(parentId);
+        }
+    }
+    buildExpressionPreview(isEditMode);
 }
 
-// ============================================================================
-// Render ALL top-level groups in the container, including the operator dropdown
-// that links each group to the next one
-// ============================================================================
-function renderTopLevelGroups(editMode = false) {
+/******************************************************************************
+ *  renderTopLevelGroups(editMode)
+ ******************************************************************************/
+function renderTopLevelGroups(editMode=false) {
     let container = editMode
         ? document.getElementById("editPrerequisiteGroupsContainer")
         : document.getElementById("prerequisiteGroupsContainer");
 
     container.innerHTML = "";
 
-    let groups = topLevelGroups; // The same array, but we choose container based on editMode
+    topLevelGroups.forEach((g, idx) => {
+        let box = document.createElement("div");
+        box.classList.add("group-box","mb-3");
+        box.dataset.groupId = g.id;
 
-    groups.forEach((groupObj, index) => {
-        let groupBox = document.createElement("div");
-        groupBox.classList.add("group-box", "mb-3");
-        groupBox.dataset.groupId = groupObj.id;
-
-        groupBox.innerHTML = `
+        box.innerHTML = `
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span><strong>Group ${groupObj.id}</strong></span>
+            <span><strong>Group ${g.id}</strong></span>
             <div>
-                <select class="form-select form-select-sm d-inline-block" style="width:150px;"
-                        onchange="updateGroupType(${groupObj.id}, this.value)">
-                    <option value="AND" ${groupObj.type === "AND" ? "selected" : ""}>ALL (AND)</option>
-                    <option value="OR"  ${groupObj.type === "OR"  ? "selected" : ""}>ANY (OR)</option>
+                <select class="form-select form-select-sm d-inline-block"
+                        style="width:150px;"
+                        onchange="updateGroupType(${g.id}, this.value)">
+                    <option value="AND" ${g.type==="AND"?"selected":""}>ALL (AND)</option>
+                    <option value="OR"  ${g.type==="OR" ?"selected":""}>ANY (OR)</option>
                 </select>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeGroup(${groupObj.id})">
-                    &times;
-                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                        onclick="removeGroup(${g.id})">&times;</button>
             </div>
           </div>
 
-          <div class="mb-2" id="group-${groupObj.id}-courses"></div>
+          <div class="mb-2" id="group-${g.id}-courses"></div>
           <div class="mb-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openSelectCourseModal(${groupObj.id})">
-                + Add Course
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="openSelectCourseModal(${g.id})">
+              + Add Course
             </button>
-            <button type="button" class="btn btn-sm btn-outline-warning" onclick="addNewPrerequisiteGroup(${groupObj.id})">
-                + Add Subgroup
+            <button type="button" class="btn btn-sm btn-outline-warning"
+                    onclick="addNewPrerequisiteGroup(${g.id})">
+              + Add Subgroup
             </button>
           </div>
-          <div class="subgroups-container" id="subgroups-container-${groupObj.id}"></div>
+          <div class="subgroups-container" id="subgroups-container-${g.id}"></div>
         `;
+        container.appendChild(box);
 
-        container.appendChild(groupBox);
-        renderGroupCourses(groupObj.id);
-        renderSubgroups(groupObj.id);
+        renderGroupCourses(g.id);
+        renderSubgroups(g.id);
 
-        // If there's a next group, show the "AND/OR" connector
-        if (index < groups.length - 1) {
-            let operatorDiv = document.createElement("div");
-            operatorDiv.classList.add("text-center", "my-2");
-            operatorDiv.innerHTML = `
-                <select class="form-select form-select-sm d-inline-block" style="width: 80px;"
-                        onchange="updateOperatorToNext(${groupObj.id}, this.value)">
-                    <option value="AND" ${groupObj.operatorToNext === "AND" ? "selected" : ""}>AND</option>
-                    <option value="OR"  ${groupObj.operatorToNext === "OR"  ? "selected" : ""}>OR</option>
+        // If there's a next group, show AND/OR connector
+        if (idx<topLevelGroups.length-1) {
+            let connector = document.createElement("div");
+            connector.classList.add("text-center","my-2");
+            connector.innerHTML = `
+                <select class="form-select form-select-sm d-inline-block"
+                        style="width:80px;"
+                        onchange="updateOperatorToNext(${g.id}, this.value)">
+                    <option value="AND" ${g.operatorToNext==="AND"?"selected":""}>AND</option>
+                    <option value="OR"  ${g.operatorToNext==="OR" ?"selected":""}>OR</option>
                 </select>
-                <span class="text-muted"> (between Group ${groupObj.id} and the next group)</span>
+                <span class="text-muted"> (between Group ${g.id} and next)</span>
             `;
-            container.appendChild(operatorDiv);
+            container.appendChild(connector);
         }
     });
-
-    // Rebuild the expression preview
     buildExpressionPreview(editMode);
 }
 
+/******************************************************************************
+ *  renderSubgroups(parentId)
+ ******************************************************************************/
+function renderSubgroups(parentId, visited=new Set()) {
+    if (visited.has(parentId)) return;
+    visited.add(parentId);
 
-function buildExpressionPreview(editMode = false) {
-    let previewDiv = editMode
-        ? document.getElementById("editExpressionPreview")
-        : document.getElementById("expressionPreview");
-
-    if (!previewDiv) return;
-
-    if (topLevelGroups.length === 0) {
-        previewDiv.textContent = "(No prerequisites)";
-        return;
-    }
-
-    let exprParts = [];
-    for (let i = 0; i < topLevelGroups.length; i++) {
-        let g = topLevelGroups[i];
-        let groupStr = buildGroupExpression(g);
-        if (i < topLevelGroups.length - 1 && g.operatorToNext) {
-            groupStr += " " + g.operatorToNext + " ";
-        }
-        exprParts.push(groupStr);
-    }
-
-    previewDiv.textContent = exprParts.join("");
-}
-// Rerender just the subgroups for a parent group
-function renderSubgroups(parentGroupId, visited = new Set()) {
-    // If we've already visited this group ID, stop
-    if (visited.has(parentGroupId)) return;
-    visited.add(parentGroupId);
-
-    let parent = findGroupById(parentGroupId, topLevelGroups);
+    let parent = findGroupById(parentId, topLevelGroups);
     if (!parent) return;
 
-    let container = document.getElementById(`subgroups-container-${parentGroupId}`);
+    let container = document.getElementById(`subgroups-container-${parentId}`);
     container.innerHTML = "";
 
-    parent.subGroups.forEach((sub, index) => {
-        let subDiv = document.createElement("div");
-        subDiv.classList.add("group-box", "ms-4", "mb-2");
-        subDiv.dataset.groupId = sub.id;
+    parent.subGroups.forEach((sub, idx) => {
+        let box = document.createElement("div");
+        box.classList.add("group-box","ms-4","mb-2");
+        box.dataset.groupId = sub.id;
 
-        subDiv.innerHTML = `
+        box.innerHTML = `
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span><strong>Group ${sub.id}</strong></span>
             <div>
-                <select class="form-select form-select-sm d-inline-block" style="width:150px;"
+                <select class="form-select form-select-sm d-inline-block"
+                        style="width:150px;"
                         onchange="updateGroupType(${sub.id}, this.value)">
-                    <option value="AND" ${sub.type === "AND" ? "selected" : ""}>ALL (AND)</option>
-                    <option value="OR" ${sub.type === "OR" ? "selected" : ""}>ANY (OR)</option>
+                    <option value="AND" ${sub.type==="AND"?"selected":""}>ALL (AND)</option>
+                    <option value="OR"  ${sub.type==="OR" ?"selected":""}>ANY (OR)</option>
                 </select>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeGroup(${sub.id})">✖</button>
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                        onclick="removeGroup(${sub.id})">✖</button>
             </div>
           </div>
-
           <div class="mb-2" id="group-${sub.id}-courses"></div>
-
           <div class="mb-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openSelectCourseModal(${sub.id})">+ Add Course</button>
-            <button type="button" class="btn btn-sm btn-outline-warning" onclick="addNewPrerequisiteGroup(${sub.id})">+ Add Subgroup</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="openSelectCourseModal(${sub.id})">
+              + Add Course
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-warning"
+                    onclick="addNewPrerequisiteGroup(${sub.id})">
+              + Add Subgroup
+            </button>
           </div>
-
           <div class="subgroups-container" id="subgroups-container-${sub.id}"></div>
         `;
+        container.appendChild(box);
 
-        container.appendChild(subDiv);
-        // Pass the same visited set down so we don’t revisit sub.id
+        // render items
         renderGroupCourses(sub.id);
         renderSubgroups(sub.id, visited);
 
-        // 🆕 Add AND/OR selection between subgroups
-        if (index < parent.subGroups.length - 1) {
-            let subConnectorDiv = document.createElement("div");
-            subConnectorDiv.classList.add("text-center", "my-2");
-            subConnectorDiv.innerHTML = `
-                <select class="form-select form-select-sm d-inline-block" style="width: 80px;"
-                        onchange="updateSubGroupOperator(${sub.id}, this.value)">
-                    <option value="AND" ${sub.operatorToNext === "AND" ? "selected" : ""}>AND</option>
-                    <option value="OR" ${sub.operatorToNext === "OR" ? "selected" : ""}>OR</option>
-                </select>
-                <span class="text-muted"> (connecting Group ${sub.id} to the next subgroup)</span>
+        // if there's a next sub, show connector
+        if (idx<parent.subGroups.length-1) {
+            let conn = document.createElement("div");
+            conn.classList.add("text-center","my-2");
+            conn.innerHTML=`
+              <select class="form-select form-select-sm d-inline-block"
+                      style="width:80px;"
+                      onchange="updateSubGroupOperator(${sub.id}, this.value)">
+                <option value="AND" ${sub.operatorToNext==="AND"?"selected":""}>AND</option>
+                <option value="OR"  ${sub.operatorToNext==="OR" ?"selected":""}>OR</option>
+              </select>
+              <span class="text-muted"> (connecting Group ${sub.id} to the next)</span>
             `;
-            container.appendChild(subConnectorDiv);
+            container.appendChild(conn);
         }
     });
 }
-// ============================================================================
-// Update the group's internal type ("AND" or "OR")
-function updateGroupType(groupId, newType) {
-    let grp = findGroupById(groupId, topLevelGroups);
-    if (grp) {
-        grp.type = newType;
-        buildExpressionPreview(isEditMode)
-    }
-}
-// Update how this group connects to the next top-level group
-function updateOperatorToNext(groupId, newOp) {
-    let groupIndex = topLevelGroups.findIndex(g => g.id === groupId);
-    if (groupIndex !== -1 && groupIndex < topLevelGroups.length - 1) {
-        topLevelGroups[groupIndex].operatorToNext = newOp;
-        buildExpressionPreview(isEditMode)
-    }
-}
-// Update how this subgroup connects to the next subgroup
-function updateSubGroupOperator(groupId, newOp) {
-    let parent = findParentGroup(groupId, topLevelGroups);
-    if (parent) {
-        let subgroup = parent.subGroups.find(g => g.id === groupId);
-        if (subgroup) {
-            let isLastSubgroup = parent.subGroups[parent.subGroups.length - 1] === subgroup;
-            if (isLastSubgroup) {
-                delete subgroup.operatorToNext;
-            } else {
-                subgroup.operatorToNext = newOp;
-            }
-            buildExpressionPreview(isEditMode)
-        }
-    }
-}
-// ============================================================================
-// Generate a new group ID
-function generateGroupId() {
-    return groupCounter++;
-}
-// ============================================================================
-// Find group by ID recursively
-function findGroupById(groupId, groupArr) {
-    for (let g of groupArr) {
-        if (g.id === groupId) return g;
-        let subResult = findGroupById(groupId, g.subGroups);
-        if (subResult) return subResult;
-    }
-    return null;
-}
-// ============================================================================
-//  OPEN "Select Course" modal for the given group
-// ============================================================================
+
+/******************************************************************************
+ *  data structures
+ *    groupObj => { id, type, prereqItems: [], subGroups:[], operatorToNext?... }
+ *    each item => { courseId, programmeId }
+ ******************************************************************************/
+
+/******************************************************************************
+ *  openSelectCourseModal(groupId)
+ *    - we do not hide the parent modal, just open child on top
+ *    - after closing the child, we forcibly remove extra backdrops if any
+ ******************************************************************************/
 function openSelectCourseModal(groupId) {
     currentGroupId = groupId;
-
-    // Wait until courses are fully loaded
-    if (allCourses.length === 0) {
-        console.warn("Courses are not yet loaded. Please try again.");
-        return;
-    }
-
-    populateSelectCourseList(); // Populate course list
-    document.getElementById("selectCourseSearch").value = ""; // Reset search
-
-    let modal = new bootstrap.Modal(document.getElementById("selectCourseModal"), {});
-    modal.show();
+    // reset search
+    document.getElementById("selectCourseSearch").value="";
+    populateSelectCourseList();
+    // show the child modal
+    let childModal = new bootstrap.Modal(
+        document.getElementById("selectCourseModal"), {}
+    );
+    childModal.show();
 }
-// Populate the select course list in the modal
+
+/******************************************************************************
+ *  populateSelectCourseList
+ ******************************************************************************/
 function populateSelectCourseList() {
     let listDiv = document.getElementById("selectCourseList");
-    if (!listDiv) {
-        console.error("Error: selectCourseList element not found.");
-        return;
-    }
-    listDiv.innerHTML = ""; // Clear existing list
+    if (!listDiv) return;
+    listDiv.innerHTML="";
 
-    // ✅ Exclude the course being edited + already selected courses
-    let excludedIds = [Number(selectedCourseId)];
+    // find the group
     let group = findGroupById(currentGroupId, topLevelGroups);
-    if (group) {
-        excludedIds.push(...group.courses);
-    }
+    if (!group) return;
 
-    // ✅ Ensure `course.title` is assigned properly
-    let filteredCourses = allCourses
-        .filter(course => !excludedIds.includes(course.id))
-        .map(course => ({
-            id: course.id,
-            courseCode: course.courseCode,
-            title: course.title || "(No Title)" // 🛠 Ensure title is not undefined
-        }))
-        .sort((a, b) => a.courseCode.localeCompare(b.courseCode));
+    // we store items in group.prereqItems => but we haven't replaced old code yet
+    // So let's do it properly:
+    let excluded = new Set(
+        group.prereqItems ? group.prereqItems.map(it=>it.courseId) : group.courses
+    );
+    // also exclude the main course ID
+    if(selectedCourseId) excluded.add(Number(selectedCourseId));
 
-    // ✅ Render the full list when modal opens
-    filteredCourses.forEach(course => {
+    // build a sorted list
+    let filtered = allCourses
+        .filter(c => !excluded.has(c.id))
+        .sort((a,b)=>a.courseCode.localeCompare(b.courseCode));
+
+    filtered.forEach(c => {
         let row = document.createElement("div");
-        row.classList.add("d-flex", "justify-content-between", "align-items-center", "mb-2", "course-item");
+        row.classList.add("d-flex","justify-content-between","align-items-center","mb-2");
 
-        row.innerHTML = `
-            <span class="course-code">${course.courseCode} - ${course.title}</span>
-            <button type="button" class="btn btn-sm btn-primary">Add</button>
+        row.innerHTML=`
+          <span>${c.courseCode} - ${c.title||"(No Title)"}</span>
+          <button type="button" class="btn btn-sm btn-primary">Add</button>
         `;
 
         row.querySelector("button").onclick = () => {
-            selectCourse(course.id);
+            selectCourse(c.id);
         };
 
         listDiv.appendChild(row);
     });
 }
+
+/******************************************************************************
+ *  filterSelectCourseList
+ ******************************************************************************/
 function filterSelectCourseList() {
-    let searchInput = document.getElementById("selectCourseSearch");
-    let searchTerm = searchInput.value.toLowerCase();
+    let searchTerm = this.value.toLowerCase();
     let listDiv = document.getElementById("selectCourseList");
-    if (!listDiv) {
-        console.error("Error: selectCourseList element not found.");
-        return;
-    }
+    if (!listDiv) return;
 
-    // ✅ Exclude the currently selected course and already added courses
-    let excludedIds = [Number(selectedCourseId)];
     let group = findGroupById(currentGroupId, topLevelGroups);
-    if (group) {
-        excludedIds.push(...group.courses);
-    }
+    if (!group) return;
 
-    // ✅ Filter courses dynamically (show exact matches first)
-    let filteredCourses = allCourses
-        .filter(course => !excludedIds.includes(course.id) &&
-            course.courseCode.toLowerCase().includes(searchTerm))
-        .sort((a, b) => {
-            if (a.courseCode.toLowerCase().startsWith(searchTerm)) return -1;
-            if (b.courseCode.toLowerCase().startsWith(searchTerm)) return 1;
-            return a.courseCode.localeCompare(b.courseCode);
-        });
+    let excluded = new Set(
+        group.prereqItems ? group.prereqItems.map(it=>it.courseId) : group.courses
+    );
+    if(selectedCourseId) excluded.add(Number(selectedCourseId));
 
-    // ✅ Clear the existing list
-    listDiv.innerHTML = "";
+    let filtered = allCourses
+        .filter(c=>!excluded.has(c.id) &&
+            c.courseCode.toLowerCase().includes(searchTerm)
+        )
+        .sort((a,b)=>a.courseCode.localeCompare(b.courseCode));
 
-    // ✅ Re-populate with only the matching courses
-    filteredCourses.forEach(course => {
+    listDiv.innerHTML="";
+    filtered.forEach(c => {
         let row = document.createElement("div");
-        row.classList.add("d-flex", "justify-content-between", "align-items-center", "mb-2", "course-item");
-
-        row.innerHTML = `
-            <span class="course-code">${course.courseCode} - ${course.title}</span>
-            <button type="button" class="btn btn-sm btn-primary">Add</button>
+        row.classList.add("d-flex","justify-content-between","align-items-center","mb-2");
+        row.innerHTML=`
+          <span>${c.courseCode} - ${c.title||"(No Title)"}</span>
+          <button class="btn btn-sm btn-primary">Add</button>
         `;
-
-        row.querySelector("button").onclick = () => {
-            selectCourse(course.id);
-        };
-
+        row.querySelector("button").onclick=()=>selectCourse(c.id);
         listDiv.appendChild(row);
     });
-
 }
-// When user clicks "Add" in the course modal
+
+/******************************************************************************
+ *  populateProgrammeDropdown
+ *    - fill the #selectProgrammeDropdown in the child modal
+ ******************************************************************************/
+function populateProgrammeDropdown() {
+    let progSelect = document.getElementById("selectProgrammeDropdown");
+    if(!progSelect) return;
+    progSelect.innerHTML = `<option value="">(All programmes)</option>`;
+    allProgrammes.forEach(p => {
+        let opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.programmeCode} - ${p.name}`;
+        progSelect.appendChild(opt);
+    });
+}
+
+/******************************************************************************
+ *  selectCourse(courseId)
+ *    - user clicked "Add" in the child modal
+ *    - we store {courseId, programmeId} in group.prereqItems
+ ******************************************************************************/
 function selectCourse(courseId) {
     let group = findGroupById(currentGroupId, topLevelGroups);
     if (!group) return;
 
-    group.courses.push(courseId);
+    // check if we have group.prereqItems or group.courses
+    if(!group.prereqItems) {
+        // convert the existing group.courses => prereqItems
+        group.prereqItems = (group.courses||[]).map(cid=>({ courseId: cid, programmeId:null }));
+        delete group.courses;
+    }
+
+    // read the chosen programme
+    let progSelect = document.getElementById("selectProgrammeDropdown");
+    let selectedProgId = progSelect && progSelect.value ? Number(progSelect.value) : null;
+
+    // push
+    group.prereqItems.push({
+        courseId:courseId,
+        programmeId:selectedProgId
+    });
+
+    // re-render
     renderGroupCourses(currentGroupId);
 
-    // close modal
+    // close the child modal
     let modalEl = document.getElementById("selectCourseModal");
-    let modal = bootstrap.Modal.getInstance(modalEl);
-    modal.hide();
-
-    buildExpressionPreview(isEditMode)
-}
-// ============================================================================
-// Render the "chips" for a group's courses
-function renderGroupCourses(groupId) {
-    let group = findGroupById(groupId, topLevelGroups);
-    if (!group) return;
-
-    let listDiv = document.getElementById(`group-${groupId}-courses`);
-    if (!listDiv) return;
-
-    listDiv.innerHTML = "";
-
-    group.courses.forEach(cid => {
-        let courseObj = allCourses.find(c => c.id === cid);
-        if (!courseObj) return;
-
-        let chip = document.createElement("div");
-        chip.classList.add("chip");
-        chip.dataset.courseId = cid;
-        chip.innerHTML = `
-            ${courseObj.courseCode}
-            <span class="remove-chip" onclick="removeCourseFromGroup(${groupId}, ${cid})">
-               &times;
-            </span>
-        `;
-        listDiv.appendChild(chip);
-    });
-}
-// Remove a course from group
-function removeCourseFromGroup(groupId, courseId) {
-    let group = findGroupById(groupId, topLevelGroups);
-    if (!group) return;
-
-    let idx = group.courses.indexOf(courseId);
-    if (idx >= 0) {
-        group.courses.splice(idx, 1);
+    let childModal = bootstrap.Modal.getInstance(modalEl);
+    if (childModal) {
+        childModal.hide();
+        // forcibly remove leftover backdrop if more than 1
+        removeExtraBackdrops();
     }
 
-    // Re-render the courses for that group
-    renderGroupCourses(groupId);
-
-    // Also rebuild the expression in correct mode
     buildExpressionPreview(isEditMode);
 }
-// Recursively build a string for a group
-function buildGroupExpression(groupObj) {
-    // 1) Build expression for courses
-    let courseCodes = groupObj.courses.map(cid => {
-        let cObj = allCourses.find(x => x.id === cid);
-        return cObj ? cObj.courseCode : "???";
-    });
 
-    // 2) Build expressions for subgroups
-    let subExprs = groupObj.subGroups.map(sub => buildGroupExpression(sub));
-
-    // Combine them all with the group's "type" (AND/OR)
-    // If group.type === "AND", we join with " AND ", else " OR "
-    let joiner = (groupObj.type === "AND") ? " AND " : " OR ";
-
-    // Combine courses + subExprs in a single array of parts
-    let allParts = [...courseCodes, ...subExprs];
-    if (allParts.length === 0) {
-        // no courses, no subgroups
-        return "( )";
+/******************************************************************************
+ *  removeExtraBackdrops()
+ *    - if there's more than 1 .modal-backdrop, remove the last
+ ******************************************************************************/
+function removeExtraBackdrops() {
+    let backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length>1) {
+        // remove the last one
+        backdrops[ backdrops.length -1 ].remove();
     }
-    if (allParts.length === 1) {
-        // only one element, no need to join
-        return allParts[0];
+}
+
+/******************************************************************************
+ *  renderGroupCourses(groupId) => "chips"
+ *    - if group has prereqItems => use that
+ *    - else fallback to group.courses
+ ******************************************************************************/
+function renderGroupCourses(groupId) {
+    let group = findGroupById(groupId, topLevelGroups);
+    if (!group) {
+        console.warn("No group found for id", groupId);
+        return;
     }
 
-    // multiple parts => wrap in parentheses
-    return "(" + allParts.join(joiner) + ")";
+    let container = document.getElementById(`group-${groupId}-courses`);
+    if (!container) {
+        console.warn("No container found for group", groupId);
+        return;
+    }
+
+    container.innerHTML = "";
+
+    if (group.prereqItems) {
+        group.prereqItems.forEach(item => {
+           // console.log("Rendering course:", item); // <== ADD THIS
+
+            let cObj = allCourses.find(c => c.id === item.courseId);
+            if (!cObj) {
+                console.warn("No course found for ID", item.courseId);
+                return;
+            }
+
+            let label = cObj.courseCode;
+            if (item.programmeId) {
+                let pObj = allProgrammes.find(p => p.id === item.programmeId);
+                label += pObj ? ` (${pObj.programmeCode})` : " (??)";
+            } else {
+                label += " (All)";
+            }
+
+            let chip = document.createElement("div");
+            chip.classList.add("chip");
+            chip.innerHTML = `
+              ${label}
+              <span class="remove-chip"
+                    onclick="removePrereqItem(${groupId}, ${item.courseId}, ${item.programmeId || 0})">
+                &times;
+              </span>
+            `;
+            container.appendChild(chip);
+        });
+    }
 }
 
-function cleanEmptyGroups(groups) {
-    return groups
-        .filter(group => group.courses.length > 0 || group.subGroups.length > 0) // Keep only non-empty groups
-        .map(group => ({
-            ...group,
-            subGroups: cleanEmptyGroups(group.subGroups) // Recursively clean subgroups
-        }));
-}
-// ============================================================================
-// Filter the main course list in your table (optional)
-// ============================================================================
-function filterCourses() {
-    let searchTerm = this.value.toLowerCase();
-    let tableRows = document.querySelectorAll("#courseTableBody tr");
 
-    tableRows.forEach(row => {
-        let courseCodeCell = row.querySelector(".courseCode");
-        if (!courseCodeCell) return;
-        let courseCode = courseCodeCell.textContent.toLowerCase();
-        row.style.display = courseCode.includes(searchTerm) ? "" : "none";
-    });
+/******************************************************************************
+ *  removePrereqItem
+ ******************************************************************************/
+function removePrereqItem(groupId, courseId, programmeId) {
+    let group = findGroupById(groupId, topLevelGroups);
+    if(!group || !group.prereqItems) return;
+    group.prereqItems = group.prereqItems.filter(
+        it => !(it.courseId===courseId && (it.programmeId||0)===programmeId)
+    );
+    renderGroupCourses(groupId);
+    buildExpressionPreview(isEditMode);
 }
-// ============================================================================
-// Show success/error messages
-// ============================================================================
-function showMessage(divId, message, type) {
-    let div = document.getElementById(divId);
-    div.innerText = message;
-    div.style.display = "block";
-    div.classList.remove("alert-success", "alert-danger");
 
-    if (type === "success") {
-        div.classList.add("alert-success");
+/******************************************************************************
+ *  buildGroupExpression(...) => includes programme info
+ *    - if group.prereqItems => use them, else fallback to group.courses
+ ******************************************************************************/
+function buildGroupExpression(g) {
+    let items = g.prereqItems
+        ? g.prereqItems.map(it => {
+            let c = allCourses.find(cx=>cx.id===it.courseId);
+            let lbl = c ? c.courseCode : "???";
+            if(it.programmeId) {
+                let p = allProgrammes.find(px=>px.id===it.programmeId);
+                lbl += p ? `(${p.programmeCode})` : "(??)";
+            } else {
+                lbl+="(All)";
+            }
+            return lbl;
+        })
+        : g.courses.map(cid => {
+            let c=allCourses.find(cx=>cx.id===cid);
+            return c ? c.courseCode+"(All)" : "???(All)";
+        });
+
+    let subExprs = g.subGroups.map(s=> buildGroupExpression(s));
+    let joiner = (g.type==="AND") ? " AND " : " OR ";
+    let all = [...items, ...subExprs];
+    if(all.length===0) return "( )";
+    if(all.length===1) return all[0];
+    return `(${all.join(joiner)})`;
+}
+
+/******************************************************************************
+ *  buildExpressionPreview(editMode)
+ ******************************************************************************/
+function buildExpressionPreview(editMode=false) {
+    let el = editMode
+        ? document.getElementById("editExpressionPreview")
+        : document.getElementById("expressionPreview");
+    if(!el) return;
+
+    if(topLevelGroups.length===0) {
+        el.textContent="(No prerequisites)";
+        return;
+    }
+
+    let parts=[];
+    for (let i=0;i<topLevelGroups.length;i++){
+        let e = buildGroupExpression(topLevelGroups[i]);
+        if(i<topLevelGroups.length-1 && topLevelGroups[i].operatorToNext){
+            e+=" "+topLevelGroups[i].operatorToNext+" ";
+        }
+        parts.push(e);
+    }
+    el.textContent=parts.join("");
+}
+
+/******************************************************************************
+ *  updateGroupType, updateOperatorToNext, updateSubGroupOperator
+ *    - same as your old code
+ ******************************************************************************/
+function updateGroupType(groupId, newType){
+    let g=findGroupById(groupId, topLevelGroups);
+    if(g) {
+        g.type=newType;
+        buildExpressionPreview(isEditMode);
+    }
+}
+function updateOperatorToNext(groupId, newOp){
+    let idx=topLevelGroups.findIndex(x=>x.id===groupId);
+    if(idx>=0 && idx<topLevelGroups.length-1){
+        topLevelGroups[idx].operatorToNext=newOp;
+        buildExpressionPreview(isEditMode);
+    }
+}
+function updateSubGroupOperator(groupId, newOp){
+    let parent=findParentGroup(groupId, topLevelGroups);
+    if(!parent) return;
+    let sub=parent.subGroups.find(s=>s.id===groupId);
+    if(sub){
+        let isLast= parent.subGroups[parent.subGroups.length-1]===sub;
+        if(isLast){
+            delete sub.operatorToNext;
+        } else {
+            sub.operatorToNext=newOp;
+        }
+        buildExpressionPreview(isEditMode);
+    }
+}
+
+/******************************************************************************
+ *  findGroupById  => same as old
+ ******************************************************************************/
+function findGroupById(groupId,arr){
+    for(let g of arr){
+        if(g.id===groupId)return g;
+        let s=findGroupById(groupId,g.subGroups);
+        if(s)return s;
+    }
+    return null;
+}
+function findParentGroup(childId,arr){
+    for(let g of arr){
+        if(g.subGroups.some(s=>s.id===childId)){
+            return g;
+        }
+        let s=findParentGroup(childId, g.subGroups);
+        if(s)return s;
+    }
+    return null;
+}
+
+/******************************************************************************
+ * removeGroup => same as old, but we re-render
+ ******************************************************************************/
+function removeGroup(id){
+    // check top-level
+    let isTop=topLevelGroups.some(g=>g.id===id);
+    if(isTop){
+        if(topLevelGroups.length===1){
+            alert("You must keep at least 1 group");
+            return;
+        }
+        topLevelGroups=topLevelGroups.filter(g=>g.id!==id);
     } else {
-        div.classList.add("alert-danger");
+        removeGroupRecursive(id,topLevelGroups);
     }
-
-    setTimeout(() => {
-        div.style.display = "none";
-        div.classList.remove("alert-success", "alert-danger");
-    }, 2000);
+    renumberGroups();
+    renderTopLevelGroups(isEditMode);
+    buildExpressionPreview(isEditMode);
 }
-function flattenGroups(courseId, groups, parentId = 0) {
-    let flatList = [];
+function removeGroupRecursive(id, arr){
+    for(let i=0;i<arr.length;i++){
+        let idx=arr[i].subGroups.findIndex(sg=>sg.id===id);
+        if(idx>=0){
+            arr[i].subGroups.splice(idx,1);
+            return;
+        }
+        removeGroupRecursive(id,arr[i].subGroups);
+    }
+}
 
-    for (let i = 0; i < groups.length; i++) {
-        let group = groups[i];
-        let currentGroupId = group.id;
-        let isChild = parentId !== 0;
+/******************************************************************************
+ * flattenGroups => we store {courseId, programmeId} => see flattenPrereqItems
+ ******************************************************************************/
+function flattenGroups(courseId, groups, parentId=0){
+    let list=[];
+    for(let g of groups){
+        let currentId=g.id;
+        let isChild= parentId!==0;
 
-        group.courses.forEach(prerequisiteId => {
-            flatList.push({
-                courseId: Number(courseId),
-                prerequisiteId: prerequisiteId,
-                groupId: currentGroupId,
-                prerequisiteType: group.type,
-                operatorToNext: isChild ? null : group.operatorToNext,  // ✅ Only apply `operatorToNext` to top-level
-                parent: !isChild,
-                child: isChild,
-                parentId: parentId,
-                childId: group.subGroups.length > 0 ? group.subGroups[0].id : 0
+        // if g.prereqItems => flatten them
+        let items = g.prereqItems
+            ? g.prereqItems
+            : (g.courses||[]).map(cid=>({courseId:cid,programmeId:null}));
+
+        items.forEach(it=>{
+            list.push({
+                courseId:Number(courseId),
+                prerequisiteId: it.courseId,
+                groupId: currentId,
+                prerequisiteType: g.type,
+                operatorToNext: isChild?null:g.operatorToNext,
+                parent:!isChild,
+                child:isChild,
+                parentId:parentId,
+                childId: (g.subGroups.length>0)?g.subGroups[0].id:0,
+                // NEW: store programmeId
+                programmeId: it.programmeId
             });
         });
 
-        // ✅ Process subgroups
-        if (group.subGroups.length > 0) {
-            flatList.push(...flattenGroups(courseId, group.subGroups, currentGroupId));
+        if(g.subGroups.length>0){
+            list.push(...flattenGroups(courseId, g.subGroups, currentId));
         }
     }
-
-    return flatList;
+    return list;
 }
-function submitPrerequisiteForm(event) {
-    event.preventDefault();
 
-    let courseId = document.getElementById("selectedCourseId").value;
+/******************************************************************************
+ * cleanEmptyGroups, validateGroups => same as old
+ ******************************************************************************/
+function cleanEmptyGroups(groups){
+    return groups
+        .filter(g=>
+            (g.prereqItems && g.prereqItems.length>0) ||
+            (g.courses && g.courses.length>0) ||
+            g.subGroups.length>0
+        )
+        .map(g=>({
+            ...g,
+            subGroups: cleanEmptyGroups(g.subGroups)
+        }));
+}
+function validateGroups(groups){
+    for(let g of groups){
+        let hasItems= (g.prereqItems && g.prereqItems.length>0) ||
+            (g.courses && g.courses.length>0);
+        if(!hasItems && g.subGroups.length===0)return false;
+        if(!validateGroups(g.subGroups))return false;
+    }
+    return true;
+}
 
-    if (!courseId || topLevelGroups.length === 0) {
-        alert("Please add at least one prerequisite group.");
+/******************************************************************************
+ * renumberGroups => from old
+ ******************************************************************************/
+function renumberGroups(){
+    let counter=1;
+    function traverse(arr){
+        arr.forEach(g=>{
+            g.id=counter++;
+            traverse(g.subGroups);
+        });
+    }
+    traverse(topLevelGroups);
+    groupCounter=counter;
+}
+
+/******************************************************************************
+ * submitPrerequisiteForm(event)
+ ******************************************************************************/
+function submitPrerequisiteForm(evt){
+    evt.preventDefault();
+
+    let courseId=document.getElementById("selectedCourseId").value;
+    if(!courseId||topLevelGroups.length===0){
+        alert("Please add at least one group.");
         return;
     }
-    // Validate all groups before submission
-    if (!validateGroups(topLevelGroups)) {
-        alert("Some prerequisite groups are empty. Please add at least one course or subgroup before submitting.");
+    if(!validateGroups(topLevelGroups)){
+        alert("Some groups empty. Please fix!");
         return;
     }
+    let cleaned=cleanEmptyGroups(topLevelGroups);
+    let flattened=flattenGroups(courseId, cleaned);
 
-    let cleanedGroups = cleanEmptyGroups(topLevelGroups);
-    let flattenedPrerequisites = flattenGroups(courseId, cleanedGroups);
-
-    let requestData = {
-        courseId: Number(courseId),
-        prerequisites: flattenedPrerequisites
+    let requestData={
+        courseId:Number(courseId),
+        prerequisites:flattened
     };
-   console.log(JSON.stringify(requestData,null,2));
-
-
+  //  console.log(JSON.stringify(requestData,null,2))
     fetch("/api/admin/addPreReqs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData)
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(requestData)
     })
-        .then(async (response) => {
-            let responseData;
-            try {
-                responseData = await response.json(); // Attempt to parse JSON
-            } catch (error) {
-                responseData = { message: "Unexpected error. Please try again." }; // Default message if JSON parsing fails
+        .then(async(resp)=>{
+            let data;
+            try{ data=await resp.json();} catch(e){ data={message:"Unexpected"}; }
+            if(!resp.ok){
+                throw new Error(data.message||"Error adding prereqs");
             }
-
-            if (!response.ok) {
-                throw new Error(responseData.message || "An unknown error occurred.");
-            }
-
-            document.getElementById("successStatus").value = "true";
-            document.getElementById("responseMessage").value = responseData.message || "Prerequisites added successfully";
+            // success => fill hidden fields => submit form
+            document.getElementById("successStatus").value="true";
+            document.getElementById("responseMessage").value=data.message||"Success";
             document.getElementById("addPrerequisiteForm").submit();
         })
-        .catch((err) => {
-            document.getElementById("successStatus").value = "false";
-            document.getElementById("responseMessage").value = "Error: " + err.message;
+        .catch(err=>{
+            document.getElementById("successStatus").value="false";
+            document.getElementById("responseMessage").value="Error: "+err.message;
             document.getElementById("addPrerequisiteForm").submit();
         });
-
 }
 
-function submitEditPrerequisiteForm(event) {
-    event.preventDefault();
-
-    let courseId = document.getElementById("editSelectedCourseId").value;
-
-    if (!courseId || topLevelGroups.length === 0) {
-        alert("Please add at least one prerequisite group.");
+/******************************************************************************
+ * submitEditPrerequisiteForm(event)
+ ******************************************************************************/
+function submitEditPrerequisiteForm(evt){
+    evt.preventDefault();
+    let courseId=document.getElementById("editSelectedCourseId").value;
+    if(!courseId||topLevelGroups.length===0){
+        alert("Please add at least one group.");
         return;
     }
+    if(!validateGroups(topLevelGroups)){
+        alert("Some groups empty. Please fix!");
+        return;
+    }
+    let cleaned=cleanEmptyGroups(topLevelGroups);
+    let flattened=flattenGroups(courseId, cleaned);
 
-    let cleanedGroups = cleanEmptyGroups(topLevelGroups);
-    let flattenedPrerequisites = flattenGroups(courseId, cleanedGroups);
-
-    let requestData = {
-        courseId: Number(courseId),
-        prerequisites: flattenedPrerequisites
+    let requestData={
+        courseId:Number(courseId),
+        prerequisites:flattened
     };
-   // console.log(JSON.stringify(requestData,null,2))
+
     fetch("/api/admin/updatePreReqs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData)
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(requestData)
     })
-        .then(async (response) => {
-            let responseData;
-            try {
-                responseData = await response.json();
-            } catch (error) {
-                responseData = { message: "Unexpected error. Please try again." };
+        .then(async(resp)=>{
+            let data;
+            try{ data=await resp.json(); } catch(e){ data={message:"Unexpected"}; }
+            if(!resp.ok){
+                throw new Error(data.message||"Error updating prereqs");
             }
-
-            if (!response.ok) {
-                throw new Error(responseData.message || "An unknown error occurred.");
-            }
-
-            document.getElementById("editSuccessStatus").value = "true";
-            document.getElementById("editResponseMessage").value = responseData.message || "Updated successfully";
+            document.getElementById("editSuccessStatus").value="true";
+            document.getElementById("editResponseMessage").value=data.message||"Updated";
             document.getElementById("editPrerequisiteForm").submit();
         })
-        .catch((err) => {
-            document.getElementById("editSuccessStatus").value = "false";
-            document.getElementById("editResponseMessage").value = "Error: " + err.message;
+        .catch(err=>{
+            document.getElementById("editSuccessStatus").value="false";
+            document.getElementById("editResponseMessage").value="Error: "+err.message;
             document.getElementById("editPrerequisiteForm").submit();
         });
-
 }
 
-function validateGroups(groups) {
-    for (let group of groups) {
-        if (group.courses.length === 0 && group.subGroups.length === 0) {
-            return false; // Found an empty group
-        }
-        if (!validateGroups(group.subGroups)) {
-            return false; // Found an empty subgroup
-        }
-    }
-    return true; // All groups are valid
+/******************************************************************************
+ *  filterCourses => optional table filter
+ ******************************************************************************/
+function filterCourses(){
+    let term=this.value.toLowerCase();
+    let rows=document.querySelectorAll("#courseTableBody tr");
+    rows.forEach(r=>{
+        let codeCell=r.querySelector(".courseCode");
+        if(!codeCell)return;
+        let code=codeCell.textContent.toLowerCase();
+        r.style.display=(code.includes(term))?"":"none";
+    });
 }

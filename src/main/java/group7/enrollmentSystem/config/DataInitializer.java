@@ -93,6 +93,7 @@ public class DataInitializer implements CommandLineRunner {
 
         List<Student> students = List.of(
                 new Student("s11212749", "Tino", "Potoi", "12 Bakshi Street, Suva", "1234567"),
+                new Student("s11209521", "Adrian","Alamu", "12 Bakshi Street, Suva", "9429576"),
                 new Student("s11212750", "Jane", "Qio", "57 Ratu Mara Rd, Nabua", "2345678"),
                 new Student("s11212751", "Pita", "Kumar", "Lot 5 Brown Street, Lautoka", "3456789"),
                 new Student("s11212752", "Mary", "Singh", "Lot 3 Princes Rd, Tamavua", "4567890"),

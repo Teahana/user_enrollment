@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Student Programme Audit</title>
+
+    <!-- Bootstrap CSS (Important for the modal) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <!-- Your custom stylesheet -->
     <link rel="stylesheet" th:href="@{/scripts/css/audit.css}">
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 </head>
 <body>
 
@@ -44,12 +54,30 @@
     </p>
 </div>
 
+<!-- Mermaid Modal -->
+<div class="modal fade" id="mermaidModal" tabindex="-1" aria-labelledby="mermaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mermaidModalLabel">Prerequisite Diagram</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div id="mermaidRenderContainer" style="overflow-x: auto; padding: 10px;"></div>
+                <div id="noPrereqsMessage" style="display: none; font-style: italic; padding: 10px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Thymeleaf JS Var -->
 <script th:inline="javascript">
     let studentId = /*[[${studentId}]]*/ "fallbackId";
 </script>
 
-<!-- JS Logic -->
+<!-- Bootstrap JS Bundle (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     let rawData = null;
     let currentFilter = 'all';
@@ -65,10 +93,8 @@
         .then(data => {
             rawData = data;
             renderAuditTable(data);
-
-            // ✅ Chart logic based on full data, not filtered
-            let total = data.programmeCourses.length;
-            let completed = data.programmeCourses.filter(c => c.completed).length;
+            const total = data.programmeCourses.length;
+            const completed = data.programmeCourses.filter(c => c.completed).length;
             renderChart(completed, total - completed);
         })
         .catch(err => {
@@ -79,10 +105,10 @@
     function renderAuditTable(data) {
         document.getElementById("studentHeader").innerText = `Programme Audit for ${data.studentName}`;
         document.getElementById("studentInfo").innerHTML = `
-      <p><strong>Student ID:</strong> ${data.studentId}</p>
-      <p><strong>Programme:</strong> ${data.programmeName || "N/A"}</p>
-      <p><strong>Status:</strong> ${data.status}</p>
-    `;
+            <p><strong>Student ID:</strong> ${data.studentId}</p>
+            <p><strong>Programme:</strong> ${data.programmeName || "N/A"}</p>
+            <p><strong>Status:</strong> ${data.status}</p>
+        `;
 
         const levels = [100, 200, 300, 400];
         const grouped = {};
@@ -100,6 +126,7 @@
             const isEnrolled = course.enrolled;
             const isCompleted = course.completed;
 
+            // Apply filter
             if (currentFilter === 'enrolled' && !isEnrolled) return;
             if (currentFilter === 'completed' && !isCompleted) return;
             if (currentFilter === 'notTaken' && (isEnrolled || isCompleted)) return;
@@ -107,7 +134,16 @@
             let status = '';
             if (isEnrolled) status += '<span class="enrolled">Ⓡ</span>';
             if (isCompleted) status += '<span class="completed">&#x2713;</span>';
-            grouped[level].push(`${course.courseCode} ${status}`);
+
+            grouped[level].push(`
+                <div>
+                    <div>${course.courseCode} ${status}</div>
+                    <button class="btn btn-sm btn-outline-primary mt-1"
+                            onclick="viewPrereqDiagram(${course.id}, '${course.courseCode}')">
+                        View Prerequisite Diagram
+                    </button>
+                </div>
+            `);
 
             levelStats[level].total += 1;
             if (isCompleted) levelStats[level].completed += 1;
@@ -116,14 +152,12 @@
             if (isCompleted) totalCompleted += 1;
         });
 
-        // Table Header
         const thead = document.querySelector("#auditTable thead tr");
         thead.innerHTML = levels.map(level => {
             const stat = levelStats[level];
             return `<th>Level ${level}<br><span style="font-size: 12px;">${stat.completed}/${stat.total}</span></th>`;
         }).join('');
 
-        // Table Body
         const tbody = document.getElementById("courseTableBody");
         tbody.innerHTML = '';
         const maxRows = Math.max(...Object.values(grouped).map(list => list.length));
@@ -138,8 +172,6 @@
         }
 
         document.getElementById("auditTable").style.display = "table";
-
-        // Update summary counts
         document.getElementById("completedCount").innerText = totalCompleted;
         document.getElementById("remainingCount").innerText = totalCourses - totalCompleted;
         document.getElementById("totalCount").innerText = totalCourses;
@@ -167,6 +199,46 @@
                 responsive: true
             }
         });
+    }
+
+    function viewPrereqDiagram(courseId, courseCode) {
+        document.getElementById("mermaidModalLabel").innerText = `Prerequisite Diagram for ${courseCode}`;
+        document.getElementById("mermaidRenderContainer").innerHTML = 'Loading...';
+        document.getElementById("noPrereqsMessage").style.display = "none";
+
+        fetch("/api/student/getMermaidCode", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ courseId: courseId })
+        })
+            .then(res => res.text())
+            .then(code => {
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('mermaidModal'));
+                modal.show();
+
+                if (code.trim().startsWith("%% No prerequisites")) {
+                    document.getElementById("mermaidRenderContainer").innerHTML = '';
+                    document.getElementById("noPrereqsMessage").innerText = code;
+                    document.getElementById("noPrereqsMessage").style.display = "block";
+                } else {
+                    mermaid.render("generatedDiagram", code).then(({ svg }) => {
+                        document.getElementById("mermaidRenderContainer").innerHTML =
+                            `<div style="min-width: 100%; padding: 10px;">${svg}</div>`;
+                    }).catch(err => {
+                        document.getElementById("mermaidRenderContainer").innerHTML = '';
+                        document.getElementById("noPrereqsMessage").innerText = "❌ Failed to render diagram.";
+                        document.getElementById("noPrereqsMessage").style.display = "block";
+                    });
+                }
+            })
+            .catch(err => {
+                document.getElementById("mermaidRenderContainer").innerHTML = '';
+                document.getElementById("noPrereqsMessage").innerText = "❌ Failed to load diagram.";
+                document.getElementById("noPrereqsMessage").style.display = "block";
+            });
     }
 </script>
 

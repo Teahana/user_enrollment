@@ -42,7 +42,36 @@ public class DataInitializer implements CommandLineRunner {
         initializeCourseProgrammes();   // Link BSE & BNS
         linkStudentsToProgrammes();     // Assign students to BSE or BNS
         initializeCourseEnrollments();
+        restoreCoursePrerequisiteFromBackup();
     }
+    private void restoreCoursePrerequisiteFromBackup() {
+        if (coursePrerequisiteRepo.count() > 0) {
+            System.out.println("Course prerequisites already exist. Skipping restore.");
+            return;
+        }
+
+        try {
+            String backupPath = "src/main/resources/backup/course_prerequisite_backup.sql";
+
+            // ✅ MySQL restore command with password (no space after -p)
+            String command = "cmd /c mysql -u root -p12345 ernrollment_database < " + backupPath;
+
+            // Run the command
+            Process process = Runtime.getRuntime().exec(command);
+            int exitCode = process.waitFor();
+
+            if (exitCode == 0) {
+                System.out.println("✅ course_prerequisite table restored successfully from backup.");
+            } else {
+                System.err.println("❌ Failed to restore course_prerequisite table. Exit code: " + exitCode);
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Error during restore:");
+            e.printStackTrace();
+        }
+    }
+
 
     // --------------------------------------------------------------
     //  1) Enrollment Status

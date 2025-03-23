@@ -34,6 +34,8 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     boolean existsByStudentAndCourseAndCompletedIsTrue(Student student, Course preCourse);
 
     Collection<Object> findByStudentAndCourseInAndCompletedIsTrue(Student student, List<Course> sameLevelCourses);
+
+    List<CourseEnrollment> findByStudent(Student student);
 }
 
 

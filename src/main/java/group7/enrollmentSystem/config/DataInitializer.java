@@ -10,8 +10,16 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -46,31 +54,62 @@ public class DataInitializer implements CommandLineRunner {
     }
     private void restoreCoursePrerequisiteFromBackup() {
         if (coursePrerequisiteRepo.count() > 0) {
-            System.out.println("Course prerequisites already exist. Skipping restore.");
+            System.out.println("course_prerequisite already exists. Skipping restore.");
             return;
         }
 
+        String dbUser = "root";
+        String dbPassword = "12345";
+        String dbName = "enrollment_database";
+        String mysqlBinary = "mysql";
+
         try {
-            String backupPath = "src/main/resources/backup/course_prerequisite_backup.sql";
-
-            // ✅ MySQL restore command with password (no space after -p)
-            String command = "cmd /c mysql -u root -p12345 ernrollment_database < " + backupPath;
-
-            // Run the command
-            Process process = Runtime.getRuntime().exec(command);
-            int exitCode = process.waitFor();
-
-            if (exitCode == 0) {
-                System.out.println("✅ course_prerequisite table restored successfully from backup.");
-            } else {
-                System.err.println("❌ Failed to restore course_prerequisite table. Exit code: " + exitCode);
+            // Step 1: Load SQL from resources
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("backup/course_prerequisite_backup.sql");
+            if (inputStream == null) {
+                throw new FileNotFoundException("course_prerequisite_backup.sql not found in resources!");
             }
 
+            // Step 2: Save it temporarily
+            Path tempFile = Files.createTempFile("course_prerequisite_backup", ".sql");
+            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            inputStream.close();
+
+            // Step 3: Build MySQL command
+            List<String> command = Arrays.asList(
+                    mysqlBinary,
+                    "-u" + dbUser,
+                    "-p" + dbPassword,
+                    "-D", dbName,
+                    "--execute", "source " + tempFile.toAbsolutePath()
+            );
+
+            // Step 4: Run it
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("✅ course_prerequisite restored successfully from backup!");
+            } else {
+                System.err.println("❌ Error restoring course_prerequisite. Exit code: " + exitCode);
+            }
+
+            Files.deleteIfExists(tempFile); // Cleanup
+
         } catch (Exception e) {
-            System.err.println("❌ Error during restore:");
+            System.err.println("❌ Exception during course_prerequisite restore: " + e.getMessage());
             e.printStackTrace();
         }
     }
+
 
 
     // --------------------------------------------------------------

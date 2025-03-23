@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.models.Course;
+import group7.enrollmentSystem.models.EnrollmentState;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
+import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
@@ -29,7 +31,7 @@ import java.util.Map;
 public class AdminController {
     private final CourseRepo courseRepo;
     private final CourseService courseService;
-    private final CourseRepo coursePrerequisiteRepo;
+    private final EnrollmentStatusRepo enrollmentStatusRepo;
 
     private final CourseProgrammeService courseProgrammeService;
     private final ProgrammeRepo programmeRepo;
@@ -41,6 +43,11 @@ public class AdminController {
         String email = authentication.getName();
         User user = userRepo.findByEmail(email).orElse(null);
         model.addAttribute("user", user);
+
+        // Fetch the enrollment state
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        model.addAttribute("enrollmentState", enrollmentState);
+
         return "admin";
     }
 
@@ -102,26 +109,6 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
-//    @PostMapping("/addPreReqs")
-//    public String addPrerequisites(
-//            @ModelAttribute CoursePrerequisiteRequest request,
-//            RedirectAttributes redirectAttributes) {
-//
-//        try {
-//
-//            // Call service function
-//            courseService.addPrerequisites(request);
-//
-//            // Redirect with success message
-//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully.");
-//            return "redirect:/admin/courses"; // Redirect back to courses page
-//        } catch (Exception e) {
-//            redirectAttributes.addFlashAttribute("error", e.getMessage());
-//            return "redirect:/admin/courses"; // Redirect back with error
-//        }
-//    }
-
-
 
     // Display all programmes
     @GetMapping("/programmes")
@@ -158,16 +145,18 @@ public class AdminController {
         }
         return "redirect:/admin/programmes";
     }
+
+    //---------Control for Admin to turn off/on students' access to enrollment page-----------------
+    @PostMapping("/toggleEnrollment")
+    public String toggleEnrollment(RedirectAttributes redirectAttributes) {
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        enrollmentState.setOpen(!enrollmentState.isOpen());
+        enrollmentStatusRepo.save(enrollmentState);
+
+        String message = enrollmentState.isOpen() ? "Student registration is now open." : "Student registration is now closed.";
+        redirectAttributes.addFlashAttribute("message", message);
+
+        return "redirect:/admin/dashboard";
+    }
 }
-//    @PostMapping("/addPreReqs")
-//    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
-//        try {
-//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
-//        } catch (DataIntegrityViolationException e) {
-//            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
-//        } catch (Exception e) {
-//            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
-//        }
-//        return "redirect:/admin/courses";
-//    }
+

@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.models.Course;
+import group7.enrollmentSystem.models.EnrollmentState;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
+import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
@@ -29,7 +31,7 @@ import java.util.Map;
 public class AdminController {
     private final CourseRepo courseRepo;
     private final CourseService courseService;
-    private final CourseRepo coursePrerequisiteRepo;
+    private final EnrollmentStatusRepo enrollmentStatusRepo;
 
     private final CourseProgrammeService courseProgrammeService;
     private final ProgrammeRepo programmeRepo;
@@ -41,6 +43,11 @@ public class AdminController {
         String email = authentication.getName();
         User user = userRepo.findByEmail(email).orElse(null);
         model.addAttribute("user", user);
+
+        // Fetch the enrollment state
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        model.addAttribute("enrollmentState", enrollmentState);
+
         return "admin";
     }
 
@@ -102,6 +109,7 @@ public class AdminController {
             return "redirect:/admin/courses";
         }
     }
+
     @PostMapping("/updateCourse")
     public String updateCourse(@ModelAttribute CourseDto dto, RedirectAttributes redirectAttributes) {
         try {
@@ -147,6 +155,19 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/programmes";
+    }
+
+    //---------Control for Admin to turn off/on students' access to enrollment page-----------------
+    @PostMapping("/toggleEnrollment")
+    public String toggleEnrollment(RedirectAttributes redirectAttributes) {
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        enrollmentState.setOpen(!enrollmentState.isOpen());
+        enrollmentStatusRepo.save(enrollmentState);
+
+        String message = enrollmentState.isOpen() ? "Student registration is now open." : "Student registration is now closed.";
+        redirectAttributes.addFlashAttribute("message", message);
+
+        return "redirect:/admin/dashboard";
     }
 }
 //    @PostMapping("/addPreReqs")

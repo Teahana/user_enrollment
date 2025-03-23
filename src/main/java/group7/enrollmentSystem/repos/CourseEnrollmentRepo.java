@@ -18,12 +18,13 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     boolean existsByStudentIdAndCourseIdAndCompletedTrue(Long studentId, Long courseId);
 
     List<CourseEnrollment> findByStudentIdAndCurrentlyTakingTrue(Long studentId);
-    List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalseAndCompletedFalse(Long studentId);
-    List<CourseEnrollment> findByStudent(Student student);
+    List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalseAndCancelledTrue(Long studentId);
+
     List<CourseEnrollment> findByStudentIdAndCompletedTrue(Long studentId);
 
-    @Query("SELECT ce FROM CourseEnrollment ce WHERE ce.student.id = :studentId")
-    List<CourseEnrollment> exampleForGettingByLongId(@Param("studentId") Long id);
+    List<CourseEnrollment> findByStudentIdAndCurrentlyTakingTrueAndSemesterEnrolled(Long studentId, int semester);
+    List<CourseEnrollment> findByStudentIdAndCurrentlyTakingFalseAndCancelledTrueAndSemesterEnrolled(Long studentId, int semester);
+
 }
 
 

@@ -53,10 +53,11 @@ public class StudentController {
         }
         else{
             model.addAttribute("pageOpen",false);
-            model.addAttribute("message","Enrollment is currently closed");
+            model.addAttribute("message","The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
         }
         return "enrollment";
     }
+
     @PostMapping("/cancelEnrollment/{id}/{semester}")
     public String cancelEnrollment(@PathVariable Long id, @PathVariable int semester, RedirectAttributes redirectAttributes) {
         courseEnrollmentService.cancelEnrollment(id);

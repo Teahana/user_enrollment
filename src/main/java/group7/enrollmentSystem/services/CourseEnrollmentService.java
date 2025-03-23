@@ -33,14 +33,17 @@ public class CourseEnrollmentService {
         CourseEnrollment enrollment = courseEnrollmentRepo.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found"));
         enrollment.setCurrentlyTaking(false);
+        enrollment.setCancelled(true); // Set cancelled to true
         courseEnrollmentRepo.save(enrollment);
     }
+
 
     // Reactivate enrollment
     public void activateEnrollment(Long enrollmentId) {
         CourseEnrollment enrollment = courseEnrollmentRepo.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found"));
         enrollment.setCurrentlyTaking(true);
+        enrollment.setCancelled(false); // Set cancelled to false
         courseEnrollmentRepo.save(enrollment);
     }
 
@@ -48,12 +51,22 @@ public class CourseEnrollmentService {
     public List<CourseEnrollment> getActiveEnrollments(Long studentId) {
         return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingTrue(studentId);
     }
+    //Semester-based
+    public List<CourseEnrollment> getActiveEnrollmentsBySemester(Long studentId, int semester) {
+        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingTrueAndSemesterEnrolled(studentId, semester);
+    }
+
 
     // Fetch inactive (canceled) enrollments
     public List<CourseEnrollment> getCanceledEnrollments(Long studentId) {
-        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalseAndCompletedFalse(studentId);
+        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalseAndCancelledTrue(studentId);
+    }
+    //Semester-based
+    public List<CourseEnrollment> getCanceledEnrollmentsBySemester(Long studentId, int semester) {
+        return courseEnrollmentRepo.findByStudentIdAndCurrentlyTakingFalseAndCancelledTrueAndSemesterEnrolled(studentId, semester);
     }
 
+    // Fetch completed enrollments
     public List<CourseEnrollment> getCompletedEnrollments(Long studentId) {
         return courseEnrollmentRepo.findByStudentIdAndCompletedTrue(studentId);
     }
@@ -66,13 +79,18 @@ public class CourseEnrollmentService {
         StudentProgramme studentProgramme = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student)
                 .orElseThrow(() -> new RuntimeException("No active programme found for the student"));
 
-        // Fetch active and completed enrollments
+        // Fetch active, cancelled and completed enrollments
         List<CourseEnrollment> activeEnrollments = getActiveEnrollments(studentId);
+        List<CourseEnrollment> cancelledEnrollments = getCanceledEnrollments(studentId);
         List<CourseEnrollment> completedEnrollments = courseEnrollmentRepo.findByStudentIdAndCompletedTrue(studentId);
 
-        // Extract course IDs from active and completed enrollments
+        // Extract course IDs from active, cancelled and completed enrollments
         List<Long> enrolledIds = activeEnrollments.stream()
                 .map(e -> e.getCourse().getId()).toList();
+
+        List<Long> cancelledIds = cancelledEnrollments.stream()
+                .map(e -> e.getCourse().getId()).toList();
+
         List<Long> completedIds = completedEnrollments.stream()
                 .map(e -> e.getCourse().getId())
                 .toList();
@@ -83,12 +101,13 @@ public class CourseEnrollmentService {
         // Fetch available courses for the semester
         //List<CourseProgramme> courses = courseProgrammeRepo.findBySemester(semester);
 
-        // Filter out courses the student is already enrolled in or has completed
+        // Filter out courses the student is already enrolled in or has completed or has cancelled
         return programmeCourses.stream()
                 .filter(cp -> (semester == 1 && cp.getCourse().isOfferedSem1()) ||
                         (semester == 2 && cp.getCourse().isOfferedSem2()))
                 .filter(cp -> !enrolledIds.contains(cp.getCourse().getId()))
                 .filter(cp -> !completedIds.contains(cp.getCourse().getId()))
+                .filter(cp -> !cancelledIds.contains(cp.getCourse().getId())) // Exclude cancelled courses
                 .collect(Collectors.toList());
     }
 
@@ -171,16 +190,4 @@ public class CourseEnrollmentService {
         }
     }
 
-
-    public List<CourseEnrollment> getActiveEnrollmentsBySemester(Long studentId, int semester) {
-        return getActiveEnrollments(studentId).stream()
-                .filter(e -> semester == 1 ? e.getCourse().isOfferedSem1() : e.getCourse().isOfferedSem2())
-                .collect(Collectors.toList());
-    }
-
-    public List<CourseEnrollment> getCanceledEnrollmentsBySemester(Long studentId, int semester) {
-        return getCanceledEnrollments(studentId).stream()
-                .filter(e -> semester == 1 ? e.getCourse().isOfferedSem1() : e.getCourse().isOfferedSem2())
-                .collect(Collectors.toList());
-    }
 }

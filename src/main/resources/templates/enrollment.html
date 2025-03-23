@@ -43,7 +43,6 @@
                 <form th:action="@{/student/cancelEnrollment/{id}/{semester}(id=${enrollment.id}, semester=${semester})}" method="post">
                     <button type="submit" class="btn btn-warning">Cancel</button>
                 </form>
-
             </td>
         </tr>
         </tbody>
@@ -78,16 +77,17 @@
                     </div>
                 </form>
             </td>
-
         </tr>
         </tbody>
     </table>
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
 </div>
-<div th:unless="${pageOpen}" class="container">
-    <h2>Enrollment Closed</h2>
-    <h2 th:text="${message}"></h2>
+<div th:unless="${pageOpen}" class="d-flex justify-content-center align-items-center vh-100">
+    <div class="text-center">
+        <h2>We Are Very Sorry</h2>
+        <h2 th:utext="${message}"></h2>
+    </div>
 </div>
 </body>
 </html>

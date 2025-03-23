@@ -34,6 +34,15 @@
         <a class="btn btn-secondary" th:href="@{/admin/courses}">Edit Courses</a>
     </div>
 
+    <!-- Toggle Enrollment Button -->
+    <div class="mb-4">
+        <form th:action="@{/admin/toggleEnrollment}" method="post">
+            <button type="submit" class="btn" th:classappend="${enrollmentState.open} ? 'btn-danger' : 'btn-success'">
+                <span th:text="${enrollmentState.open} ? 'Close Registration' : 'Open Registration'"></span>
+            </button>
+        </form>
+    </div>
+
     <!-- Logout Button -->
     <form th:action="@{/logout}" method="post">
         <button type="submit" class="btn btn-danger">Logout</button>

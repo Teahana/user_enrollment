@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.models;
 
 import group7.enrollmentSystem.enums.PrerequisiteType;
+import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,12 +16,11 @@ public class CoursePrerequisite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne
     @JoinColumn(name = "course_id", nullable = false)
     private Course course; // The main course
     @ManyToOne
-    @JoinColumn(name = "prerequisite_id", nullable = false)
+    @JoinColumn(name = "prerequisite_id", nullable = true)
     private Course prerequisite; // The prerequisite course
     @ManyToOne
     @JoinColumn(name = "programme_id", nullable = true)
@@ -34,6 +34,11 @@ public class CoursePrerequisite {
     private boolean isChild;
     private int childId;
     private int parentId;
+    private boolean special;
+    @Enumerated(EnumType.STRING)
+    private SpecialPrerequisiteType specialType;
+    private short targetLevel;
+    private double percentageValue;
 }
 
 

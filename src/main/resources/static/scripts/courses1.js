@@ -61,31 +61,6 @@ function convertToMermaidTree(courseCode, expression) {
         return id;
     }
 
-    function splitByTopLevel(expr, operator) {
-        let depth = 0;
-        let parts = [];
-        let current = "";
-
-        for (let i = 0; i < expr.length; i++) {
-            const c = expr[i];
-            if (c === "(") depth++;
-            if (c === ")") depth--;
-
-            if (
-                depth === 0 &&
-                expr.substring(i, i + operator.length + 2) === ` ${operator} `
-            ) {
-                parts.push(current.trim());
-                current = "";
-                i += operator.length + 1;
-            } else {
-                current += c;
-            }
-        }
-        if (current.trim()) parts.push(current.trim());
-        return parts;
-    }
-
     function isFullyWrapped(str) {
         str = str.trim();
         if (!str.startsWith("(") || !str.endsWith(")")) return false;
@@ -98,15 +73,48 @@ function convertToMermaidTree(courseCode, expression) {
         return depth === 0;
     }
 
+    function splitByTopLevelOperator(expr, operator) {
+        let parts = [];
+        let current = "";
+        let depth = 0;
+        let braceDepth = 0;
+
+        for (let i = 0; i < expr.length; i++) {
+            const c = expr[i];
+            if (c === "(") depth++;
+            if (c === ")") depth--;
+            if (c === "{") braceDepth++;
+            if (c === "}") braceDepth--;
+
+            if (
+                depth === 0 &&
+                braceDepth === 0 &&
+                expr.slice(i, i + operator.length + 2) === ` ${operator} `
+            ) {
+                parts.push(current.trim());
+                current = "";
+                i += operator.length + 1;
+            } else {
+                current += c;
+            }
+        }
+
+        if (current.trim()) parts.push(current.trim());
+        return parts;
+    }
+
     function parse(expr) {
         expr = expr.trim();
-        if (isFullyWrapped(expr)) expr = expr.slice(1, -1).trim();
+        if (isFullyWrapped(expr)) {
+            expr = expr.slice(1, -1).trim();
+        }
 
-        let parts = splitByTopLevel(expr, "OR");
+        // Try OR first
+        let parts = splitByTopLevelOperator(expr, "OR");
         let operator = "OR";
 
         if (parts.length === 1) {
-            parts = splitByTopLevel(expr, "AND");
+            parts = splitByTopLevelOperator(expr, "AND");
             operator = "AND";
         }
 
@@ -115,10 +123,11 @@ function convertToMermaidTree(courseCode, expression) {
         }
 
         const opNode = getNode(operator);
-        for (let part of parts) {
+        for (const part of parts) {
             const childId = parse(part);
             edges.push(`${opNode} --> ${childId}`);
         }
+
         return opNode;
     }
 
@@ -128,3 +137,4 @@ function convertToMermaidTree(courseCode, expression) {
 
     return `graph TD\n${[...nodes, ...edges].join("\n")}`;
 }
+

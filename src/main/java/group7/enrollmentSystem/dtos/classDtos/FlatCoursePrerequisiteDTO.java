@@ -7,6 +7,7 @@ import lombok.Data;
 public class FlatCoursePrerequisiteDTO {
     private Long courseId;
     private Long prerequisiteId;
+    private Long programmeId;
     private int groupId;
     private PrerequisiteType prerequisiteType;
     private PrerequisiteType operatorToNext;

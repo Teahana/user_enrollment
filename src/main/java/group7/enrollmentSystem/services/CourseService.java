@@ -8,11 +8,14 @@ import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.repos.CoursePrerequisiteRepo;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
 import group7.enrollmentSystem.repos.CourseRepo;
+import group7.enrollmentSystem.repos.ProgrammeRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +25,7 @@ public class CourseService {
     private final CourseRepo courseRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
+    private final ProgrammeRepo programmeRepo;
 
     public List<CourseDto> getAllCoursesWithProgrammesAndPrereqs() {
         List<Course> allCourses = courseRepo.findAll();
@@ -116,34 +120,37 @@ public class CourseService {
         if (group == null || group.isEmpty()) return "";
 
         StringBuilder groupExpression = new StringBuilder();
-        PrerequisiteType groupType = group.get(0).getPrerequisiteType(); // AND / OR within the group
+        PrerequisiteType groupType = group.get(0).getPrerequisiteType();
 
-        // Build expression for courses in the current group
+        // Build expression for current group's courses
         for (int i = 0; i < group.size(); i++) {
             CoursePrerequisite cp = group.get(i);
             String courseCode = cp.getPrerequisite().getCourseCode();
+            String programmeCode = cp.getProgramme() != null
+                    ? cp.getProgramme().getProgrammeCode()
+                    : "All";
 
             if (i > 0) {
                 groupExpression.append(" ").append(groupType).append(" ");
             }
-            groupExpression.append(courseCode);
+
+            // No space between courseCode and programmeCode
+            groupExpression.append(courseCode).append("(").append(programmeCode).append(")");
         }
 
-        // If the group has subgroups, append them using the **same** groupType (prerequisiteType)
+        // Add subgroups
         if (parentToChildGroupMap.containsKey(groupId)) {
             for (int childGroupId : parentToChildGroupMap.get(groupId)) {
                 String childExpression = buildGroupExpression(childGroupId, groupedPrereqs, parentToChildGroupMap);
                 if (!childExpression.isEmpty()) {
-                    groupExpression.append(" ")
-                            .append(groupType)
-                            .append(" ")
-                            .append(childExpression);
+                    groupExpression.append(" ").append(groupType).append(" ").append(childExpression);
                 }
             }
         }
-        // Wrap in parentheses if multiple elements exist
+
+        // Wrap in parentheses if more than one element
         if (group.size() > 1 || parentToChildGroupMap.containsKey(groupId)) {
-            return "(" + groupExpression.toString() + ")";
+            return "(" + groupExpression + ")";
         }
         return groupExpression.toString();
     }
@@ -214,35 +221,46 @@ public class CourseService {
     @Transactional
     public void addPrerequisites(FlatCoursePrerequisiteRequest request) {
         Course mainCourse = courseRepo.findById(request.getCourseId())
-                .orElseThrow(() -> new IllegalArgumentException("Course not found with ID: " + request.getCourseId()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Course not found with ID: " + request.getCourseId()));
 
+        // Check if course already has prereqs
         if (!coursePrerequisiteRepo.findByCourse(mainCourse).isEmpty()) {
-            throw new IllegalStateException("Course already has prerequisites. Use update instead.");
+            throw new IllegalStateException(
+                    "Course already has prerequisites. Use update instead.");
         }
-        List<FlatCoursePrerequisiteDTO> prerequisites = request.getPrerequisites();
 
-        // ✅ Ensure prerequisites are not empty
+        List<FlatCoursePrerequisiteDTO> prerequisites = request.getPrerequisites();
         if (prerequisites.isEmpty()) {
             throw new IllegalArgumentException("No prerequisites provided.");
         }
-        // ✅ Validate the prerequisite groups and relationships
+        // Validate groups if needed
         validatePrerequisiteGroups(prerequisites);
 
         List<CoursePrerequisite> prerequisitesToSave = new ArrayList<>();
 
         for (FlatCoursePrerequisiteDTO dto : prerequisites) {
-            // ✅ Prevent self-referencing prerequisites
             if (dto.getCourseId().equals(dto.getPrerequisiteId())) {
-                throw new IllegalArgumentException("A course cannot be a prerequisite to itself.");
+                throw new IllegalArgumentException(
+                        "A course cannot be a prerequisite to itself.");
             }
 
-            // ✅ Ensure prerequisite course exists
             Course prerequisiteCourse = courseRepo.findById(dto.getPrerequisiteId())
-                    .orElseThrow(() -> new IllegalArgumentException("Prerequisite course not found with ID: " + dto.getPrerequisiteId()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Prerequisite course not found: " + dto.getPrerequisiteId()));
+
+            // *** Handle the programmeId possibly being null:
+            Programme programme = null;
+            if (dto.getProgrammeId() != null) {
+                programme = programmeRepo.findById(dto.getProgrammeId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Programme not found with ID: " + dto.getProgrammeId()));
+            }
 
             CoursePrerequisite prerequisite = new CoursePrerequisite();
             prerequisite.setCourse(mainCourse);
             prerequisite.setPrerequisite(prerequisiteCourse);
+            prerequisite.setProgramme(programme);  // will be null if "All"
             prerequisite.setPrerequisiteType(dto.getPrerequisiteType());
             prerequisite.setOperatorToNext(dto.getOperatorToNext());
             prerequisite.setGroupId(dto.getGroupId());
@@ -250,13 +268,10 @@ public class CourseService {
             prerequisite.setChild(dto.isChild());
             prerequisite.setChildId(dto.getChildId());
 
-            // ✅ Validate child-parent relationships
             if (dto.isChild()) {
-                System.out.println("1 child found");
-                System.out.println("childs id: " + dto.getGroupId());
-                System.out.println("childs parent: " + dto.getParentId());
                 if (dto.getParentId() == 0 || dto.getParentId() == dto.getGroupId()) {
-                    throw new IllegalArgumentException("Invalid parentId for child group: " + dto.getGroupId());
+                    throw new IllegalArgumentException("Invalid parentId for child group: "
+                            + dto.getGroupId());
                 }
                 prerequisite.setParentId(dto.getParentId());
             }
@@ -264,9 +279,9 @@ public class CourseService {
             prerequisitesToSave.add(prerequisite);
         }
 
-        // ✅ Save all valid prerequisites
         coursePrerequisiteRepo.saveAll(prerequisitesToSave);
     }
+
     @Transactional
     public void updatePrerequisites(FlatCoursePrerequisiteRequest request) {
         Course mainCourse = courseRepo.findById(request.getCourseId())
@@ -295,21 +310,27 @@ public class CourseService {
     }
     public FlatCoursePrerequisiteRequest getPrerequisitesForCourse(Long courseId) {
         List<CoursePrerequisite> entities = coursePrerequisiteRepo.findByCourseId(courseId);
-        System.out.println("entities count: " + entities.size());
 
-        List<FlatCoursePrerequisiteDTO> dtos = entities.stream().map(cp -> {
-            FlatCoursePrerequisiteDTO dto = new FlatCoursePrerequisiteDTO();
-            dto.setCourseId(cp.getCourse().getId());
-            dto.setPrerequisiteId(cp.getPrerequisite().getId());
-            dto.setGroupId(cp.getGroupId());
-            dto.setPrerequisiteType(cp.getPrerequisiteType());
-            dto.setOperatorToNext(cp.getOperatorToNext());
-            dto.setParent(cp.isParent());
-            dto.setChild(cp.isChild());
-            dto.setChildId(cp.getChildId());
-            dto.setParentId(cp.getParentId());
-            return dto;
-        }).collect(Collectors.toList());
+        List<FlatCoursePrerequisiteDTO> dtos = entities.stream()
+                .map(cp -> {
+                    FlatCoursePrerequisiteDTO dto = new FlatCoursePrerequisiteDTO();
+                    dto.setCourseId(cp.getCourse().getId());
+                    dto.setPrerequisiteId(cp.getPrerequisite().getId());
+                    dto.setGroupId(cp.getGroupId());
+                    dto.setPrerequisiteType(cp.getPrerequisiteType());
+                    dto.setOperatorToNext(cp.getOperatorToNext());
+                    dto.setParent(cp.isParent());
+                    dto.setChild(cp.isChild());
+                    dto.setChildId(cp.getChildId());
+                    dto.setParentId(cp.getParentId());
+
+                    // If programme is null => means "All"
+                    Programme prog = cp.getProgramme();
+                    dto.setProgrammeId(prog == null ? null : prog.getId());
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
 
         FlatCoursePrerequisiteRequest response = new FlatCoursePrerequisiteRequest();
         response.setCourseId(courseId);
@@ -317,6 +338,7 @@ public class CourseService {
 
         return response;
     }
+
 
 
     public GraphicalPrerequisiteNode buildPrerequisiteTree(Long courseId) {
@@ -384,6 +406,150 @@ public class CourseService {
 
         return root;
     }
+    public String getMermaidDiagramForCourse(Long courseId) {
+        Optional<Course> courseOpt = courseRepo.findById(courseId);
+        if (courseOpt.isEmpty()) {
+            return "%% Error: Course not found";
+        }
+
+        Course course = courseOpt.get();
+        List<CoursePrerequisite> prerequisites = coursePrerequisiteRepo.findByCourseId(courseId);
+
+        if (prerequisites.isEmpty()) {
+            return "%% No prerequisites found for this course";
+        }
+
+        // Group prerequisites
+        Map<Integer, List<CoursePrerequisite>> groupedPrereqs = prerequisites.stream()
+                .collect(Collectors.groupingBy(CoursePrerequisite::getGroupId));
+
+        List<Integer> parentGroups = prerequisites.stream()
+                .filter(cp -> cp.isParent() && !cp.isChild())
+                .sorted(Comparator.comparingInt(CoursePrerequisite::getGroupId))
+                .map(CoursePrerequisite::getGroupId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Integer, Set<Integer>> parentToChildGroupMap = new HashMap<>();
+        for (CoursePrerequisite cp : prerequisites) {
+            if (cp.isChild()) {
+                parentToChildGroupMap
+                        .computeIfAbsent(cp.getParentId(), k -> new HashSet<>())
+                        .add(cp.getGroupId());
+            }
+        }
+
+        StringBuilder prerequisiteExpression = new StringBuilder();
+        for (int i = 0; i < parentGroups.size(); i++) {
+            int parentGroupId = parentGroups.get(i);
+            String expr = buildGroupExpression(parentGroupId, groupedPrereqs, parentToChildGroupMap);
+            prerequisiteExpression.append(expr);
+
+            if (i < parentGroups.size() - 1) {
+                PrerequisiteType op = groupedPrereqs.get(parentGroupId).get(0).getOperatorToNext();
+                if (op != null) {
+                    prerequisiteExpression.append(" ").append(op).append(" ");
+                }
+            }
+        }
+
+        return convertToMermaid(course.getCourseCode(), prerequisiteExpression.toString());
+    }
+    public String convertToMermaid(String courseCode, String expression) {
+        StringBuilder sb = new StringBuilder("graph TD\n");
+        AtomicInteger nodeId = new AtomicInteger(0);
+        List<String> nodes = new ArrayList<>();
+        List<String> edges = new ArrayList<>();
+
+        // Generate unique node
+        Function<String, String> getNode = label -> {
+            String id = "N" + nodeId.getAndIncrement();
+            String safeLabel = label.replace("\"", "\\\"");
+            nodes.add(id + "[\"" + safeLabel + "\"]");
+            return id;
+        };
+
+        // Fully wrapped check
+        Function<String, Boolean> isFullyWrapped = str -> {
+            str = str.trim();
+            if (!str.startsWith("(") || !str.endsWith(")")) return false;
+            int depth = 0;
+            for (int i = 0; i < str.length(); i++) {
+                char c = str.charAt(i);
+                if (c == '(') depth++;
+                if (c == ')') depth--;
+                if (depth == 0 && i < str.length() - 1) return false;
+            }
+            return depth == 0;
+        };
+
+        // Recursive parser
+        Function<String, String> parse = new Function<>() {
+            @Override
+            public String apply(String expr) {
+                expr = expr.trim();
+                if (isFullyWrapped.apply(expr)) {
+                    expr = expr.substring(1, expr.length() - 1).trim();
+                }
+
+                List<String> parts = splitByTopLevel(expr, "OR");
+                String operator = "OR";
+
+                if (parts.size() == 1) {
+                    parts = splitByTopLevel(expr, "AND");
+                    operator = "AND";
+                }
+
+                if (parts.size() == 1) {
+                    return getNode.apply(parts.get(0));
+                }
+
+                String opNode = getNode.apply(operator);
+                for (String part : parts) {
+                    String childId = this.apply(part);
+                    edges.add(opNode + " --> " + childId);
+                }
+                return opNode;
+            }
+        };
+
+        // Root
+        String root = getNode.apply(courseCode + " (Main Course)");
+        String body = parse.apply(expression);
+        edges.add(root + " --> " + body);
+
+        nodes.forEach(line -> sb.append(line).append("\n"));
+        edges.forEach(line -> sb.append(line).append("\n"));
+
+
+        return sb.toString();
+    }
+    private List<String> splitByTopLevel(String expr, String operator) {
+        List<String> parts = new ArrayList<>();
+        int depth = 0;
+        StringBuilder current = new StringBuilder();
+
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+            if (c == '(') depth++;
+            else if (c == ')') depth--;
+
+            if (depth == 0 && expr.startsWith(" " + operator + " ", i)) {
+                parts.add(current.toString().trim());
+                current.setLength(0);
+                i += operator.length() + 1;
+            } else {
+                current.append(c);
+            }
+        }
+
+        if (current.length() > 0) {
+            parts.add(current.toString().trim());
+        }
+
+        return parts;
+    }
+
     @Transactional
     public void deletePrerequisites(Course course) {
         coursePrerequisiteRepo.deleteByCourse(course);

@@ -29,6 +29,7 @@ public class StudentController {
     private final CourseService courseService;
     private final EnrollmentStatusRepo enrollmentStatusRepo;
 
+
     @GetMapping("/enrollment/{semester}")
     public String enrollment(@PathVariable("semester") int semester, Model model, Principal principal) {
         EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));

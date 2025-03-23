@@ -30,7 +30,7 @@
     </div>
 
     <!-- Login form -->
-    <form th:action="@{/login}" method="post">
+    <form th:action="@{/login}" method="post" id="loginForm">
         <div class="mb-3">
             <label for="username" class="form-label">Username</label>
             <input type="text" id="username" name="username"
@@ -45,7 +45,26 @@
 
         <button type="submit" class="btn btn-primary w-100">Login</button>
     </form>
+
+    <!-- Quick login for development -->
+    <hr>
+    <div class="d-flex justify-content-between">
+        <button class="btn btn-outline-secondary" onclick="quickLogin('admin@gmail.com', '12345')">
+            Login as Admin
+        </button>
+        <button class="btn btn-outline-secondary" onclick="quickLogin('s11209521@student.usp.ac.fj', '12345')">
+            Login as Student
+        </button>
+    </div>
 </div>
+
+<script>
+    function quickLogin(username, password) {
+        document.getElementById('username').value = username;
+        document.getElementById('password').value = password;
+        document.getElementById('loginForm').submit();
+    }
+</script>
 
 </body>
 </html>

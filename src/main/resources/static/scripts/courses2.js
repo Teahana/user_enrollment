@@ -126,3 +126,54 @@ function populateAdmissionProgrammeCheckboxes() {
         container.appendChild(wrapper);
     });
 }
+function openEditModal(button) {
+    const courseId         = button.getAttribute('data-course-id');
+    const courseCode       = button.getAttribute('data-course-code');
+    const title            = button.getAttribute('data-title');
+    const description      = button.getAttribute('data-description');
+    const creditPoints     = button.getAttribute('data-creditpoints');
+    const level            = button.getAttribute('data-level');
+    const offeredSem1      = (button.getAttribute('data-offeredsem1') === 'true');
+    const offeredSem2      = (button.getAttribute('data-offeredsem2') === 'true');
+
+    // Fix: Get programme codes (like "BSE BNS")
+    let currentProgrammeCodes = [];
+    const rawProgs = button.getAttribute('data-programmes');
+    if (rawProgs) {
+        currentProgrammeCodes = rawProgs.trim().split(/\s+/);
+    }
+
+    document.getElementById('editCourseId').value      = courseId;
+    document.getElementById('editCourseCode').value    = courseCode;
+    document.getElementById('editTitle').value         = title;
+    document.getElementById('editDescription').value   = description;
+    document.getElementById('editCreditPoints').value  = creditPoints;
+    document.getElementById('editLevel').value         = level;
+    document.getElementById('editOfferedSem1').checked = offeredSem1;
+    document.getElementById('editOfferedSem2').checked = offeredSem2;
+
+    // Programmes checkboxes
+    const container = document.getElementById('editProgrammeList');
+    container.innerHTML = '';
+
+    allProgrammes.forEach(prog => {
+        const isChecked = currentProgrammeCodes.includes(prog.programmeCode);
+        const chkId = 'editProgChk_' + prog.id;
+        const div = document.createElement('div');
+        div.className = 'form-check';
+
+        div.innerHTML = `
+            <input type="checkbox" class="form-check-input"
+                   name="programmeIds"
+                   value="${prog.id}"
+                   id="${chkId}" ${isChecked ? 'checked' : ''}>
+            <label class="form-check-label" for="${chkId}">
+                ${prog.programmeCode} - ${prog.name}
+            </label>
+        `;
+        container.appendChild(div);
+    });
+
+    const editModal = new bootstrap.Modal(document.getElementById('editCourseModal'));
+    editModal.show();
+}

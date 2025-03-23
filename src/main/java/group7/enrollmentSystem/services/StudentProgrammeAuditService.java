@@ -52,6 +52,7 @@ public class StudentProgrammeAuditService {
                     boolean isEnrolled = enrolledCourseIds.contains(course.getId());
                     boolean isCompleted = completedCourseIds.contains(course.getId());
                     return new CourseAuditDto(
+                            course.getId(),
                             course.getTitle(),
                             course.getCourseCode(),
                             isEnrolled,

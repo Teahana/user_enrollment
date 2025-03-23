@@ -18,10 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
@@ -39,6 +36,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final EnrollmentStatusRepo enrollmentStatusRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
+    private final StudentProgrammeRepo studentProgrammeRepo;
 
     @Override
     public void run(String... args) {
@@ -809,8 +807,6 @@ public class DataInitializer implements CommandLineRunner {
             throw new RuntimeException("Must initialize students and programmes first!");
         }
 
-        // Suppose we link first 3 to BSE, last 2 to BNS, as an example
-        // (Or however you wish)
         studentProgrammeService.saveStudentProgramme(students.get(0).getId(), programmes.get(0).getId(), true); // BSE
         studentProgrammeService.saveStudentProgramme(students.get(1).getId(), programmes.get(0).getId(), true); // BSE
         studentProgrammeService.saveStudentProgramme(students.get(2).getId(), programmes.get(0).getId(), true); // BSE
@@ -836,12 +832,11 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         // 2) Find the student's *current* StudentProgramme
-        StudentProgramme studentProg = studentProgrammeService.getAllStudentProgrammes().stream()
-                .filter(sp -> sp.getStudent().equals(student) && sp.isCurrentProgramme())
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No current programme found for student " + studentId));
-
-        Programme currentProgramme = studentProg.getProgramme();
+        Optional<StudentProgramme> studentProg = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
+        if(studentProg.isEmpty()){
+            throw new RuntimeException("Student " + studentId + " is not linked to any programme!");
+        }
+        Programme currentProgramme = studentProg.get().getProgramme();
         List<Course> programmeCourses = courseProgrammeRepo.findAllByProgramme(currentProgramme);
         if (programmeCourses.size() < 8) {
             throw new RuntimeException("Not enough courses in the " + currentProgramme.getName() + " programme!");

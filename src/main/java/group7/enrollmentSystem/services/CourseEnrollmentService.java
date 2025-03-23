@@ -249,16 +249,17 @@ public class CourseEnrollmentService {
         // ---------------------------------------------------------
         // 3) Filter out courses student already completed or is currently taking
         // ---------------------------------------------------------
-        Set<Long> takenOrTakingCourseIds = courseEnrollmentRepo
+        Set<Long> ineligibleCourseIds = courseEnrollmentRepo
                 .findByStudentId(student.getId())
                 .stream()
-                .filter(ce -> ce.isCompleted() || ce.isCurrentlyTaking())
+                .filter(ce -> ce.isCompleted() || ce.isCurrentlyTaking() || ce.isCancelled())
                 .map(ce -> ce.getCourse().getId())
                 .collect(Collectors.toSet());
 
         List<Course> notYetEnrolledOrCompleted = offeredThisSemester.stream()
-                .filter(c -> !takenOrTakingCourseIds.contains(c.getId()))
-                .collect(Collectors.toList());
+                .filter(c -> !ineligibleCourseIds.contains(c.getId()))
+                .toList();
+
 
         // ---------------------------------------------------------
         // 4) Check if student has reached the 4-course limit

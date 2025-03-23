@@ -169,16 +169,20 @@ public class AdminController {
 
         return "redirect:/admin/dashboard";
     }
+    @PostMapping("/toggleSemester")
+    public String toggleSemester(RedirectAttributes redirectAttributes) {
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+
+        enrollmentState.setSemesterOne(!enrollmentState.isSemesterOne());
+        enrollmentStatusRepo.save(enrollmentState);
+
+        String message = enrollmentState.isSemesterOne()
+                ? "Switched to Semester 1."
+                : "Switched to Semester 2.";
+        redirectAttributes.addFlashAttribute("message1", message);  // Note: 'message1' used in your HTML
+
+        return "redirect:/admin/dashboard";
+    }
+
 }
-//    @PostMapping("/addPreReqs")
-//    public String addPrerequisites(@ModelAttribute AddCourseReq requestData, RedirectAttributes redirectAttributes) {
-//        try {
-//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-//            redirectAttributes.addFlashAttribute("message", "Prerequisites added successfully!");
-//        } catch (DataIntegrityViolationException e) {
-//            redirectAttributes.addFlashAttribute("error", "Duplicate prerequisite detected. This prerequisite is already assigned to the course.");
-//        } catch (Exception e) {
-//            redirectAttributes.addFlashAttribute("error", "Failed to add prerequisites: " + e.getMessage());
-//        }
-//        return "redirect:/admin/courses";
-//    }

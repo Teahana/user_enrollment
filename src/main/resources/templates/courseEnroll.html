@@ -23,7 +23,7 @@
         <span th:text="${success}"></span>
     </div>
 
-    <form th:action="@{'/student/enrollCourses/' + ${semester}}" method="post">
+    <form th:action="@{/student/enrollCourses}" method="post">
         <table class="table table-bordered">
             <thead class="table-dark">
             <tr>
@@ -41,7 +41,7 @@
                 </td>
                 <td th:text="${cp.courseCode}"></td>
                 <td th:text="${cp.courseTitle}"></td>
-                <td th:text="${cp.description}"></td>  <!-- only works if the DTO has description -->
+                <td th:text="${cp.description}"></td>
                 <td>
         <span th:if="${!cp.prerequisiteCodes.isEmpty()}">
             <span th:each="code, iterStat : ${cp.prerequisiteCodes}">

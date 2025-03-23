@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.CourseProgrammeRepo;
@@ -60,6 +61,29 @@ public class StudentController {
         return "enrollment";
     }
 
+    @GetMapping("/selectCourses")
+    public String selectCourses(Model model, Principal principal) {
+        // Fetch current student
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Determine current semester from enrollment state
+        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        int semester = enrollmentState.isSemesterOne() ? 1 : 2;
+
+        // Fetch eligible courses
+        List<CourseEnrollDto> eligibleCourses = courseEnrollmentService.getEligibleCoursesForEnrollment(student, semester);
+
+        // Pass to view
+        model.addAttribute("courses", eligibleCourses);
+        model.addAttribute("semester", semester);
+
+        return "courseEnroll";
+    }
+
+
 
 
     @PostMapping("/cancelEnrollment/{id}/{semester}")
@@ -85,20 +109,6 @@ public class StudentController {
         courseEnrollmentService.activateEnrollment(id);
         redirectAttributes.addFlashAttribute("success", "Enrollment activated successfully.");
         return "redirect:/student/enrollment/" + semester;
-    }
-
-    @GetMapping("/selectCourses/{semester}")
-    public String selectCourses(@PathVariable("semester") int semester, Model model, Principal principal) {
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow();
-
-        // Fetch available courses for the semester based on the student's current programme
-        List<CourseProgramme> courses = courseEnrollmentService.getAvailableCoursesForSemester(student.getId(), semester);
-
-        model.addAttribute("courses", courses);
-        model.addAttribute("courseService", courseService);
-        model.addAttribute("semester", semester);
-        return "courseEnroll";
     }
 
     @PostMapping("/enrollCourses/{semester}")

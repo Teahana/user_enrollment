@@ -1,13 +1,33 @@
-/* Custom Blue Theme */
+/* Set the background image */
 body {
-    background-color: #f8f9fa; /* Light gray background */
+    background-image: url('/images/cocconut.jpg'); /* Path to the image */
+    background-size: cover; /* Cover the entire page */
+    background-position: center; /* Center the image */
+    background-repeat: no-repeat; /* Prevent repeating */
+    background-attachment: fixed; /* Fix the background while scrolling */
     font-family: 'Arial', sans-serif;
+    color: #333; /* Default text color */
+}
+
+/* Add a semi-transparent overlay to improve readability */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7); /* White overlay with 70% opacity */
+    z-index: -1; /* Place behind other content */
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white background */
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Header Section with Logo */
@@ -34,6 +54,7 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white background */
 }
 
 .card-title {
@@ -95,7 +116,7 @@ body {
 
 /* Darker Light Brown Background Section */
 .button-section {
-    background-color: #e0d8c0; /* Darker light brown */
+    background-color: rgba(224, 216, 192, 0.9); /* Darker light brown with transparency */
     padding: 20px;
     border-radius: 10px;
     margin-bottom: 20px;

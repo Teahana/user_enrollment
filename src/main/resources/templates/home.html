@@ -14,9 +14,8 @@
 <div class="container mt-4">
     <!-- Header Section with Logo -->
     <div class="header-section">
-        <h2>Welcome to the Enrollment System</h2>
-        <img th:src="@{/images/usp_logo.png}" alt="USP Logo" class="logo">
-    </div>
+        <h2>Welcome to USP Course Enrollment System</h2>
+        </div>
 
     <!-- Flash Messages -->
     <div th:if="${message}" class="alert alert-success" role="alert">
@@ -33,16 +32,15 @@
             <p class="card-text">Email: <span th:text="${user.email}"></span></p>
         </div>
     </div>
-  
+
     <!-- Button Section -->
     <div class="button-section">
         <!-- Buttons for Student Actions -->
         <div class="button-group">
-            <a href="/student/enrollment/1" class="btn btn-primary">My Registrations</a>
-            <a href="/student/completedCourses" class="btn btn-secondary">View Completed Courses</a>
+            <a href="/student/enrollment" class="btn btn-primary">My Registrations</a>
+            <a href="/student/audit" class="btn btn-secondary">My Programme Audit</a>
             <a href="/student/invoice/download" class="btn btn-success">Download Invoice</a>
-        </div
-
+        </div>
         <!-- Logout Button -->
         <div class="logout-button-container">
             <form th:action="@{/logout}" method="post">

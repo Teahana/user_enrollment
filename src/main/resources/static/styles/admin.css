@@ -100,13 +100,16 @@ body {
     width: 150px; /* Smaller width */
     padding: 8px 16px; /* Smaller padding */
     font-size: 14px; /* Smaller font size */
+    border: none;
+    border-radius: 5px;
+    text-align: center;
 }
 
 .btn-enrollment:hover {
     background-color: #e67e00; /* Darker orange on hover */
 }
 
-/* Darker Light Brown Background Section */
+/* Button Section */
 .button-section {
     background-color: #e0d8c0; /* Darker light brown */
     padding: 20px;
@@ -114,20 +117,20 @@ body {
     margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start; /* Align items to the top */
 }
 
-/* Button Group for Edit Programmes and Edit Courses */
+/* Button Group for Edit Programmes and Edit Courses (Left Side) */
 .button-group {
     display: flex;
     flex-direction: column;
     gap: 10px; /* Space between buttons */
 }
 
-/* Enrollment Button Container */
+/* Enrollment Button Container (Right Side) */
 .enrollment-button-container {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
+    flex-direction: column;
+    gap: 10px; /* Space between buttons */
+    align-items: flex-end; /* Align buttons to the right */
 }

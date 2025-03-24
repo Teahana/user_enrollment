@@ -1,4 +1,3 @@
-<!-- admin.html -->
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -16,7 +15,7 @@
     <!-- Header Section with Logo -->
     <div class="header-section">
         <h2>Admin Panel</h2>
-        <img th:src="@{/images/usp_logo.png}" alt="USP Logo" class="logo">
+        <img th:src="@{/images/admin.png}" alt="Admin Logo" width="150" height="150" class="logo">
     </div>
 
     <!-- Flash Messages -->
@@ -32,12 +31,13 @@
         <div class="card-body">
             <h5 class="card-title">Welcome, <span th:text="${user.firstName + ' ' + user.lastName}"></span></h5>
             <p class="card-text">Email: <span th:text="${user.email}"></span></p>
+            <p class="card-text">SAS Manager</p>
         </div>
     </div>
 
     <!-- Button Section -->
     <div class="button-section">
-        <!-- Buttons to Navigate to Programmes and Courses -->
+        <!-- Buttons to Navigate to Programmes and Courses (Left Side) -->
         <div class="button-group">
             <a class="btn btn-primary" th:href="@{/admin/programmes}">Edit Programmes</a>
             <a class="btn btn-secondary" th:href="@{/admin/courses}">Edit Courses</a>
@@ -46,27 +46,20 @@
             </form>
         </div>
 
-        <!-- Toggle Enrollment Button -->
+        <!-- Toggle Enrollment and Switch Semester Buttons (Right Side) -->
         <div class="enrollment-button-container">
             <form th:action="@{/admin/toggleEnrollment}" method="post">
                 <button type="submit" class="btn btn-enrollment">
                     <span th:text="${enrollmentState.open} ? 'Close Enrollment' : 'Open Enrollment'"></span>
                 </button>
             </form>
+            <form th:action="@{/admin/toggleSemester}" method="post">
+                <button type="submit" class="btn btn-enrollment">
+                    <span th:text="${enrollmentState.semesterOne} ? 'Switch to Semester 2' : 'Switch to Semester 1'"></span>
+                </button>
+            </form>
         </div>
-    
-    <div class="mb-4">
-        <form th:action="@{/admin/toggleSemester}" method="post">
-            <button type="submit" class="btn btn-warning">
-                <span th:text="${enrollmentState.semesterOne} ? 'Switch to Semester 2' : 'Switch to Semester 1'"></span>
-            </button>
-        </form>
     </div>
-
-    <!-- Logout Button -->
-    <form th:action="@{/logout}" method="post">
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

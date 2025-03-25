@@ -1,4 +1,4 @@
-package group7.enrollmentSystem.services;
+package group7.enrollmentSystem.helpers;
 
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;

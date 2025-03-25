@@ -20,7 +20,7 @@ public class StudentApiController {
     public ResponseEntity<String> getMermaidCode(@RequestBody Map<String, Long> request) {
         return ResponseEntity.ok(courseService.getMermaidDiagramForCourse(request.get("courseId")));
     }
-    @GetMapping("/student/audit/{studentId}")
+    @GetMapping("/audit/{studentId}")
     public ResponseEntity<?> getStudentAudit(@PathVariable String studentId) {
         try {
             return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(studentId));

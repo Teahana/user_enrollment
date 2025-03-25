@@ -27,73 +27,10 @@ import java.util.stream.Collectors;
 public class ApiController {
 
     private final UserService userService;
-
     private final CourseService courseService;
     private final ProgrammeService programmeService;
-
     private final CourseProgrammeService courseProgrammeService;
-   // private final StudentProgrammeService studentProgrammeService;
-    private final CoursePrerequisiteService coursePrerequisiteService;
-    private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final StudentProgrammeAuditService studentProgrammeAuditService;
-    private final StudentRepo studentRepo;
-
-    @PostMapping("/test")
-    public ResponseEntity<?> test(@RequestBody HashMap<String, Long> body) {
-        List<CourseEnrollmentDto> data = courseEnrollmentRepo.getCourseEnrollments(body.get("studentId"));
-        return ResponseEntity.ok(data);
-
-    }
-    /*@PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody HashMap<String, String> data) {
-        String email = data.get("email");
-        String password = data.get("password");
-        userService.save(email, password);
-        HashMap<String, String> response = new HashMap<>();
-        response.put("message", "User registered successfully");
-        return ResponseEntity.ok(response);
-    }*/
-
-   @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody HashMap<String, String> data) {
-        try {
-            String email = data.get("email");
-            String password = data.get("password");
-            String firstName = data.get("firstName");
-            String lastName = data.get("lastName");
-            String role = data.get("role");
-
-            // Extract student-specific data if the registration is for a student
-            if ("ROLE_STUDENT".equalsIgnoreCase(role)) {
-                Student student = new Student();
-                student.setStudentId(data.get("studentId"));
-                student.setFirstName(data.get("firstName"));
-                student.setLastName(data.get("lastName"));
-                student.setPhoneNumber(data.get("phoneNumber"));
-                student.setAddress(data.get("address"));
-
-                userService.registerUser(email, password, firstName, lastName, role, student);
-            } else if ("ROLE_ADMIN".equalsIgnoreCase(role)) {
-                userService.registerUser(email, password, firstName, lastName, role, null);
-            } else {
-                throw new IllegalArgumentException("Invalid role provided");
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Registration successful.");
-
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch(Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("error", e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-        }
-    }
-
-//--------------------------------------------------------------------------------------------
-    //**Programme CRUD**//
 
     @PostMapping("/addCourse")
     public ResponseEntity<?> courseRegister(@RequestBody CourseDto courseDto) {
@@ -123,22 +60,6 @@ public class ApiController {
         return course.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-//    @PutMapping("/courses/{courseCode}")
-//    public ResponseEntity<?> updateCourse(@PathVariable String courseCode, @RequestBody CourseDto courseDto) {
-//        courseService.updateCourse(
-//                courseCode,
-//                courseDto.getTitle(),
-//                courseDto.getDescription(),
-//                courseDto.getCreditPoints(),
-//                courseDto.getLevel(),
-//                courseDto.isOfferedSem1(),
-//                courseDto.isOfferedSem2()
-//        );
-//        return ResponseEntity.ok().body(new HashMap<>() {{
-//            put("message", "Course updated");
-//        }});
-//    }
-
     @DeleteMapping("/courses/{courseCode}")
     public ResponseEntity<?> deleteCourse(@PathVariable String courseCode) {
         courseService.deleteCourse(courseCode);
@@ -149,7 +70,6 @@ public class ApiController {
 
 //--------------------------------------------------------------------------------------------
     //**Programme CRUD**//
-
     @PostMapping("/addProgramme")
     public ResponseEntity<?> progRegister(@RequestBody ProgrammeDto programmeDto) {
         programmeService.saveProgramme(
@@ -204,7 +124,6 @@ public class ApiController {
             put("message", "CourseProgramme added");
         }});
     }
-
     @GetMapping("/courseProgrammes")
     public ResponseEntity<List<CourseProgramme>> getAllCourseProgrammes() {
         return ResponseEntity.ok(courseProgrammeService.getAllCourseProgrammes());
@@ -233,87 +152,4 @@ public class ApiController {
             put("message", "CourseProgramme deleted");
         }});
     }
-    //--------------------------------------------------------------------------------------------
-    //**CoursePrerequisite CRUD**//
-    @PostMapping("/coursePrerequisite")
-    public ResponseEntity<?> saveCoursePrerequisite(@RequestBody HashMap<String, String> data) {
-        String courseCode = data.get("courseCode");
-        String prerequisiteCode = data.get("prerequisiteCode");
-        coursePrerequisiteService.saveCoursePrerequisite(courseCode, prerequisiteCode);
-        return ResponseEntity.ok().body(new HashMap<>() {{
-            put("message", "CoursePrerequisite added");
-        }});
-    }
-
-    @GetMapping("/coursePrerequisites")
-    public ResponseEntity<List<CoursePrerequisite>> getAllCoursePrerequisites() {
-        return ResponseEntity.ok(coursePrerequisiteService.getAllCoursePrerequisites());
-    }
-
-    @GetMapping("/coursePrerequisites/{id}")
-    public ResponseEntity<CoursePrerequisite> getCoursePrerequisiteById(@PathVariable Long id) {
-        Optional<CoursePrerequisite> coursePrerequisite = coursePrerequisiteService.getCoursePrerequisiteById(id);
-        return coursePrerequisite.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @PutMapping("/coursePrerequisites/{id}")
-    public ResponseEntity<?> updateCoursePrerequisite(@PathVariable Long id, @RequestBody HashMap<String, Long> data) {
-        Long courseId = data.get("courseId");
-        Long prerequisiteId = data.get("prerequisiteId");
-        coursePrerequisiteService.updateCoursePrerequisite(id, courseId, prerequisiteId);
-        return ResponseEntity.ok().body(new HashMap<>() {{
-            put("message", "CoursePrerequisite updated");
-        }});
-    }
-
-    @DeleteMapping("/coursePrerequisites/{id}")
-    public ResponseEntity<?> deleteCoursePrerequisite(@PathVariable Long id) {
-        coursePrerequisiteService.deleteCoursePrerequisite(id);
-        return ResponseEntity.ok().body(new HashMap<>() {{
-            put("message", "CoursePrerequisite deleted");
-        }});
-    }
-
-
-    //-----------------------------------------------------------------------------------------
-    //STUDENT API CONTROLS
-
-
-    @PostMapping("/studentAudit/{studentId}")
-    public ResponseEntity<?> viewStudentAudit(@PathVariable String studentId, @RequestBody(required = false) Map<String, String> filters) {
-        try {
-            StudentFullAuditDto result = studentProgrammeAuditService.getFullAudit(studentId);
-
-            // Optional filter check (just for status comparison)
-            if (filters != null && filters.containsKey("status")) {
-                String statusFilter = filters.get("status").toUpperCase();
-                if (!result.getStatus().equalsIgnoreCase(statusFilter)) {
-                    return ResponseEntity.ok("No audit found for given status filter.");
-                }
-            }
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("message", "Failed to retrieve programme audit.");
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-
-    @GetMapping("/studentAudit/{studentId}")
-    public ResponseEntity<?> getStudentAudit(@PathVariable String studentId) {
-        try {
-            return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(studentId));
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("message", "Failed to retrieve programme audit.");
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-
-
 }

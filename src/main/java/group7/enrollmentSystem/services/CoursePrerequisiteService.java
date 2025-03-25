@@ -42,22 +42,6 @@ public class CoursePrerequisiteService {
         return coursePrerequisiteRepo.findById(id);
     }
 
-    // Update a CoursePrerequisite record
-    public void updateCoursePrerequisite(Long id, Long courseId, Long prerequisiteId) {
-        Optional<CoursePrerequisite> optionalCoursePrerequisite = coursePrerequisiteRepo.findById(id);
-        Optional<Course> course = courseRepo.findById(courseId);
-        Optional<Course> prerequisite = courseRepo.findById(prerequisiteId);
-
-        if (optionalCoursePrerequisite.isPresent() && course.isPresent() && prerequisite.isPresent()) {
-            CoursePrerequisite coursePrerequisite = optionalCoursePrerequisite.get();
-            coursePrerequisite.setCourse(course.get());
-            coursePrerequisite.setPrerequisite(prerequisite.get());
-            coursePrerequisiteRepo.save(coursePrerequisite);
-        } else {
-            throw new RuntimeException("CoursePrerequisite, Course, or Prerequisite not found");
-        }
-    }
-
     // Delete a CoursePrerequisite record
     public void deleteCoursePrerequisite(Long id) {
         coursePrerequisiteRepo.deleteById(id);

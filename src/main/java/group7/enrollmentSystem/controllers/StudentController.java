@@ -1,14 +1,20 @@
 package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
+import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseService;
+import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
 import group7.enrollmentSystem.services.StudentProgrammeService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +23,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/student")
@@ -31,6 +39,9 @@ public class StudentController {
     private final EnrollmentStatusRepo enrollmentStatusRepo;
     private final CourseRepo courseRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
+    private final UserRepo userRepo;
+    private final InvoicePdfGeneratorService invoicePdfGeneratorService;
+
 
 
     @GetMapping("/enrollment")
@@ -133,7 +144,6 @@ public class StudentController {
                     "You already have four active courses this semester.");
             return "redirect:/student/enrollment";
         }
-
         // 5) Otherwise, activate the enrollment
         courseEnrollmentService.activateEnrollment(id);
         redirectAttributes.addFlashAttribute("success", "Enrollment activated successfully.");
@@ -154,7 +164,6 @@ public class StudentController {
             redirectAttributes.addFlashAttribute("error", "No courses were selected.");
             return "redirect:/student/selectCourses";
         }
-
         // 2) Get the student
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email)
@@ -178,7 +187,6 @@ public class StudentController {
                             + " course(s) and tried to add " + selectedCourseIds.size() + " more.");
             return "redirect:/student/selectCourses";
         }
-
         // 6) Perform the enrollment logic (saving to database)
         //    - For each selected course, create a CourseEnrollment entity, set
         //      'currentlyTaking = true', 'semesterEnrolled = semester', etc.
@@ -198,14 +206,11 @@ public class StudentController {
 
             newEnrollments.add(enrollment);
         }
-
         // 7) Save all new enrollments
         courseEnrollmentRepo.saveAll(newEnrollments);
-
         // 8) Provide a success message
         redirectAttributes.addFlashAttribute("success",
                 "Enrollment successful! You have enrolled in " + newEnrollments.size() + " course(s).");
-
         // 9) Redirect back to the course selection or some summary page
         return "redirect:/student/selectCourses";
     }
@@ -215,11 +220,57 @@ public class StudentController {
     public String viewCompletedCourses(Model model, Principal principal) {
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-
         // Fetch completed enrollments
         List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollments(student.getId());
-
         model.addAttribute("completedEnrollments", completedEnrollments);
         return "completedCourses";
+    }
+    @GetMapping("/audit")
+    public String loadStudentAuditPage(Model model, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepo.findByEmail(email).orElse(null);
+
+        if (user instanceof Student student) {
+            model.addAttribute("studentId", student.getStudentId());
+            model.addAttribute("studentName", student.getFirstName() + " " + student.getLastName());
+        }
+
+        return "studentAudit";
+    }
+    @GetMapping("/invoice/download")
+    public ResponseEntity<byte[]> downloadInvoice(Principal principal) throws Exception {
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<CourseEnrollmentDto> enrolledCourses = courseEnrollmentService.getActiveEnrollments(student.getId())
+                .stream()
+                .map(ce -> new CourseEnrollmentDto(
+                        ce.getCourse().getId(),
+                        ce.getCourse().getCourseCode(),
+                        ce.getCourse().getTitle(),
+                        ce.getCourse().getCost()))
+                .collect(Collectors.toList());
+
+        double totalDue = enrolledCourses.stream().mapToDouble(CourseEnrollmentDto::getCost).sum();
+
+        InvoiceDto invoiceDto = new InvoiceDto();
+        invoiceDto.setStudentName(student.getFirstName() + " " + student.getLastName());
+        invoiceDto.setStudentId(student.getStudentId());
+        Optional<StudentProgramme> currentProgramme = studentProgrammeService.getCurrentProgramme(student);
+        if (currentProgramme.isPresent()) {
+            invoiceDto.setProgramme(currentProgramme.get().getProgramme().getName());
+        } else {
+            throw new RuntimeException("No current programme found for the student");
+        }
+        invoiceDto.setEnrolledCourses(enrolledCourses);
+        invoiceDto.setTotalDue(totalDue);
+
+        byte[] pdfBytes = invoicePdfGeneratorService.generateInvoicePdf(invoiceDto);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 }

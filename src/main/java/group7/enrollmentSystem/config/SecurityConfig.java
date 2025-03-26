@@ -4,17 +4,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final CustomAtuhenticationProvider customAtuhenticationProvider;
-
+    private final JwtAuthenticationFilter jwtAuthFilter;
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
@@ -25,54 +27,42 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())  // Disable CSRF
-            .cors(cors -> cors.disable())  // Disable CORS
-            .authorizeHttpRequests(auth -> auth
-                    //.requestMatchers("/api/**").permitAll()
-                    .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
-                    .requestMatchers("/student/**","/home").hasRole("STUDENT")
-                    .requestMatchers("/login","/styles/**","/images/**").permitAll()
-                    .anyRequest().authenticated()
-            )
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/test/**").hasRole("ADMIN")
+                        .anyRequest().permitAll()
+//                        .requestMatchers("/login", "/register", "/styles/**", "/images/**").permitAll()
+//                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(login -> login
                         .loginPage("/login")
+                        .failureHandler((request, response, exception) -> {
+                            if (exception instanceof DisabledException) {
+                                response.sendRedirect("/login?disabled");
+                            } else {
+                                response.sendRedirect("/login?error");
+                            }
+                        })
                         .successHandler((request, response, authentication) -> {
-                            // Custom role-based redirect logic here
-                            String redirectUrl = "/home"; // default
-
+                            String redirectUrl = "/home";
                             boolean isAdmin = authentication.getAuthorities().stream()
                                     .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
                             boolean isStudent = authentication.getAuthorities().stream()
                                     .anyMatch(s -> s.getAuthority().equals("ROLE_STUDENT"));
-
-
-                            if (isAdmin) {
-                                System.out.println("Admin logged in");
-                                redirectUrl = "/admin/dashboard";
-                            } else if (isStudent) {
-                                System.out.println("Student logged in");
-                                redirectUrl = "/home";
-
-                            }
-
-
+                            if (isAdmin) redirectUrl = "/admin/dashboard";
+                            else if (isStudent) redirectUrl = "/home";
                             response.sendRedirect(redirectUrl);
                         })
-//                        .failureHandler((request, response, exception) -> {
-//                            if ("Unpaid fees".equalsIgnoreCase(exception.getMessage())) {
-//                                response.sendRedirect("/login?disabled");
-//                            } else {
-//                                response.sendRedirect("/login?error");
-//                            }
-//
-//                        })  // Redirect to /login?error after failed login
-                    .permitAll()
-            )
-            .logout(logout -> logout
-                    .logoutUrl("/logout")
-                    .logoutSuccessUrl("/login?logout")
-                    .permitAll()
-            );
+                        .permitAll()
+
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                );
 
         return http.build();
     }

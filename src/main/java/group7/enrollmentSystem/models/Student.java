@@ -24,6 +24,7 @@ public class Student extends User implements UserDetails {
     private String studentId;
     private String phoneNumber;
     private String address;
+    private boolean feesPaid;
 
     public Student(String studentId, String firstName, String lastName, String address, String phoneNumber) {
         this.studentId = studentId;
@@ -33,10 +34,9 @@ public class Student extends User implements UserDetails {
         this.phoneNumber = phoneNumber;
         this.getRoles().add("ROLE_STUDENT");
     }
-    @OneToMany(mappedBy = "student")
-    private List<CourseEnrollment> enrollments;
-
-    @OneToMany(mappedBy = "student")
-    private List<StudentProgramme> studentProgrammes;
+    @Override
+    public boolean isEnabled() {
+        return this.feesPaid;
+    }
 
 }

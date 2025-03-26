@@ -1,0 +1,23 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master  # or main, depending on your repo
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH key for Lightsail
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+
+      - name: Run deployment script on Lightsail
+        run: |
+          ssh -o StrictHostKeyChecking=no teahana@3.107.150.242 "bash /home/teahana/enrollment-system/enrollmentDeploy.sh"

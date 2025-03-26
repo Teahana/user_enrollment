@@ -229,7 +229,7 @@ public class CourseEnrollmentService {
         // ---------------------------------------------------------
         Optional<StudentProgramme> data = studentProgrammeRepo.findByStudentAndCurrentProgrammeTrue(student);
         if (data.isEmpty()) {
-            return Collections.emptyList();
+            throw new IllegalArgumentException("Cannot find student programme, or student has no active programme");
         }
         Programme studentProgramme = data.get().getProgramme();
 

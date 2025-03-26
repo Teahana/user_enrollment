@@ -23,15 +23,15 @@ public class ApiController {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
-        UserDetails user = userService.loadUserByUsername(request.getEmail());
-        String token = jwtService.generateToken(user.getUsername(), 3600,null); // 1 hour
-        return ResponseEntity.ok(Map.of("token", token));
-    }
+//    @PostMapping("/login")
+//    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+//        Authentication auth = authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+//        );
+//        UserDetails user = userService.loadUserByUsername(request.getEmail());
+//        String token = jwtService.generateToken(user.getUsername(), 3600,null); // 1 hour
+//        return ResponseEntity.ok(Map.of("token", token));
+//    }
 
 
 

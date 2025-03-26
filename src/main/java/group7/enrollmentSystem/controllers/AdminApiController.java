@@ -33,7 +33,14 @@ public class AdminApiController {
     private final CourseService courseService;
     private final ProgrammeRepo programmeRepo;
 
-
+    @PostMapping("/someEndpoint")
+    public ResponseEntity<?> someEndpoint() {
+        someFunction();
+        return ResponseEntity.ok(Map.of("message", "Success"));
+    }
+    private void someFunction() {
+        throw new RuntimeException("SOME FUCKING EXCEPTION");
+    }
     @GetMapping("/getSpecialTypes")
     public ResponseEntity<?> getSpecialTypes() {
         return ResponseEntity.ok(Map.of("specialTypes", Arrays.toString(SpecialPrerequisiteType.values())));

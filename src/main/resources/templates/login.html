@@ -13,17 +13,14 @@
     <img th:src="@{/images/usp_logo2.jpg}" alt="USP Logo" class="logo">
 
     <h3 class="text-center">Login</h3>
-
     <!-- Error message for invalid login -->
     <div th:if="${param.error}" class="alert alert-danger">
         Invalid username or password.
     </div>
-
     <!-- Logout message -->
     <div th:if="${param.logout}" class="alert alert-success">
         You have been logged out successfully.
     </div>
-
     <!-- Expired message -->
     <div th:if="${param.disabled}" class="alert alert-warning">
         Your account is disabled.
@@ -47,7 +44,6 @@
     </form>
 
     <!-- Quick login for development -->
-    <!--<hr>
     <div class="d-flex justify-content-between">
         <button class="btn btn-outline-secondary" onclick="quickLogin('admin@gmail.com', '12345')">
             Login as Admin
@@ -55,7 +51,7 @@
         <button class="btn btn-outline-secondary" onclick="quickLogin('s11209521@student.usp.ac.fj', '12345')">
             Login as Student
         </button>
-    </div>-->
+    </div>
 </div>
 
 <script>

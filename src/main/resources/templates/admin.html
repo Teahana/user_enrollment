@@ -5,11 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/styles/admin.css}">
 </head>
 <body>
+<!-- Include the navigation bar fragment -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <div class="container mt-4">
-    <h2 class="mb-3">Admin Panel</h2>
+    <!-- Header Section with Logo -->
+    <div class="header-section">
+        <h2>Admin Panel</h2>
+        <img th:src="@{/images/admin.png}" alt="Admin Logo" width="150" height="150" class="logo">
+    </div>
 
     <!-- Flash Messages -->
     <div th:if="${message}" class="alert alert-success" role="alert">
@@ -20,40 +27,39 @@
     </div>
 
     <!-- Welcome Message -->
-    <div th:if="${user}" class="card mb-4">
+    <div th:if="${user}" class="card">
         <div class="card-body">
             <h5 class="card-title">Welcome, <span th:text="${user.firstName + ' ' + user.lastName}"></span></h5>
             <p class="card-text">Email: <span th:text="${user.email}"></span></p>
-            <p class="card-text">User ID: <span th:text="${user.userId}"></span></p>
+            <p class="card-text">SAS Manager</p>
         </div>
     </div>
 
-    <!-- Buttons to Navigate to Programmes and Courses -->
-    <div class="mb-4">
-        <a class="btn btn-primary me-2" th:href="@{/admin/programmes}">Edit Programmes</a>
-        <a class="btn btn-secondary" th:href="@{/admin/courses}">Edit Courses</a>
-    </div>
+    <!-- Button Section -->
+    <div class="button-section">
+        <!-- Buttons to Navigate to Programmes and Courses (Left Side) -->
+        <div class="button-group">
+            <a class="btn btn-primary" th:href="@{/admin/programmes}">Edit Programmes</a>
+            <a class="btn btn-secondary" th:href="@{/admin/courses}">Edit Courses</a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="btn btn-danger">Logout</button>
+            </form>
+        </div>
 
-    <!-- Toggle Enrollment Button -->
-    <div class="mb-4">
-        <form th:action="@{/admin/toggleEnrollment}" method="post">
-            <button type="submit" class="btn" th:classappend="${enrollmentState.open} ? 'btn-danger' : 'btn-success'">
-                <span th:text="${enrollmentState.open} ? 'Close Registration' : 'Open Registration'"></span>
-            </button>
-        </form>
+        <!-- Toggle Enrollment and Switch Semester Buttons (Right Side) -->
+        <div class="enrollment-button-container">
+            <form th:action="@{/admin/toggleEnrollment}" method="post">
+                <button type="submit" class="btn btn-enrollment">
+                    <span th:text="${enrollmentState.open} ? 'Close Enrollment' : 'Open Enrollment'"></span>
+                </button>
+            </form>
+            <form th:action="@{/admin/toggleSemester}" method="post">
+                <button type="submit" class="btn btn-enrollment">
+                    <span th:text="${enrollmentState.semesterOne} ? 'Switch to Semester 2' : 'Switch to Semester 1'"></span>
+                </button>
+            </form>
+        </div>
     </div>
-    <div class="mb-4">
-        <form th:action="@{/admin/toggleSemester}" method="post">
-            <button type="submit" class="btn btn-warning">
-                <span th:text="${enrollmentState.semesterOne} ? 'Switch to Semester 2' : 'Switch to Semester 1'"></span>
-            </button>
-        </form>
-    </div>
-
-    <!-- Logout Button -->
-    <form th:action="@{/logout}" method="post">
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

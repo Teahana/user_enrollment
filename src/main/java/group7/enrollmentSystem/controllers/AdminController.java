@@ -164,7 +164,7 @@ public class AdminController {
         enrollmentState.setOpen(!enrollmentState.isOpen());
         enrollmentStatusRepo.save(enrollmentState);
 
-        String message = enrollmentState.isOpen() ? "Student registration is now open." : "Student registration is now closed.";
+        String message = enrollmentState.isOpen() ? "Student Course Enrollment is now open." : "Student Course Enrollment is now closed.";
         redirectAttributes.addFlashAttribute("message", message);
 
         return "redirect:/admin/dashboard";

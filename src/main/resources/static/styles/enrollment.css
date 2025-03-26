@@ -13,14 +13,37 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     margin-top: 20px;
-    margin-bottom: 100px; /* Add space for the fixed bottom section */
 }
 
 /* Headings */
-.section-heading {
+.welcome-heading {
     color: #007bff; /* Light blue */
     font-weight: bold;
     margin-bottom: 20px;
+}
+
+.programme-heading {
+    color: #0056b3; /* Darker blue */
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.semester-heading {
+    color: #004080; /* Even darker blue */
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.section-heading {
+    color: #007bff; /* Light blue */
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.error-heading {
+    color: #dc3545; /* Red for error messages */
+    font-weight: bold;
 }
 
 /* Tables */
@@ -38,14 +61,9 @@ body {
     background-color: #f8f9fa; /* Light gray for striped rows */
 }
 
-.table tbody tr:hover {
-    background-color: #e9ecef; /* Slightly darker gray on hover */
-    cursor: pointer;
-}
-
 /* Buttons */
-.btn-primary {
-    background-color: #007bff; /* Light blue */
+.btn-success {
+    background-color: #28a745; /* Green */
     color: #ffffff; /* White text */
     border: none;
     padding: 8px 16px;
@@ -53,48 +71,25 @@ body {
     border-radius: 5px;
 }
 
-.btn-primary:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+.btn-success:hover {
+    background-color: #218838; /* Darker green on hover */
 }
 
-.btn-secondary {
-    background-color: #6c757d; /* Gray */
-    color: #ffffff; /* White text */
+.btn-warning {
+    background-color: #ffc107; /* Yellow */
+    color: #000000; /* Black text */
     border: none;
     padding: 8px 16px;
     font-size: 14px;
     border-radius: 5px;
 }
 
-.btn-secondary:hover {
-    background-color: #5a6268; /* Darker gray on hover */
+.btn-warning:hover {
+    background-color: #e0a800; /* Darker yellow on hover */
 }
 
-.btn-info {
-    background-color: #17a2b8; /* Teal */
-    color: #ffffff; /* White text */
-    border: none;
-    padding: 8px 16px;
-    font-size: 14px;
-    border-radius: 5px;
-}
-
-.btn-info:hover {
-    background-color: #138496; /* Darker teal on hover */
-}
-
-/* Fixed bottom section */
-.fixed-bottom-section {
-    background-color: white;
-    padding: 15px;
-    border-top: 1px solid #ddd;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    transition: transform 0.3s ease;
+.btn-add-course {
+    margin-bottom: 20px;
 }
 
 /* Alerts */
@@ -102,6 +97,11 @@ body {
     margin-top: 20px;
     padding: 10px;
     border-radius: 5px;
+}
+
+.alert-warning {
+    background-color: #fff3cd; /* Light yellow */
+    color: #856404; /* Dark yellow text */
 }
 
 .alert-danger {
@@ -112,9 +112,4 @@ body {
 .alert-success {
     background-color: #d4edda; /* Light green */
     color: #155724; /* Dark green text */
-}
-
-.alert-info {
-    background-color: #d1ecf1; /* Light teal */
-    color: #0c5460; /* Dark teal text */
 }

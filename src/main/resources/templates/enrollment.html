@@ -3,17 +3,20 @@
 <head>
     <title>Enrollment</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/styles/enrollment.css}"> <!-- Link to the separate CSS file -->
 </head>
 <body>
+<!-- Include the navigation bar fragment -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
 <div th:if="${pageOpen}" class="container">
+    <h2 class="welcome-heading">Welcome, <span th:text="${student.firstName}"></span></h2>
+    <h3 class="programme-heading">Your Programme: <span th:text="${programme}"></span></h3>
+    <h5 class="semester-heading">Enrolling for Semester <span th:text="${semester}"></span></h5>
 
-    <h2>Welcome, <span th:text="${student.firstName}"></span></h2>
-    <h3>Your Programme: <span th:text="${programme}"></span></h3>
-    <h5 class="text-muted mb-3">Enrolling for Semester <span th:text="${semester}"></span></h5>
-
-    <h3>Your Enrolled Courses</h3>
-    <table class="table">
-        <thead>
+    <h3 class="section-heading">Your Enrolled Courses</h3>
+    <table class="table table-striped">
+        <thead class="thead-dark">
         <tr>
             <th>Course Code</th>
             <th>Title</th>
@@ -30,16 +33,17 @@
             <td th:text="${enrollment.course.creditPoints}"></td>
             <td>
                 <form th:action="@{/student/cancelEnrollment/{id}(id=${enrollment.id})}" method="post">
-                    <button type="submit" class="btn btn-warning">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm">Cancel</button>
                 </form>
             </td>
         </tr>
         </tbody>
     </table>
-    <a th:href="@{'/student/selectCourses'}" class="btn btn-success">Add Course</a>
-    <h3>Cancelled Courses</h3>
-    <table class="table">
-        <thead>
+    <a th:href="@{'/student/selectCourses'}" class="btn btn-success btn-add-course">Add Course</a>
+
+    <h3 class="section-heading">Cancelled Courses</h3>
+    <table class="table table-striped">
+        <thead class="thead-dark">
         <tr>
             <th>Course Code</th>
             <th>Title</th>
@@ -57,10 +61,10 @@
             <td>
                 <!-- Activate Enrollment -->
                 <form th:action="@{/student/activateEnrollment/{id}(id=${enrollment.id})}" method="post">
-                    <button type="submit" class="btn btn-success" th:disabled="${activeEnrollments.size() >= 4}">
+                    <button type="submit" class="btn btn-success btn-sm" th:disabled="${activeEnrollments.size() >= 4}">
                         Activate
                     </button>
-                    <div th:if="${activeEnrollments.size() >= 4}" class="alert alert-warning">
+                    <div th:if="${activeEnrollments.size() >= 4}" class="alert alert-warning mt-2">
                         You cannot activate more courses. You already have four active courses this semester.
                     </div>
                 </form>
@@ -73,7 +77,7 @@
 </div>
 <div th:unless="${pageOpen}" class="d-flex justify-content-center align-items-center vh-100">
     <div class="text-center">
-        <h2>We Are Very Sorry</h2>
+        <h2 class="error-heading">We Are Very Sorry</h2>
         <h2 th:utext="${message}"></h2>
     </div>
 </div>

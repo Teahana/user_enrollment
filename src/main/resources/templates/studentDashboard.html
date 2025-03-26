@@ -11,7 +11,7 @@
 <div style="width: 200px; background: #f0f0f0; height: 100vh; padding: 20px;">
   <h3 th:text="${studentName}">Student</h3>
   <ul style="list-style: none; padding-left: 0;">
-    <li><a th:href="@{/student/dashboard}">Dashboard</a></li>
+    <li><a th:href="@{/home}">Home</a></li>
     <li><a th:href="@{/student/profile}"> Profile</a></li>
     <li><a th:href="@{/student/enrollment}">Course Reg</a></li>
     <li><a th:href="@{/student/audit}"> Audit</a></li>
@@ -21,7 +21,7 @@
 <!-- Page content -->
 <div style="padding: 20px; flex-grow: 1;">
 
-  <p>This is your student home page.</p>
+  <p>This is your student dashboard.</p>
   <h2>Welcome, <span th:text="${studentName}">Student</span> 👋</h2>
 </div>
 

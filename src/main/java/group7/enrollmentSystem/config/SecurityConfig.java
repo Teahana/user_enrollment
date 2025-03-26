@@ -30,7 +30,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     //.requestMatchers("/api/**").permitAll()
                     .requestMatchers("/admin/**").hasRole("ADMIN")  // Restrict /admin/** to ADMIN role
-                    .requestMatchers("/student/**").hasRole("STUDENT")
+                    .requestMatchers("/student/**","/home").hasRole("STUDENT")
                     .requestMatchers("/login","/styles/**","/images/**").permitAll()
                     .anyRequest().authenticated()
             )
@@ -51,7 +51,7 @@ public class SecurityConfig {
                                 redirectUrl = "/admin/dashboard";
                             } else if (isStudent) {
                                 System.out.println("Student logged in");
-                                redirectUrl = "/student/dashboard";
+                                redirectUrl = "/home";
 
                             }
 

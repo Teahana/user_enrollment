@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-           // System.out.println("❌ No Bearer token found in Authorization header");
+           // System.out.println("No Bearer token found in Authorization header");
             filterChain.doFilter(request, response);
             return;
         }
@@ -57,10 +57,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String username = claims.getSubject();
-        System.out.println("🔐 Authenticated user from token: " + username);
+       // System.out.println("Authenticated user from token: " + username);
 
         List<String> roles = claims.get("roles", List.class);
-        System.out.println("🛡 Roles from token: " + roles);
+       // System.out.println("Roles from token: " + roles);
 
         List<GrantedAuthority> authorities = roles.stream()
                 .map(SimpleGrantedAuthority::new)
@@ -73,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authorities
             );
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            System.out.println("✅ SecurityContext authentication set");
+           // System.out.println("SecurityContext authentication set");
         }
 
         filterChain.doFilter(request, response);

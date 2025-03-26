@@ -31,9 +31,10 @@ public class ApiController {
         );
         User user = (User) auth.getPrincipal();
       //  System.out.println("user: " + user);
-        String token = jwtService.generateToken(user, 3600); // 1 hour
+        String token = jwtService.generateToken(user, 1); // 1 hour
         return ResponseEntity.ok(Map.of("token", token));
     }
+    //Get courses
 
 
 

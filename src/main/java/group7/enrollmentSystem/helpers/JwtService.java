@@ -19,17 +19,19 @@ public class JwtService {
     private final Key jwtKey; // Injected from JwtConfig
 
     public String generateToken(UserDetails userDetails, long expirationInSeconds) {
-        Map<String, Object> claims = Map.of("roles", userDetails.getAuthorities()
-                .stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()));
+        Map<String, Object> claims = Map.of(
+                "roles", userDetails.getAuthorities()
+                        .stream().map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.toList())
+        );
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
-                .setClaims(claims)
+                .addClaims(claims)
+                .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationInSeconds * 1000))
                 .signWith(jwtKey)
                 .compact();
     }
-
-
 
     /**
      * Parse and validate a JWT token.

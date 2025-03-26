@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -29,12 +30,21 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/styles/**", "/images/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/test/**").authenticated()
+                        .anyRequest().permitAll()
+//                        .requestMatchers("/login", "/register", "/styles/**", "/images/**").permitAll()
+//                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(login -> login
                         .loginPage("/login")
+                        .failureHandler((request, response, exception) -> {
+                            if (exception instanceof DisabledException) {
+                                response.sendRedirect("/login?disabled");
+                            } else {
+                                response.sendRedirect("/login?error");
+                            }
+                        })
                         .successHandler((request, response, authentication) -> {
                             String redirectUrl = "/home";
                             boolean isAdmin = authentication.getAuthorities().stream()
@@ -46,6 +56,7 @@ public class SecurityConfig {
                             response.sendRedirect(redirectUrl);
                         })
                         .permitAll()
+
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")

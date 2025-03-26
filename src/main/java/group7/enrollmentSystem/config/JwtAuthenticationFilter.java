@@ -32,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+           // System.out.println("❌ No Bearer token found in Authorization header");
             filterChain.doFilter(request, response);
             return;
         }
@@ -40,12 +41,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Claims claims;
         try {
             claims = jwtService.parseToken(jwt);
+            System.out.println("JWT successfully parsed");
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
+          //  System.out.println("JWT expired: " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"Token expired\"}");
             return;
         } catch (Exception e) {
+           // System.out.println("JWT invalid: " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"Invalid token\"}");
@@ -53,7 +57,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String username = claims.getSubject();
-        List<String> roles = claims.get("roles", List.class); // extracted from token
+        System.out.println("🔐 Authenticated user from token: " + username);
+
+        List<String> roles = claims.get("roles", List.class);
+        System.out.println("🛡 Roles from token: " + roles);
+
         List<GrantedAuthority> authorities = roles.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
@@ -65,6 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authorities
             );
             SecurityContextHolder.getContext().setAuthentication(authToken);
+            System.out.println("✅ SecurityContext authentication set");
         }
 
         filterChain.doFilter(request, response);

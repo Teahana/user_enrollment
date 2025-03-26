@@ -63,7 +63,7 @@ public class DataInitializer implements CommandLineRunner {
 
         try {
             // Step 1: Load SQL from resources
-            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("backup/course_prerequisite_backup.sql");
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("backup/course_prerequisite_backup1.sql");
             if (inputStream == null) {
                 throw new FileNotFoundException("course_prerequisite_backup.sql not found in resources!");
             }
@@ -142,7 +142,7 @@ public class DataInitializer implements CommandLineRunner {
         User admin = new User();
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(password));
-        admin.setRoles(Set.of("ROLE_ADMIN"));
+        admin.setRoles(Set.of("ROLE_ADMIN","ROLE_STUDENT"));
         admin.setFirstName(adminFirstName);
         admin.setLastName(adminLastName);
 
@@ -224,7 +224,7 @@ public class DataInitializer implements CommandLineRunner {
                     15.0,
                     (short)100,
                     500.0,
-                    true,
+                    false,
                     true
             ));
 
@@ -718,7 +718,8 @@ public class DataInitializer implements CommandLineRunner {
         if (programmeRepo.count() == 0) {
             List<Programme> programmes = List.of(
                     new Programme("BSE", "Bachelor of Software Engineering", "STEMP"),
-                    new Programme("BNS", "Bachelor of Networks & Security", "STEMP")
+                    new Programme("BNS", "Bachelor of Networks & Security", "STEMP"),
+                    new Programme("APD","Postgraduate Diploma","STEMP")
             );
             programmeRepo.saveAll(programmes);
             System.out.println("Programmes (BSE, BNS) initialized successfully.");

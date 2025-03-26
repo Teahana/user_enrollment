@@ -22,6 +22,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +55,7 @@ public class AdminController {
     @GetMapping("/courses")
     public String getCourses(Model model) {
         List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
+        courseDtos.sort(Comparator.comparing(CourseDto::getLevel));
         model.addAttribute("courses", courseDtos);
         return "courses";
     }

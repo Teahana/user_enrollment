@@ -37,7 +37,7 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
             throw new DisabledException("Unpaid fees");
         }
 
-        return new UsernamePasswordAuthenticationToken(email, rawPassword, user.getAuthorities());
+        return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
     }
 
     @Override

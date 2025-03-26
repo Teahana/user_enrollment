@@ -24,7 +24,7 @@ public class CourseEnrollment {
     private LocalDate dateEnrolled;
     private boolean currentlyTaking;
     private int semesterEnrolled;
-
+    private boolean applied;
     @ManyToOne
     @JoinColumn(name = "student_programme_id")
     private StudentProgramme studentProgramme;

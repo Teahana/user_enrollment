@@ -26,6 +26,6 @@ public class CourseEnrollment {
     private int semesterEnrolled;
     private boolean applied;
     @ManyToOne
-    @JoinColumn(name = "student_programme_id")
-    private StudentProgramme studentProgramme;
+    @JoinColumn(name = "programme_id")
+    private Programme programme;
 }

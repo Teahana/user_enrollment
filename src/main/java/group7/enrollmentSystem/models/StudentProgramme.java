@@ -27,10 +27,4 @@ public class StudentProgramme {
     private LocalDate dateCompleted;
     @Enumerated(EnumType.STRING)
     private ProgrammeStatus status; //ENROLLED, COMPLETED, DROPPED
-
-    //mapping course currently Enrolled by student
-    @OneToMany(mappedBy = "studentProgramme")
-    private List<CourseEnrollment> coursesTaken;
-
-
 }

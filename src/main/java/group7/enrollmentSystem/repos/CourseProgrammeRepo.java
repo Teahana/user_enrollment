@@ -33,4 +33,6 @@ public interface CourseProgrammeRepo extends JpaRepository<CourseProgramme, Long
     void deleteByCourse(Course course);
     @Query("SELECT cp.course.id FROM CourseProgramme cp WHERE cp.programme = :programme")
     List<Long> getCourseIdsByProgramme(Programme programme);
+    @Query("SELECT cp.course FROM CourseProgramme cp WHERE cp.programme = :programme")
+    List<Course> getCoursesByProgramme(Programme programme);
 }

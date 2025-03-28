@@ -19,7 +19,7 @@ import java.util.List;
         @AttributeOverride(name = "lastName", column = @Column(name = "last_name"))
 })
 @NoArgsConstructor
-public class Student extends User implements UserDetails {
+public class Student extends User {
     @Column(nullable = false, unique = true)
     private String studentId;
     private String phoneNumber;

@@ -9,6 +9,7 @@ import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -26,6 +27,7 @@ public class CourseEnrollmentService {
     private final CourseRepo courseRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final CourseService courseService;
+    private final EnrollmentStatusRepo enrollmentStatusRepo;
 
     // Cancel enrollment
     public void cancelEnrollment(Long enrollmentId) {
@@ -484,6 +486,35 @@ public class CourseEnrollmentService {
 
         // If no recognized specialType, or it's something else => either pass or fail by design
         return true;
+    }
+    @Transactional
+    public void passStudentByEmailAndYear(String email, short level) {
+        Student student = studentRepo.findByEmail(email).orElseThrow(() ->
+                new IllegalArgumentException("Student not found with email: " + email));
+
+        Programme programme = studentProgrammeRepo.findStudentCurrentProgramme(student)
+                .orElseThrow(() -> new IllegalStateException("Student has no current programme"));
+
+
+        List<Course> programmeCourses = courseProgrammeRepo.getCoursesByProgramme(programme);
+        List<Course> coursesForLevel = programmeCourses.stream()
+                .filter(course -> course.getLevel() != null && course.getLevel() == level)
+                .toList();
+        EnrollmentState state = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        for (Course course : coursesForLevel) {
+            CourseEnrollment enrollment = new CourseEnrollment();
+            enrollment.setStudent(student);
+            enrollment.setCourse(course);
+            enrollment.setCompleted(true);
+            enrollment.setFailed(false);
+            enrollment.setCancelled(false);
+            enrollment.setCurrentlyTaking(false);
+            enrollment.setApplied(false);
+            enrollment.setDateEnrolled(LocalDate.now());
+            enrollment.setSemesterEnrolled(state.isSemesterOne() ? 1 : 2);
+            enrollment.setProgramme(programme);
+            courseEnrollmentRepo.save(enrollment);
+        }
     }
 
 

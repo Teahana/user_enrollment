@@ -41,5 +41,4 @@ public class Student extends User {
     public boolean isEnabled() {
         return this.feesPaid;
     }
-
 }

@@ -49,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             long now = System.currentTimeMillis();
             long issuedAtMillis = issuedAt.getTime();
             long threshHold = 15 * 60 * 1000;
-            if (now - issuedAtMillis >= 0) {
+            if (now - issuedAtMillis >= threshHold) {
                 //Generate a new token with a new expiration
                 String username = claims.getSubject();
                 User user = userRepo.findByEmail(username).orElseThrow();

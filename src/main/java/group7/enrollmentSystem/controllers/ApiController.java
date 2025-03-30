@@ -30,7 +30,6 @@ public class ApiController {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
-
         User user = (User) auth.getPrincipal();
         String token = jwtService.generateToken(user, 3600);
 

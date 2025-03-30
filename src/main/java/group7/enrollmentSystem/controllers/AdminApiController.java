@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteRequest;
 import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteDTO;
 import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest;
@@ -8,14 +9,18 @@ import group7.enrollmentSystem.dtos.classDtos.GraphicalPrerequisiteNode;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.dtos.interfaceDtos.ProgrammeIdAndCode;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
+import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.Course;
+import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
+import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -32,11 +37,26 @@ public class AdminApiController {
     private final CourseProgrammeService courseProgrammeService;
     private final CourseService courseService;
     private final ProgrammeRepo programmeRepo;
+    private final UserRepo userRepo;
+    private final JwtService jwtService;
 
     @PostMapping("/someEndpoint")
     public ResponseEntity<?> someEndpoint() {
         someFunction();
         return ResponseEntity.ok(Map.of("message", "Success"));
+    }
+    @PostMapping("/tokenLogin")
+    public ResponseEntity<?> tokenLogin(Authentication authentication) {
+        System.out.println("Token login request received.");
+        User user = userRepo.findByEmail(authentication.getName()).orElseThrow();
+        String token = jwtService.generateToken(user, 3600);
+        String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
+        LoginResponse response = new LoginResponse(
+                user.getId(),
+                userType,
+                token
+        );
+        return ResponseEntity.ok(response);
     }
     private void someFunction() {
         throw new RuntimeException("SOME FUCKING EXCEPTION");

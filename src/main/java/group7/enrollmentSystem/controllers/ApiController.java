@@ -32,7 +32,7 @@ public class ApiController {
         );
 
         User user = (User) auth.getPrincipal();
-        String token = jwtService.generateToken(user, 1); // 1 hour
+        String token = jwtService.generateToken(user, 3600);
 
         String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
 
@@ -43,5 +43,4 @@ public class ApiController {
         );
         return ResponseEntity.ok(response);
     }
-
 }

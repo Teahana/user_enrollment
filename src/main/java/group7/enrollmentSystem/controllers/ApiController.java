@@ -1,9 +1,13 @@
 package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
+import group7.enrollmentSystem.dtos.appDtos.UserDto;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
 import group7.enrollmentSystem.helpers.JwtService;
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.repos.StudentRepo;
+import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +26,9 @@ import java.util.Map;
 public class ApiController {
 
     private final UserService userService;
+    private final UserRepo userRepo;
+    private final StudentService studentService;
+    private final StudentRepo studentRepo;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
@@ -32,7 +39,7 @@ public class ApiController {
         );
 
         User user = (User) auth.getPrincipal();
-        String token = jwtService.generateToken(user, 1); // 1 hour
+        String token = jwtService.generateToken(user, 3600); // 1 hour
 
         String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
 
@@ -43,5 +50,38 @@ public class ApiController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/user")
+    public ResponseEntity<UserDto>  getAuthenticatedUser(Authentication auth) {
+        String email = auth.getName();
+        User user = userRepo.findByEmail(email).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String fullName = user.getFirstName() + " " + user.getLastName();
+        String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
+
+        String studentId = null;
+
+        // If student, fetch studentId
+        if (user instanceof Student student){
+            studentId = student.getStudentId();
+        } else {
+            // If not a student, return null or handle accordingly
+            studentId = null;
+        }
+        UserDto dto = new UserDto(
+                user.getId(),
+                fullName,
+                user.getEmail(),
+                userType,
+                studentId
+        );
+
+        return ResponseEntity.ok(dto);
+    }
+
+
 
 }

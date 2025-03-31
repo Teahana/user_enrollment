@@ -1,6 +1,5 @@
 package group7.enrollmentSystem.config;
 
-import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.StudentProgrammeService;
@@ -34,7 +33,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepo userRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final PasswordEncoder passwordEncoder;
-    private final EnrollmentStatusRepo enrollmentStatusRepo;
+    private final EnrollmentStateRepo enrollmentStateRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final StudentProgrammeRepo studentProgrammeRepo;
 
@@ -114,7 +113,7 @@ public class DataInitializer implements CommandLineRunner {
     //  1) Enrollment Status
     // --------------------------------------------------------------
     private void initializeCourseEnrollmentStatus() {
-        if(enrollmentStatusRepo.count() > 0){
+        if(enrollmentStateRepo.count() > 0){
             System.out.println("Enrollment status already initialized. Skipping.");
             return;
         }
@@ -122,7 +121,7 @@ public class DataInitializer implements CommandLineRunner {
         enrollmentState.setId(1L);
         enrollmentState.setOpen(true);
         enrollmentState.setSemesterOne(true);
-        enrollmentStatusRepo.save(enrollmentState);
+        enrollmentStateRepo.save(enrollmentState);
     }
 
     // --------------------------------------------------------------

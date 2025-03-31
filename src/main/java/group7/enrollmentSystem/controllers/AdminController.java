@@ -1,21 +1,17 @@
 package group7.enrollmentSystem.controllers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.EnrollmentState;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.EnrollmentStatusRepo;
+import group7.enrollmentSystem.repos.EnrollmentStateRepo;
 import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,7 +20,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -32,7 +27,7 @@ import java.util.Map;
 public class AdminController {
     private final CourseRepo courseRepo;
     private final CourseService courseService;
-    private final EnrollmentStatusRepo enrollmentStatusRepo;
+    private final EnrollmentStateRepo enrollmentStateRepo;
 
     private final CourseProgrammeService courseProgrammeService;
     private final ProgrammeRepo programmeRepo;
@@ -46,7 +41,7 @@ public class AdminController {
         model.addAttribute("user", user);
 
         // Fetch the enrollment state
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        EnrollmentState enrollmentState = enrollmentStateRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
         model.addAttribute("enrollmentState", enrollmentState);
 
         return "admin";
@@ -162,9 +157,9 @@ public class AdminController {
     //---------Control for Admin to turn off/on students' access to enrollment page-----------------
     @PostMapping("/toggleEnrollment")
     public String toggleEnrollment(RedirectAttributes redirectAttributes) {
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        EnrollmentState enrollmentState = enrollmentStateRepo.findById(1L).orElseThrow(() -> new RuntimeException("Enrollment state not found"));
         enrollmentState.setOpen(!enrollmentState.isOpen());
-        enrollmentStatusRepo.save(enrollmentState);
+        enrollmentStateRepo.save(enrollmentState);
 
         String message = enrollmentState.isOpen() ? "Student Course Enrollment is now open." : "Student Course Enrollment is now closed.";
         redirectAttributes.addFlashAttribute("message", message);
@@ -173,11 +168,11 @@ public class AdminController {
     }
     @PostMapping("/toggleSemester")
     public String toggleSemester(RedirectAttributes redirectAttributes) {
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+        EnrollmentState enrollmentState = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
         enrollmentState.setSemesterOne(!enrollmentState.isSemesterOne());
-        enrollmentStatusRepo.save(enrollmentState);
+        enrollmentStateRepo.save(enrollmentState);
 
         String message = enrollmentState.isSemesterOne()
                 ? "Switched to Semester 1."

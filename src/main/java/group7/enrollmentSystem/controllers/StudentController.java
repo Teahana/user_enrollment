@@ -1,6 +1,5 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.dtos.classDtos.CourseEnrollDto;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
@@ -10,6 +9,7 @@ import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
 import group7.enrollmentSystem.services.StudentProgrammeService;
+import group7.enrollmentSystem.services.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -36,17 +36,18 @@ public class StudentController {
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final StudentProgrammeService studentProgrammeService;
     private final CourseService courseService;
-    private final EnrollmentStatusRepo enrollmentStatusRepo;
+    private final EnrollmentStateRepo enrollmentStateRepo;
     private final CourseRepo courseRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final UserRepo userRepo;
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
+    private final StudentService studentService;
 
 
 
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
-        EnrollmentState state = enrollmentStatusRepo.findById(1L)
+        EnrollmentState state = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
         if (!state.isOpen()) {
@@ -81,12 +82,13 @@ public class StudentController {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         // Determine current semester from enrollment state
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+        EnrollmentState enrollmentState = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
         int semester = enrollmentState.isSemesterOne() ? 1 : 2;
 
         // Fetch eligible courses
-        List<CourseEnrollDto> eligibleCourses = courseEnrollmentService.getEligibleCoursesForEnrollment(student, semester);
+       // List<CourseEnrollDto> eligibleCourses = courseEnrollmentService.getEligibleCoursesForEnrollment(student, semester);
+        List<CourseEnrollmentDto> eligibleCourses = studentService.getEligibleCourses(email);
 
         // Pass to view
         model.addAttribute("courses", eligibleCourses);
@@ -170,7 +172,7 @@ public class StudentController {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         // 3) Determine current semester from your enrollment state
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
+        EnrollmentState enrollmentState = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
         int semester = enrollmentState.isSemesterOne() ? 1 : 2;
 

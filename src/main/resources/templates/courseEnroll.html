@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Courses to Enroll - Semester <span th:text="${semester}"></span></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" th:href="@{/styles/enrollCourses.css}"> <!-- Link to the separate CSS file -->
+    <link rel="stylesheet" th:href="@{/styles/enrollCourses.css}">
 </head>
 <body>
 <!-- Include the navigation bar fragment -->
@@ -29,7 +29,7 @@
                 <th>Select</th>
                 <th>Course Code</th>
                 <th>Title</th>
-                <th>Description</th>
+                <th>Cost (FJD)</th>
             </tr>
             </thead>
             <tbody>
@@ -38,8 +38,8 @@
                     <input type="checkbox" name="selectedCourses" th:value="${cp.courseId}" />
                 </td>
                 <td th:text="${cp.courseCode}"></td>
-                <td th:text="${cp.courseTitle}"></td>
-                <td th:text="${cp.description}"></td>
+                <td th:text="${cp.title}"></td>
+                <td th:text="${cp.cost}"></td>
             </tr>
             </tbody>
         </table>

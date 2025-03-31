@@ -2,10 +2,8 @@ package group7.enrollmentSystem.services;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
-import group7.enrollmentSystem.models.Course;
-import group7.enrollmentSystem.models.CoursePrerequisite;
-import group7.enrollmentSystem.models.Programme;
-import group7.enrollmentSystem.models.Student;
+import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
+import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,38 +20,33 @@ public class StudentService {
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final StudentProgrammeRepo studentProgrammeRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
+    private final EnrollmentStateRepo enrollmentStateRepo;
 
-    /**
-     * Returns a list of eligible courses a student can enroll in based on prerequisites.
-     * @param email The student's email.
-     * @return List of CourseEnrollmentDto representing eligible courses.
-     */
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
-        // Fetch student by email
         Student student = studentRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found with email: " + email));
 
-        // Fetch the student's current programme
         Programme programme = studentProgrammeRepo.findStudentCurrentProgramme(student)
                 .orElseThrow(() -> new RuntimeException("Programme not found for student with email: " + email));
 
-        // Fetch all course IDs under this programme
-        List<Long> courseIds = courseProgrammeRepo.getCourseIdsByProgramme(programme);
+        EnrollmentState enrollmentState = enrollmentStateRepo.findById(1L).orElseThrow();
+        boolean isSemesterOne = enrollmentState.isSemesterOne();
 
-        // Get list of course IDs the student has already completed
+        List<Long> courseIdsForSem = isSemesterOne
+                ? courseProgrammeRepo.getCourseIdsByProgrammeAndSemester1(programme)
+                : courseProgrammeRepo.getCourseIdsByProgrammeAndSemester2(programme);
+        List<Long> courseIdsForProgramme = courseProgrammeRepo.getCourseIdsByProgramme(programme);
+
         List<Long> completedCourseIds = courseEnrollmentRepo.getCompletedCourseIdsByStudent(student);
-
-        // Get list of course IDs the student has already applied for (to avoid showing again)
         List<Long> appliedCourseIds = courseEnrollmentRepo.getAppliedCourseIdsByStudent(student);
 
         List<CourseEnrollmentDto> eligibleDtos = new ArrayList<>();
 
-        // Check eligibility for each course
-        for (Long courseId : courseIds) {
-            if (appliedCourseIds.contains(courseId)) continue; // Skip already applied courses
-            if(completedCourseIds.contains(courseId)) continue; // Skip already completed courses
-            if (isEligibleForCourse(courseId, completedCourseIds)) {
-                // If eligible, fetch course details and add to result list
+        for (Long courseId : courseIdsForSem) {
+            if (appliedCourseIds.contains(courseId)) continue;
+            if (completedCourseIds.contains(courseId)) continue;
+
+            if (isEligibleForCourse(courseId, completedCourseIds, programme, courseIdsForProgramme)) {
                 Course course = courseRepo.findById(courseId).orElseThrow();
                 eligibleDtos.add(new CourseEnrollmentDto(
                         course.getId(),
@@ -67,42 +60,34 @@ public class StudentService {
         return eligibleDtos;
     }
 
-    /**
-     * Checks if a student is eligible for a specific course based on its prerequisites.
-     */
-    private boolean isEligibleForCourse(Long courseId, List<Long> completedCourseIds) {
+    private boolean isEligibleForCourse(Long courseId, List<Long> completedCourseIds, Programme studentProgramme, List<Long> courseIdsForProgramme) {
         List<CoursePrerequisite> cps = coursePrerequisiteRepo.findByCourseId(courseId);
-
-        // If no prerequisites, course is doesnt have a preReq and is eligible
         if (cps.isEmpty()) return true;
 
-        // Find all top-level parent group IDs (i.e., groups that are not children of other groups)
-        // Put it into a SET because data is flattened in backend/db so each parentGroup will be repeated with same groupIds.
         Set<Integer> parentGroupIds = cps.stream()
                 .filter(cp -> cp.isParent() && !cp.isChild())
                 .map(CoursePrerequisite::getGroupId)
                 .collect(Collectors.toSet());
 
-        // Cache to avoid recomputing the same group multiple times (e.g., same child used in multiple places)
         Map<Integer, Boolean> groupCache = new HashMap<>();
-
-        // Evaluate all top-level parent groups
         List<Boolean> parentGroupResults = new ArrayList<>();
+
         for (Integer groupId : parentGroupIds) {
-            boolean groupValid = evaluateGroup(groupId, cps, completedCourseIds, groupCache);
+            boolean groupValid = evaluateGroup(groupId, cps, completedCourseIds, groupCache, studentProgramme, courseIdsForProgramme);
             parentGroupResults.add(groupValid);
         }
 
-        // Combine the results of top-level groups using their operatorToNext field (AND/OR)
         return combineWithOperatorToNext(parentGroupIds, cps, parentGroupResults);
     }
 
-    /**
-     * Recursively evaluates a group (including nested subgroups) based on AND/OR logic.
-     * Uses a cache to prevent redundant subgroup evaluation.
-     */
-    private boolean evaluateGroup(int groupId, List<CoursePrerequisite> allPrereqs, List<Long> completedCourseIds, Map<Integer, Boolean> groupCache) {
-        // Return cached result if this group was already evaluated
+    private boolean evaluateGroup(
+            int groupId,
+            List<CoursePrerequisite> allPrereqs,
+            List<Long> completedCourseIds,
+            Map<Integer, Boolean> groupCache,
+            Programme studentProgramme,
+            List<Long> courseIdsForProgramme
+    ) {
         if (groupCache.containsKey(groupId)) {
             return groupCache.get(groupId);
         }
@@ -113,58 +98,74 @@ public class StudentService {
 
         if (groupEntries.isEmpty()) return true;
 
-        PrerequisiteType type = groupEntries.getFirst().getPrerequisiteType(); // AND/OR for the group
+        PrerequisiteType type = groupEntries.getFirst().getPrerequisiteType();
         List<Boolean> conditions = new ArrayList<>();
 
         for (CoursePrerequisite cp : groupEntries) {
+            // ✅ Handle special prerequisites
             if (cp.isSpecial()) {
-                continue; // Skip special logic for now
+                if (cp.getSpecialType() == SpecialPrerequisiteType.ADMISSION_PROGRAMME) {
+                    if (cp.getProgramme() != null && cp.getProgramme().getId().equals(studentProgramme.getId())) {
+                        conditions.add(true); // student is admitted to required programme
+                    } else {
+                        conditions.add(false); // not admitted to this programme
+                    }
+                } else if (cp.getSpecialType() == SpecialPrerequisiteType.COMPLETION_LEVEL_PERCENT) {
+                    int level = cp.getTargetLevel();
+                    double requiredPercent = cp.getPercentageValue();
+
+                    List<Long> levelCourseIds = courseIdsForProgramme.stream()
+                            .map(id -> courseRepo.findById(id).orElse(null))
+                            .filter(Objects::nonNull)
+                            .filter(c -> c.getLevel() == level)
+                            .map(Course::getId)
+                            .toList();
+
+                    long total = levelCourseIds.size();
+                    long completed = levelCourseIds.stream().filter(completedCourseIds::contains).count();
+
+                    boolean met = total > 0 && ((double) completed / total) >= requiredPercent;
+                    conditions.add(met);
+                }
+
+                continue; // skip normal logic if special handled
             }
 
-            // Check course prerequisite if present
+            // Skip if this prerequisite is program-specific and doesn't match
+            if (cp.getProgramme() != null && !cp.getProgramme().getId().equals(studentProgramme.getId())) {
+                continue;
+            }
+
             if (cp.getPrerequisite() != null) {
                 boolean passed = completedCourseIds.contains(cp.getPrerequisite().getId());
                 conditions.add(passed);
             }
 
-            // Evaluate subgroup if present
             if (cp.getChildId() != 0) {
-                // Use cached result if available
-                boolean childValid;
-                if (groupCache.containsKey(cp.getChildId())) {
-                    childValid = groupCache.get(cp.getChildId());
-                } else {
-                    childValid = evaluateGroup(cp.getChildId(), allPrereqs, completedCourseIds, groupCache);
-                    groupCache.put(cp.getChildId(), childValid); // Cache result
-                }
+                boolean childValid = groupCache.containsKey(cp.getChildId())
+                        ? groupCache.get(cp.getChildId())
+                        : evaluateGroup(cp.getChildId(), allPrereqs, completedCourseIds, groupCache, studentProgramme, courseIdsForProgramme);
+                groupCache.putIfAbsent(cp.getChildId(), childValid);
                 conditions.add(childValid);
             }
         }
-        // If no valid conditions collected SOMEHOW!?!? idk just good to check IG
+
         if (conditions.isEmpty()) {
-            groupCache.put(groupId, false);
-            return false;
+            groupCache.put(groupId, true);
+            return true;
         }
 
-        // Combine the results based on group logic (AND/OR)
         boolean finalResult = type == PrerequisiteType.AND
                 ? conditions.stream().allMatch(Boolean::booleanValue)
                 : conditions.stream().anyMatch(Boolean::booleanValue);
 
-        // Cache and return
         groupCache.put(groupId, finalResult);
         return finalResult;
     }
 
-
-
-    /**
-     * Combines results from multiple parent groups using their `operatorToNext` field.
-     * Only applies between top-level parent groups (not subgroups).
-     */
     private boolean combineWithOperatorToNext(Set<Integer> groupIds, List<CoursePrerequisite> allCps, List<Boolean> groupResults) {
         List<Integer> sortedGroupIds = new ArrayList<>(groupIds);
-        Collections.sort(sortedGroupIds); // Ensure consistent processing order
+        Collections.sort(sortedGroupIds);
 
         if (groupResults.isEmpty()) return false;
 
@@ -173,16 +174,13 @@ public class StudentService {
         for (int i = 1; i < groupResults.size(); i++) {
             int finalI = i;
 
-            // Get the operatorToNext from the previous group
             PrerequisiteType operator = allCps.stream()
                     .filter(cp -> cp.getGroupId() == sortedGroupIds.get(finalI - 1) && cp.isParent())
                     .findFirst()
                     .map(CoursePrerequisite::getOperatorToNext)
-                    .orElse(PrerequisiteType.AND); // Default fallback
+                    .orElse(PrerequisiteType.AND);
 
             boolean nextResult = groupResults.get(i);
-
-            // Combine based on AND/OR between group results
             result = switch (operator) {
                 case AND -> result && nextResult;
                 case OR -> result || nextResult;
@@ -192,7 +190,4 @@ public class StudentService {
         return result;
     }
 }
-
-
-
 

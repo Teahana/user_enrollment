@@ -1,6 +1,8 @@
 package group7.enrollmentSystem.config;
 
 import group7.enrollmentSystem.helpers.JwtService;
+import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.repos.UserRepo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.io.IOException;
 import jakarta.servlet.FilterChain;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepo userRepo;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -41,7 +45,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Claims claims;
         try {
             claims = jwtService.parseToken(jwt);
-            System.out.println("JWT successfully parsed");
+            Date issuedAt = claims.getIssuedAt();
+            long now = System.currentTimeMillis();
+            long issuedAtMillis = issuedAt.getTime();
+            long threshHold = 15 * 60 * 1000;
+            if (now - issuedAtMillis >= threshHold) {
+                //Generate a new token with a new expiration
+                String username = claims.getSubject();
+                User user = userRepo.findByEmail(username).orElseThrow();
+                List<String> roles = claims.get("roles", List.class);
+                String newToken = jwtService.generateToken(user, 3600);
+                response.setHeader("X-New-Token", newToken);
+            }
+
+            // System.out.println("JWT successfully parsed");
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
           //  System.out.println("JWT expired: " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

@@ -591,7 +591,7 @@ public class CourseService {
                 .sorted(Comparator.comparingInt(CoursePrerequisite::getGroupId))
                 .map(CoursePrerequisite::getGroupId)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         Map<Integer, Set<Integer>> parentToChildGroupMap = new HashMap<>();
         for (CoursePrerequisite cp : prerequisites) {
@@ -645,7 +645,6 @@ public class CourseService {
             }
             return depth == 0;
         };
-
         // Recursive parser
         Function<String, String> parse = new Function<>() {
             @Override
@@ -675,16 +674,12 @@ public class CourseService {
                 return opNode;
             }
         };
-
         // Root
-        String root = getNode.apply(courseCode + "\n(Main Course)");
+        String root = getNode.apply(courseCode + " (Main Course)");
         String body = parse.apply(expression);
         edges.add(root + " --> " + body);
-
         nodes.forEach(line -> sb.append(line).append("\n"));
         edges.forEach(line -> sb.append(line).append("\n"));
-
-
         return sb.toString();
     }
     private List<String> splitByTopLevel(String expr, String operator) {
@@ -730,5 +725,24 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+    public String flattenMermaid(String code) {
+        StringBuilder result = new StringBuilder();
+        boolean inQuotes = false;
+
+        for (int i = 0; i < code.length(); i++) {
+            char c = code.charAt(i);
+
+            if (c == '"') {
+                inQuotes = !inQuotes;
+                result.append(c);
+            } else if ((c == '\n' || c == '\r') && !inQuotes) {
+                result.append("; ");
+            } else {
+                result.append(c);
+            }
+        }
+
+        return result.toString();
+    }
 
 }

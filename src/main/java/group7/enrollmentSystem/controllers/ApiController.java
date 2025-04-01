@@ -1,10 +1,9 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.config.CustomErrorHandler;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
-import group7.enrollmentSystem.dtos.appDtos.UserDto;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
 import group7.enrollmentSystem.helpers.JwtService;
-import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
@@ -14,10 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 
 @RestController
@@ -34,53 +32,25 @@ public class ApiController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
-        User user = (User) auth.getPrincipal();
-        String token = jwtService.generateToken(user, 3600); // 1 hour
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+            User user = (User) auth.getPrincipal();
+            String token = jwtService.generateToken(user, 3600); // 1 hour
 
-        String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
+            String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
 
-        LoginResponse response = new LoginResponse(
-                user.getId(),
-                userType,
-                token
-        );
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/user")
-    public ResponseEntity<UserDto>  getAuthenticatedUser(Authentication auth) {
-        String email = auth.getName();
-        User user = userRepo.findByEmail(email).orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.notFound().build();
+            LoginResponse response = new LoginResponse(
+                    user.getId(),
+                    userType,
+                    token
+            );
+            return ResponseEntity.ok(response);
+        } catch (AuthenticationException e) {
+            throw new CustomErrorHandler.UserNotFoundException(request.getEmail());
         }
-        String fullName = user.getFirstName() + " " + user.getLastName();
-        String userType = user.getRoles().contains("ROLE_ADMIN") ? "admin" : "student";
-
-        String studentId = null;
-
-        // If student, fetch studentId
-        if (user instanceof Student student){
-            studentId = student.getStudentId();
-        } else {
-            // If not a student, return null or handle accordingly
-            studentId = null;
-        }
-        UserDto dto = new UserDto(
-                user.getId(),
-                fullName,
-                user.getEmail(),
-                userType,
-                studentId
-        );
-
-        return ResponseEntity.ok(dto);
     }
-
 
 
 }

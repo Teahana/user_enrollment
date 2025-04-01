@@ -40,4 +40,6 @@ public class CustomErrorController implements ErrorController {
 
         return "error-page";
     }
+
+
 }

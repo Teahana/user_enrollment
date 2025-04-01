@@ -1,5 +1,13 @@
 package group7.enrollmentSystem.dtos.appDtos
 
+data class StudentDto(
+    val studentId: String,
+    val studentName: String,
+    val email: String,
+    val programmeName: String,
+    val address: String,
+    val phoneNumber: String,
+)
 
 data class StudentFullAuditDto(
     val studentId: String,

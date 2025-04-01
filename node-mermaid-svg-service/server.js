@@ -79,7 +79,7 @@ app.post('/generate-svg', async (req, res) => {
     }
 });
 
-// Graceful shutdown
+// shutdown
 const shutdown = async () => {
     console.log("Shutting down Puppeteer...");
     if (browser) await browser.close();

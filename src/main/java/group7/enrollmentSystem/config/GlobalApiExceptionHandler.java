@@ -46,14 +46,14 @@ public class GlobalApiExceptionHandler {
     }
 
     //handles student not found error
-    @ExceptionHandler(CustomErrorHandler.StudentNotFoundException.class)
-    public ResponseEntity<ErrorResponseDTO> handleStudentNotFound(CustomErrorHandler.StudentNotFoundException e) {
+    @ExceptionHandler(CustomExceptions.StudentNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleStudentNotFound(CustomExceptions.StudentNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDTO(e.getMessage(), 404));
     }
     //handles user not found error
-    @ExceptionHandler(CustomErrorHandler.UserNotFoundException.class)
-    public ResponseEntity<ErrorResponseDTO> handleUserNotFound(CustomErrorHandler.UserNotFoundException e) {
+    @ExceptionHandler(CustomExceptions.UserNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleUserNotFound(CustomExceptions.UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDTO(e.getMessage(), 404));
     }

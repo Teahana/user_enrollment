@@ -1,6 +1,6 @@
 package group7.enrollmentSystem.config;
 
-public class CustomErrorHandler {
+public class CustomExceptions {
 
     // Custom error handling logic can be added here
     // For example, you can log the error details or send notifications

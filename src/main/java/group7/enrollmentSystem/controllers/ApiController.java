@@ -1,6 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.config.CustomErrorHandler;
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
 import group7.enrollmentSystem.helpers.JwtService;
@@ -48,7 +48,7 @@ public class ApiController {
             );
             return ResponseEntity.ok(response);
         } catch (AuthenticationException e) {
-            throw new CustomErrorHandler.UserNotFoundException(request.getEmail());
+            throw new CustomExceptions.UserNotFoundException(request.getEmail());
         }
     }
 

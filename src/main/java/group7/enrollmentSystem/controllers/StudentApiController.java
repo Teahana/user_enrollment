@@ -1,7 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
-import group7.enrollmentSystem.config.CustomErrorHandler;
-import group7.enrollmentSystem.config.GlobalApiExceptionHandler;
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.appDtos.StudentDto;
 import group7.enrollmentSystem.helpers.JwtService;
@@ -74,7 +73,7 @@ public class StudentApiController {
     public ResponseEntity<StudentDto> getStudentDetails(Authentication auth) {
         String email = auth.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(()
-                -> new CustomErrorHandler.StudentNotFoundException(email));
+                -> new CustomExceptions.StudentNotFoundException(email));
         Programme programme = studentProgrammeService.getStudentProgramme(student);
         if (student == null) {
             return ResponseEntity.notFound().build();
@@ -130,7 +129,7 @@ public class StudentApiController {
     public ResponseEntity<?> getStudentAudit(Authentication auth) {
         String email = auth.getName();
         Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new CustomErrorHandler.StudentNotFoundException(email));
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
 
         try {
             return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(student.getStudentId()));

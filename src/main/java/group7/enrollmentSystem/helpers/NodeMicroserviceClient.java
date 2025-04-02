@@ -17,7 +17,7 @@ public class NodeMicroserviceClient {
     @PostConstruct
     public void startNodeServer() {
         try {
-            ProcessBuilder pb = new ProcessBuilder("node", "node-mermaid-svg-service/server.js");
+            ProcessBuilder pb = new ProcessBuilder("./start-node.sh");
             pb.directory(new File(System.getProperty("user.dir")));
             pb.redirectErrorStream(true);
             nodeProcess = pb.start();
@@ -43,37 +43,6 @@ public class NodeMicroserviceClient {
     public void stopNodeServer() {
         if (nodeProcess != null && nodeProcess.isAlive()) {
             nodeProcess.destroy();
-        }
-    }
-
-    public String generateSvg(String mermaidCode) {
-        try {
-            URL url = new URL(serviceUrl);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Content-Type", "application/json");
-            con.setDoOutput(true);
-
-            String jsonInput = String.format("{\"code\": \"%s\"}", mermaidCode.replace("\"", "\\\""));
-
-            try (OutputStream os = con.getOutputStream()) {
-                byte[] input = jsonInput.getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
-
-            try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(con.getInputStream(), "utf-8"))) {
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line.trim());
-                }
-                return response.toString(); // SVG XML string
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "<svg><text x='10' y='20'>Error rendering diagram</text></svg>";
         }
     }
 }

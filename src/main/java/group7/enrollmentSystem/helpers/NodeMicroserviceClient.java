@@ -17,12 +17,21 @@ public class NodeMicroserviceClient {
     @PostConstruct
     public void startNodeServer() {
         try {
-            ProcessBuilder pb = new ProcessBuilder("./start-node.sh");
+            String os = System.getProperty("os.name").toLowerCase();
+            ProcessBuilder pb;
+
+            if (os.contains("win")) {
+                // On Windows - run Node directly (bypass .sh entirely)
+                pb = new ProcessBuilder("node", "node-mermaid-svg-service/server.js");
+            } else {
+                // On Linux/Mac - run the shell script
+                pb = new ProcessBuilder("./start-node.sh");
+            }
+
             pb.directory(new File(System.getProperty("user.dir")));
             pb.redirectErrorStream(true);
             nodeProcess = pb.start();
 
-            //log output for debugging
             new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(nodeProcess.getInputStream()))) {
                     String line;
@@ -38,6 +47,7 @@ public class NodeMicroserviceClient {
             throw new RuntimeException("Failed to start Node.js microservice", e);
         }
     }
+
 
     @PreDestroy
     public void stopNodeServer() {

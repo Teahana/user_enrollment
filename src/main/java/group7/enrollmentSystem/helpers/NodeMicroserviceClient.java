@@ -26,8 +26,7 @@ public class NodeMicroserviceClient {
                 pb.directory(new File(System.getProperty("user.dir")));
             } else {
                 // On Linux
-                pb = new ProcessBuilder("./start-node.sh");
-                pb.directory(new File(System.getProperty("user.dir") + "/node-mermaid-svg-service"));
+                pb = new ProcessBuilder("/home/teahana/enrollment-system/enrollmentSystem/user_enrollment/node-mermaid-svg-service/start-node.sh");
 
             }
 

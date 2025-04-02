@@ -1,10 +1,18 @@
 #!/bin/bash
+# Make sure to use LF (not CRLF) if editing on Windows
 
-# Load nvm and use Node
+echo "✅ Running start-node.sh"
+
+# Load NVM and use Node 16 (or whatever version you installed)
 export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"
-nvm use default
+nvm use 16
 
-# Navigate to your service and run it
-cd "$HOME/node-mermaid-svg-service"
+# Navigate to this script’s directory
+cd "$(dirname "$0")" || exit 1
+
+# Print working directory for debug
+echo "🗂 Current directory: $(pwd)"
+
+# Run the Node server
 node server.js

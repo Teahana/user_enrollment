@@ -23,12 +23,14 @@ public class NodeMicroserviceClient {
             if (os.contains("win")) {
                 // On Windows - run Node directly (bypass .sh entirely)
                 pb = new ProcessBuilder("node", "node-mermaid-svg-service/server.js");
+                pb.directory(new File(System.getProperty("user.dir")));
             } else {
-                // On Linux/Mac - run the shell script
+                // On Linux
                 pb = new ProcessBuilder("./start-node.sh");
+                pb.directory(new File(System.getProperty("user.dir") + "/node-mermaid-svg-service"));
+
             }
 
-            pb.directory(new File(System.getProperty("user.dir")));
             pb.redirectErrorStream(true);
             nodeProcess = pb.start();
 

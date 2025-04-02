@@ -3,7 +3,7 @@
 
 echo "✅ Running start-node.sh"
 
-# Load NVM and use Node 16 (or whatever version you installed)
+# Load NVM and use Node 
 export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"
 nvm use 16

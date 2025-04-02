@@ -2,10 +2,7 @@ package group7.enrollmentSystem.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
-import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteRequest;
-import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteDTO;
-import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest;
-import group7.enrollmentSystem.dtos.classDtos.GraphicalPrerequisiteNode;
+import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.dtos.interfaceDtos.ProgrammeIdAndCode;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
@@ -24,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -44,6 +42,12 @@ public class AdminApiController {
     public ResponseEntity<?> someEndpoint() {
         someFunction();
         return ResponseEntity.ok(Map.of("message", "Success"));
+    }
+    @PostMapping("/getCourses")
+    public ResponseEntity<?> getCourses() {
+        List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
+        courseDtos.sort(Comparator.comparing(CourseDto::getLevel));
+        return ResponseEntity.ok(courseDtos);
     }
     @PostMapping("/tokenLogin")
     public ResponseEntity<?> tokenLogin(Authentication authentication) {

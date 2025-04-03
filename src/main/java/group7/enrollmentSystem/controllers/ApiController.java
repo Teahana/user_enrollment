@@ -57,7 +57,6 @@ public class ApiController {
             throw new CustomExceptions.UserNotFoundException(request.getEmail());
         }
     }
-
     @PostMapping(value = "/generate", produces = "image/svg+xml")
     public ResponseEntity<byte[]> generateSvg(@RequestBody Map<String, Long> payload) {
         String code = courseService.getMermaidDiagramForCourse(payload.get("courseId"));

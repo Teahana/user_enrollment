@@ -4,6 +4,7 @@ import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
 import group7.enrollmentSystem.helpers.JwtService;
+import group7.enrollmentSystem.helpers.NodeMicroserviceClient;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
@@ -33,8 +34,7 @@ public class ApiController {
     private final CourseService courseService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final String nodeServiceUrl = "http://localhost:3001/generate-svg";
+    private final NodeMicroserviceClient nodeClient;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
@@ -59,34 +59,16 @@ public class ApiController {
     }
     @PostMapping(value = "/generate", produces = "image/svg+xml")
     public ResponseEntity<byte[]> generateSvg(@RequestBody Map<String, Long> payload) {
-        String code = courseService.getMermaidDiagramForCourse(payload.get("courseId"));
-        if (code == null || code.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("<svg><text x='10' y='20'>Code is missing</text></svg>".getBytes(StandardCharsets.UTF_8));
-        }
-        // Replace all newlines inside the Mermaid code to flatten it
-        code = code.replace("\n", "; ").replace("\r", "");
+        byte[] svgBytes = nodeClient.generateSvg(payload.get("courseId"));
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(MediaType.valueOf("image/svg+xml"));
+        return new ResponseEntity<>(svgBytes, headers, HttpStatus.OK);
+    }
 
-        Map<String, String> jsonMap = Map.of("code", code);
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(jsonMap, headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.postForEntity(nodeServiceUrl, request, String.class);
-            if (response.getBody() == null) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("<svg><text x='10' y='20'>Empty response</text></svg>".getBytes(StandardCharsets.UTF_8));
-            }
-
-            byte[] svgBytes = response.getBody().getBytes(StandardCharsets.UTF_8);
-            return ResponseEntity.ok()
-                    .contentType(MediaType.valueOf("image/svg+xml"))
-                    .body(svgBytes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("<svg><text x='10' y='20'>Error generating diagram</text></svg>".getBytes(StandardCharsets.UTF_8));
-        }
+    @GetMapping("/ping")
+    public ResponseEntity<String> pingNodeService() {
+        String pingResult = nodeClient.pingNodeService();
+        return ResponseEntity.ok(pingResult);
     }
 
 }

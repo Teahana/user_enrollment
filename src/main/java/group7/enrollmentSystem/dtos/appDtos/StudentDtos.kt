@@ -27,5 +27,6 @@ data class CourseAuditDto(
 )
 
 data class EnrollCourseRequest(
-    val selectedCourses: List<String>
+    val selectedCourses: List<String>?,
+    val userId: Long
 )

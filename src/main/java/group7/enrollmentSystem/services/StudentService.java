@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.services;
 
+import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
@@ -8,6 +9,7 @@ import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -102,7 +104,7 @@ public class StudentService {
         List<Boolean> conditions = new ArrayList<>();
 
         for (CoursePrerequisite cp : groupEntries) {
-            // ✅ Handle special prerequisites
+            // Handle special prerequisites
             if (cp.isSpecial()) {
                 if (cp.getSpecialType() == SpecialPrerequisiteType.ADMISSION_PROGRAMME) {
                     if (cp.getProgramme() != null && cp.getProgramme().getId().equals(studentProgramme.getId())) {
@@ -189,5 +191,71 @@ public class StudentService {
 
         return result;
     }
+
+    public void enrollStudent(EnrollCourseRequest request) {
+        Optional<Student> optionalStudent = studentRepo.findById(request.getUserId());
+        if(!optionalStudent.isPresent()) {
+            throw new RuntimeException("Student not found with ID: " + request.getUserId());
+        }
+        Student student = optionalStudent.get();
+        Programme programme = studentProgrammeRepo.findStudentCurrentProgramme(student)
+                .orElseThrow(() -> new RuntimeException("Programme not found for student with ID: " + student.getId()));
+        int currentlyApplied = studentRepo.getCurrentlyAppliedByStudent(student);
+        if(request.getSelectedCourses() == null || request.getSelectedCourses().isEmpty()) {
+            throw new RuntimeException("No courses selected for enrollment.");
+        }
+        if(currentlyApplied + request.getSelectedCourses().size() > 4){
+            throw new RuntimeException("You have reached the maximum number of courses you can apply for (4).");
+        }
+        List<String> inEligibleCourseCodes = new ArrayList<>();
+        boolean isValid = validateEnrollmentRequest(student,programme,request.getSelectedCourses(),inEligibleCourseCodes);
+
+        if(isValid) {
+            int semester = enrollmentStateRepo.isSemesterOne() ? 1 : 2;
+            for (String courseCode : request.getSelectedCourses()) {
+                Course course = courseRepo.findByCourseCode(courseCode)
+                        .orElseThrow(() -> new RuntimeException("Course not found with code: " + courseCode));
+                CourseEnrollment enrollment = new CourseEnrollment();
+                enrollment.setStudent(student);
+                enrollment.setCourse(course);
+                enrollment.setCurrentlyTaking(true);
+                enrollment.setApplied(true);
+                enrollment.setDateEnrolled(LocalDate.now());
+                enrollment.setProgramme(programme);
+                enrollment.setSemesterEnrolled(semester);
+                courseEnrollmentRepo.save(enrollment);
+            }
+        } else {
+            String inEligibleCourseCode = inEligibleCourseCodes.getFirst();
+            throw new RuntimeException("You are not eligible to enroll in " + inEligibleCourseCode + ". Please check the prerequisites.");
+        }
+
+    }
+
+    private boolean validateEnrollmentRequest(Student student,Programme programme, List<String> selectedCourses, List<String> inEligibleCourseCodes) {
+        // Retrieve courses by course codes.
+        List<Course> courses = courseRepo.findByCourseCodeIn(selectedCourses);
+
+        // Check if all selected courses were found.
+        if (courses.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses could not be found.");
+        }
+
+        // Get all course IDs for the student's programme.
+        List<Long> courseIdsForProgramme = courseProgrammeRepo.getCourseIdsByProgramme(programme);
+
+        // Get the student's completed courses.
+        List<Long> completedCourseIds = courseEnrollmentRepo.getCompletedCourseIdsByStudent(student);
+
+        // Check prerequisites for each selected course.
+        for (Course course : courses) {
+            if (!isEligibleForCourse(course.getId(), completedCourseIds, programme, courseIdsForProgramme)) {
+                inEligibleCourseCodes.add(course.getCourseCode());
+                return false;
+            }
+        }
+        return true;
+    }
+
 }
 

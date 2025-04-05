@@ -150,47 +150,9 @@ public class StudentApiController {
 
 
     @PostMapping("/enrollCourses")
-    public ResponseEntity<?> enrollCourses(@RequestBody EnrollCourseRequest request, Authentication auth) {
-        if (request.getSelectedCourses() == null || request.getSelectedCourses().isEmpty()) {
-            return ResponseEntity.badRequest().body("No courses selected.");
-        }
-
-        String email = auth.getName();
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
-        int semester = enrollmentState.isSemesterOne() ? 1 : 2;
-
-        int currentCount = courseEnrollmentRepo
-                .countByStudentAndSemesterEnrolledAndCurrentlyTakingIsTrue(student, semester);
-
-        int totalIfAdded = currentCount + request.getSelectedCourses().size();
-        if (totalIfAdded > 4) {
-            return ResponseEntity.badRequest().body(
-                    "You cannot enroll in more than 4 courses this semester. " +
-                            "Already taking: " + currentCount + ", tried to add: " + request.getSelectedCourses().size()
-            );
-        }
-
-        List<CourseEnrollment> enrollments = new ArrayList<>();
-        for (String courseCode : request.getSelectedCourses()) {
-            Course course = courseRepo.findByCourseCode(courseCode)
-                    .orElseThrow(() -> new RuntimeException("Course not found: " + courseCode));
-
-            CourseEnrollment e = new CourseEnrollment();
-            e.setStudent(student);
-            e.setCourse(course);
-            e.setSemesterEnrolled(semester);
-            e.setCurrentlyTaking(true);
-            e.setCompleted(false);
-
-            enrollments.add(e);
-        }
-
-        courseEnrollmentRepo.saveAll(enrollments);
-        return ResponseEntity.ok("Enrolled in " + enrollments.size() + " course(s).");
+    public ResponseEntity<?> enrollCourses(@RequestBody EnrollCourseRequest request) {
+        studentService.enrollStudent(request);
+        return ResponseEntity.ok(Map.of("message", "Enrolled successfully"));
     }
 
 

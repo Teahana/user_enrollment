@@ -3,6 +3,7 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.EnrollmentState;
+import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.CourseRepo;
 import group7.enrollmentSystem.repos.EnrollmentStateRepo;
@@ -18,8 +19,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin")
@@ -121,7 +124,11 @@ public class AdminController {
     // Display all programmes
     @GetMapping("/programmes")
     public String getProgrammes(Model model) {
-        model.addAttribute("programmes", programmeRepo.findAll());
+        List<Programme> programmes = programmeService.getAllProgrammes();
+        if (programmes == null) {
+            return "redirect:/admin/dashboard";
+        }
+        model.addAttribute("programmes", programmes);
         model.addAttribute("programmeDto", new ProgrammeDto());
         return "programmes";
     }
@@ -137,6 +144,38 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/admin/programmes";
         }
+    }
+
+    @PostMapping("/deleteProgramme")
+    public String deleteProgramme (@ModelAttribute ProgrammeDto dto, RedirectAttributes redirectAttributes)
+    {
+
+        try {
+            String programmeCode = dto.getProgrammeCode();
+            programmeService.deleteProgramme(programmeCode);
+            redirectAttributes.addFlashAttribute("message", "Programme Deleted successfully.");
+            return "redirect:/admin/programmes";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/programmes";
+        }
+    }
+
+    @PostMapping("/updateProgramme")
+    public String updateProgramme(@ModelAttribute ProgrammeDto dto, RedirectAttributes redirectAttributes) {
+
+        try
+        {
+        String programmeCode = dto.getProgrammeCode();
+        String name = dto.getName();
+        String faculty = dto.getFaculty();
+
+        programmeService.updateProgramme(programmeCode, name, faculty);
+        return "redirect:/admin/programmes";
+    } catch (Exception e) {
+        redirectAttributes.addFlashAttribute("error", e.getMessage());
+        return "redirect:/admin/programmes";
+    }
     }
 
     // Link a course to a programme

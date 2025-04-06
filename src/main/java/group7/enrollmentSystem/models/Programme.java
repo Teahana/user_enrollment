@@ -24,6 +24,8 @@ public class Programme {
         this.name = name;
         this.faculty = faculty;
     }
+    @OneToMany
+    private List<CourseProgramme> courseProgrammes;
 
 }
 

@@ -52,11 +52,13 @@ public class ProgrammeService {
         if (optionalProgramme.isPresent()) {
             Programme programme = optionalProgramme.get();
             programme.setName(name);
+            programme.setProgrammeCode(programmeCode);
             programme.setFaculty(faculty);
             programmeRepo.save(programme);
         } else {
-            throw new RuntimeException("Programme not found with programmecode: " + programmeCode);
+            throw new RuntimeException("Programme not found with programme code: " + programmeCode);
         }
+
     }
 
     // Delete a programme record

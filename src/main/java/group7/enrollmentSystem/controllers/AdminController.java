@@ -1,14 +1,12 @@
 package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
+import group7.enrollmentSystem.dtos.serverKtDtos.ProgrammesAndCoursesDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.EnrollmentState;
 import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.models.User;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.EnrollmentStateRepo;
-import group7.enrollmentSystem.repos.ProgrammeRepo;
-import group7.enrollmentSystem.repos.UserRepo;
+import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
@@ -36,6 +34,7 @@ public class AdminController {
     private final ProgrammeRepo programmeRepo;
     private final ProgrammeService programmeService;
     private final UserRepo userRepo;
+    private final CourseProgrammeRepo courseProgrammeRepo;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
@@ -126,9 +125,15 @@ public class AdminController {
     public String getProgrammes(Model model) {
         List<Programme> programmes = programmeService.getAllProgrammes();
         if (programmes == null) {
-            return "redirect:/admin/dashboard";
+            throw new RuntimeException("Programmes not found");
         }
-        model.addAttribute("programmes", programmes);
+        List<ProgrammesAndCoursesDto> data = new ArrayList<>();
+        for(Programme programme : programmes) {
+            List<Course> course = courseProgrammeRepo.findAllByProgramme(programme);
+            ProgrammesAndCoursesDto dto = new ProgrammesAndCoursesDto(programme, course);
+            data.add(dto);
+        }
+        model.addAttribute("programmes", data);
         model.addAttribute("programmeDto", new ProgrammeDto());
         return "programmes";
     }

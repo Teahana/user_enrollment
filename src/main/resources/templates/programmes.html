@@ -40,15 +40,14 @@
     </tr>
     </thead>
     <tbody>
-    <tr th:each="programme : ${programmes}">
-      <td th:text="${programme.programmeCode}"></td>
-      <td th:text="${programme.name}"></td>
-      <td th:text="${programme.faculty}"></td>
+    <tr th:each="dto : ${programmes}">
+      <td th:text="${dto.programmes.programmeCode}"></td>
+      <td th:text="${dto.programmes.name}"></td>
+      <td th:text="${dto.programmes.faculty}"></td>
       <td>
         <ul style="list-style-type: none; padding-left: 0;">
-          <li th:each="courseProgramme : ${programme.courseProgrammes}">
-            <span th:if="${courseProgramme.course != null}"
-                  th:text="${courseProgramme.course.courseCode + ' - ' + courseProgramme.course.title}"></span>
+          <li th:each="course : ${dto.courses}">
+            <span th:text="${course.courseCode + ' - ' + course.title}"></span>
           </li>
         </ul>
       </td>
@@ -58,23 +57,23 @@
           <button class="btn btn-sm btn-secondary linkCourseBtn mb-1"
                   data-bs-toggle="modal"
                   data-bs-target="#linkCourseModal"
-                  th:data-programme-code="${programme.programmeCode}">
+                  th:data-programme-code="${dto.programmes.programmeCode}">
             Link Course
           </button>
 
-          <!-- Update Programme Button (triggers modal) -->
+          <!-- Update Programme Button -->
           <button class="btn btn-sm btn-info editProgrammeBtn mb-1"
                   data-bs-toggle="modal"
                   data-bs-target="#updateProgrammeModal"
-                  th:data-programme-code="${programme.programmeCode}"
-                  th:data-programme-name="${programme.name}"
-                  th:data-programme-faculty="${programme.faculty}">
+                  th:data-programme-code="${dto.programmes.programmeCode}"
+                  th:data-programme-name="${dto.programmes.name}"
+                  th:data-programme-faculty="${dto.programmes.faculty}">
             Update
           </button>
 
-          <!-- Delete Programme Button -->
+          <!-- Delete Programme Form -->
           <form th:action="@{/admin/deleteProgramme}" method="post">
-            <input type="hidden" name="programmeCode" th:value="${programme.programmeCode}" />
+            <input type="hidden" name="programmeCode" th:value="${dto.programmes.programmeCode}" />
             <button type="submit" class="btn btn-sm btn-danger mt-1"
                     onclick="return confirm('Are you sure you want to delete this programme?')">
               Delete

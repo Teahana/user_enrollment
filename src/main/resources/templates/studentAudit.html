@@ -90,7 +90,7 @@
         if (rawData) renderAuditTable(rawData);
     }
 
-    fetch(`/api/student/audit/${studentId}`)
+    fetch(`/student/audit`)
         .then(res => res.json())
         .then(data => {
             rawData = data;

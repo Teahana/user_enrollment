@@ -15,4 +15,6 @@ public interface StudentProgrammeRepo extends JpaRepository<StudentProgramme, Lo
     List<StudentProgramme> findByStudent_StudentId(String studentId);
     @Query("SELECT sp.programme FROM StudentProgramme sp WHERE sp.student = :student AND sp.currentProgramme = true")
     Optional<Programme> findStudentCurrentProgramme(Student student);
+
+    void deleteAllByProgramme(Programme programme);
 }

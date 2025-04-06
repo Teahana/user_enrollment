@@ -3,6 +3,7 @@ package group7.enrollmentSystem.repos;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CoursePrerequisite;
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto;
+import group7.enrollmentSystem.models.Programme;
 import org.antlr.v4.runtime.atn.SemanticContext;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +28,6 @@ public interface CoursePrerequisiteRepo extends JpaRepository<CoursePrerequisite
     void deleteByCourse(Course mainCourse);
     @Query("SELECT COUNT(cp) FROM CoursePrerequisite cp WHERE cp.course.id = :courseId")
     int getPrerequisiteCount(@Param("courseId") Long courseId);
+
+    void deleteAllByProgramme(Programme programme);
 }

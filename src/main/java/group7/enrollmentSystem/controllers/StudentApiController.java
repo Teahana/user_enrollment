@@ -95,10 +95,6 @@ public class StudentApiController {
     public ResponseEntity<String> getMermaidCode(@RequestBody Map<String, Long> request) {
         return ResponseEntity.ok(courseService.getMermaidDiagramForCourse(request.get("courseId")));
     }
-    @PostMapping("/getEligibleCourses")
-    public ResponseEntity<?> getEligibleCourses(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(studentService.getEligibleCourses(request.get("email")));
-    }
     @PostMapping("/givePass")
     public ResponseEntity<?> givePass(@RequestBody Map<String, Object> request) {
         try {
@@ -154,7 +150,10 @@ public class StudentApiController {
         studentService.enrollStudent(request);
         return ResponseEntity.ok(Map.of("message", "Enrolled successfully"));
     }
-
+    @PostMapping("/getEligibleCourses")
+    public ResponseEntity<?> getEligibleCourses(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(studentService.getEligibleCourses(request.get("email")));
+    }
 
 
 }

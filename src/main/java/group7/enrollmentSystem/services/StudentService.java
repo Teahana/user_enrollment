@@ -113,7 +113,7 @@ public class StudentService {
                         conditions.add(false); // not admitted to this programme
                     }
                 } else if (cp.getSpecialType() == SpecialPrerequisiteType.COMPLETION_LEVEL_PERCENT) {
-                    int level = cp.getTargetLevel();
+                    short level = cp.getTargetLevel();
                     double requiredPercent = cp.getPercentageValue();
 
                     List<Long> levelCourseIds = courseIdsForProgramme.stream()
@@ -125,12 +125,11 @@ public class StudentService {
 
                     long total = levelCourseIds.size();
                     long completed = levelCourseIds.stream().filter(completedCourseIds::contains).count();
-
+                    System.out.println("Total: " + total + ", Completed: " + completed + ", Required Percent: " + requiredPercent);
                     boolean met = total > 0 && ((double) completed / total) >= requiredPercent;
                     conditions.add(met);
                 }
-
-                continue; // skip normal logic if special handled
+                continue;// skip normal logic if special handled
             }
 
             // Skip if this prerequisite is program-specific and doesn't match

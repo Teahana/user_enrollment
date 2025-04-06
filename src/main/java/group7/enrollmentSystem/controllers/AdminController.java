@@ -171,11 +171,14 @@ public class AdminController {
         String faculty = dto.getFaculty();
 
         programmeService.updateProgramme(programmeCode, name, faculty);
+        redirectAttributes.addFlashAttribute("message", "Programme updated successfully.");
+
         return "redirect:/admin/programmes";
-    } catch (Exception e) {
-        redirectAttributes.addFlashAttribute("error", e.getMessage());
-        return "redirect:/admin/programmes";
-    }
+        }
+        catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/programmes";
+        }
     }
 
     // Link a course to a programme

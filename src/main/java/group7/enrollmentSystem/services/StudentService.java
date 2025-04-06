@@ -256,5 +256,10 @@ public class StudentService {
         return true;
     }
 
+    public Student getStudentByEmail(String email) {
+        return studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found with email: " + email));
+    }
+
 }
 

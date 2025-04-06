@@ -7,9 +7,6 @@ import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
-import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.EnrollmentStateRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -53,10 +48,6 @@ public class StudentApiController {
     }
 
     private final StudentRepo studentRepo;
-    private final CourseRepo courseRepo;
-    private final CourseEnrollmentRepo courseEnrollmentRepo;
-    private final EnrollmentStateRepo enrollmentStatusRepo;
-
 
     /**
      * Retrieves the details of the currently logged-in student.
@@ -124,9 +115,10 @@ public class StudentApiController {
     @PostMapping("/audit")
     public ResponseEntity<?> getStudentAudit(Authentication auth) {
         String email = auth.getName();
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
-
+        Student student = studentService.getStudentByEmail(email);
+        if (student == null) {
+            return ResponseEntity.notFound().build();
+        }
         try {
             return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(student.getStudentId()));
         } catch (Exception e) {

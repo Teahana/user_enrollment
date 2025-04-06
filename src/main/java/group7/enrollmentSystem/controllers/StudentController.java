@@ -3,13 +3,11 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
+import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
-import group7.enrollmentSystem.services.CourseEnrollmentService;
-import group7.enrollmentSystem.services.CourseService;
+import group7.enrollmentSystem.services.*;
 import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
-import group7.enrollmentSystem.services.StudentProgrammeService;
-import group7.enrollmentSystem.services.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,15 +31,14 @@ public class StudentController {
 
     private final CourseEnrollmentService courseEnrollmentService;
     private final StudentRepo studentRepo;
-    private final CourseProgrammeRepo courseProgrammeRepo;
     private final StudentProgrammeService studentProgrammeService;
-    private final CourseService courseService;
     private final EnrollmentStateRepo enrollmentStateRepo;
     private final CourseRepo courseRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final UserRepo userRepo;
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
     private final StudentService studentService;
+    private final StudentProgrammeAuditService auditService;
 
 
 
@@ -233,11 +230,11 @@ public class StudentController {
         User user = userRepo.findByEmail(email).orElse(null);
 
         if (user instanceof Student student) {
-            model.addAttribute("studentId", student.getStudentId());
-            model.addAttribute("studentName", student.getFirstName() + " " + student.getLastName());
+            StudentFullAuditDto auditDto = auditService.getFullAudit(student.getStudentId());
+            model.addAttribute("auditData", auditDto);
         }
 
-        return "studentAudit";
+        return "studentAudit"; // this maps to studentAudit.html in templates folder
     }
     @GetMapping("/invoice/download")
     public ResponseEntity<byte[]> downloadInvoice(Principal principal) throws Exception {

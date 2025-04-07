@@ -54,8 +54,6 @@ public class Student extends User {
     }
     @Override
     public boolean isEnabled() {
-        int trueCount = 0;
-        int falseCount = 0;
         for(OnHoldStatus onHoldStatus : onHoldStatusList){
             if(onHoldStatus.isOnHold()){
                 this.onHoldType = onHoldStatus.getOnHoldType();

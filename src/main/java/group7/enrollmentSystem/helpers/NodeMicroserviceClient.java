@@ -29,10 +29,6 @@ public class NodeMicroserviceClient {
     public NodeMicroserviceClient(CourseService courseService) {
         this.courseService = courseService;
     }
-
-    /**
-     * Starts the Node.js service on application startup.
-     */
     @PostConstruct
     public void startNodeServer() {
         try {
@@ -40,18 +36,34 @@ public class NodeMicroserviceClient {
             ProcessBuilder pb;
 
             if (os.contains("win")) {
-                // On Windows, run Node directly
-                pb = new ProcessBuilder("node", "node-mermaid-svg-service/server.js");
-                pb.directory(new File(System.getProperty("user.dir")));
+                System.out.println("[NodeService] Docker image check started. If building, this may take a minute...");
+
+                // Run the build script first to ensure image exists
+                new ProcessBuilder("bash", "mermaid/build-mermaid.sh")
+                        .inheritIO()
+                        .start()
+                        .waitFor();
+
+                // Then run Docker container
+                pb = new ProcessBuilder(
+                        "docker", "run", "--rm",
+                        "--name", "mermaid",
+                        "-p", "3001:3001",
+                        "mermaid"
+                );
             } else {
-                // On Linux
-                pb = new ProcessBuilder("/home/teahana/enrollment-system/enrollmentSystem/user_enrollment/node-mermaid-svg-service/start-node.sh");
+                // Linux server (Amazon EC2) - full path to Docker for safety
+                pb = new ProcessBuilder(
+                        "/usr/bin/docker", "run", "--rm",
+                        "--name", "mermaid",
+                        "-p", "3001:3001",
+                        "mermaid"
+                );
             }
 
             pb.redirectErrorStream(true);
             nodeProcess = pb.start();
 
-            // Log Node.js output
             new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(nodeProcess.getInputStream()))) {
                     String line;
@@ -63,20 +75,26 @@ public class NodeMicroserviceClient {
                 }
             }).start();
 
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to start Node.js microservice", e);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException("Failed to start Node.js Docker container", e);
         }
     }
 
-    /**
-     * Stops the Node.js service on application shutdown.
-     */
+
     @PreDestroy
     public void stopNodeServer() {
-        if (nodeProcess != null && nodeProcess.isAlive()) {
-            nodeProcess.destroy();
+        try {
+            String os = System.getProperty("os.name").toLowerCase();
+            ProcessBuilder pb = os.contains("win")
+                    ? new ProcessBuilder("docker", "stop", "mermaid")
+                    : new ProcessBuilder("/usr/bin/docker", "stop", "mermaid");
+
+            pb.start();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
+
 
     /**
      * Generates an SVG by fetching the Mermaid diagram code for the given course

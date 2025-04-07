@@ -35,9 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch("/api/admin/getSpecialTypes")
         .then(res => res.json())
         .then(data => {
-            // According to your endpoint, you may get something like:
             // { specialTypes: " [ADMISSION_PROGRAMME, COMPLETION_LEVEL_PERCENT]" }
-            // So we need to parse that string carefully.
             if (data.specialTypes) {
                 // e.g. " [ADMISSION_PROGRAMME, COMPLETION_LEVEL_PERCENT]"
                 // remove brackets and spaces:

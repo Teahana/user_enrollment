@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.models;
 
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -7,7 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.*;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -25,10 +26,24 @@ public class Student extends User {
     private String phoneNumber;
     private String address;
     private boolean feesPaid;
+    @OneToMany
+    private List<OnHoldStatus> onHoldStatusList;
+    @Enumerated(EnumType.STRING)
+    private OnHoldTypes onHoldType;
 
     public Student(String studentId, String firstName, String lastName, String address, String phoneNumber) {
         if("s11209521".equals(studentId)){
             this.feesPaid = true;
+        }
+        List<OnHoldTypes> onHoldTypesList = Arrays.asList(OnHoldTypes.values());
+        for(OnHoldTypes onHoldType : onHoldTypesList){
+            OnHoldStatus onHoldStatus = new OnHoldStatus();
+            onHoldStatus.setOnHoldType(onHoldType);
+            onHoldStatus.setOnHold(false);
+            if(OnHoldTypes.UNPAID_FEES.equals(onHoldType)){
+                onHoldStatus.setOnHold(true);
+            }
+            this.onHoldStatusList.add(onHoldStatus);
         }
         this.studentId = studentId;
         this.setFirstName(firstName);
@@ -39,6 +54,12 @@ public class Student extends User {
     }
     @Override
     public boolean isEnabled() {
-        return this.feesPaid;
+        for(OnHoldStatus onHoldStatus : onHoldStatusList){
+            if(onHoldStatus.isOnHold()){
+                this.onHoldType = onHoldStatus.getOnHoldType();
+                return false;
+            }
+        }
+        return true;
     }
 }

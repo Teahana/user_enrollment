@@ -1,6 +1,9 @@
 package group7.enrollmentSystem.config;
 
+import group7.enrollmentSystem.enums.OnHoldTypes;
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -19,6 +22,7 @@ import java.util.Optional;
 public class CustomAtuhenticationProvider implements AuthenticationProvider {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final StudentRepo studentRepo;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -34,6 +38,12 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
         }
 
         if(!user.isEnabled()){
+//            Student student = studentRepo.findById(user.getId())
+//                    .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));;
+//            OnHoldTypes onHoldType = student.getOnHoldType();
+            Student student = (Student) user;
+            System.out.println("student: " + student);
+
             throw new DisabledException("Unpaid fees");
         }
 

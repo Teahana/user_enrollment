@@ -38,19 +38,14 @@ public class NodeMicroserviceClient {
             if (os.contains("win")) {
                 System.out.println("[NodeService] Docker image check started. If building, this may take a minute...");
 
-                // Run the build script first to ensure image exists
-                new ProcessBuilder("bash", "mermaid/build-mermaid.sh")
+                String gitBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+
+                new ProcessBuilder(gitBashPath, "mermaid/build-mermaid.sh")
                         .inheritIO()
                         .start()
                         .waitFor();
 
-                // Then run Docker container
-                pb = new ProcessBuilder(
-                        "docker", "run", "--rm",
-                        "--name", "mermaid",
-                        "-p", "3001:3001",
-                        "mermaid"
-                );
+                pb = new ProcessBuilder("docker", "run", "--rm", "--name", "mermaid", "-p", "3001:3001", "mermaid");
             } else {
                 // Linux server (Amazon EC2) - full path to Docker for safety
                 pb = new ProcessBuilder(

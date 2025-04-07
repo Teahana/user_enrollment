@@ -1,5 +1,7 @@
 package group7.enrollmentSystem.config;
 
+import group7.enrollmentSystem.enums.OnHoldTypes;
+import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.UserRepo;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,9 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
         }
 
         if(!user.isEnabled()){
+            Student student = (Student) user;
+            OnHoldTypes onHoldType = student.getOnHoldType();
+
             throw new DisabledException("Unpaid fees");
         }
 

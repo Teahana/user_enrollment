@@ -35,16 +35,13 @@ public class Student extends User {
         if("s11209521".equals(studentId)){
             this.feesPaid = true;
         }
-        List<OnHoldTypes> onHoldTypesList = Arrays.asList(OnHoldTypes.values());
-        for(OnHoldTypes onHoldType : onHoldTypesList){
-            OnHoldStatus onHoldStatus = new OnHoldStatus();
-            onHoldStatus.setOnHoldType(onHoldType);
-            onHoldStatus.setOnHold(false);
-            if(OnHoldTypes.UNPAID_FEES.equals(onHoldType)){
-                onHoldStatus.setOnHold(true);
-            }
-            this.onHoldStatusList.add(onHoldStatus);
-        }
+//        List<OnHoldTypes> onHoldTypesList = Arrays.asList(OnHoldTypes.values());
+//        for(OnHoldTypes onHoldType : onHoldTypesList){
+//            OnHoldStatus onHoldStatus = new OnHoldStatus();
+//            onHoldStatus.setOnHoldType(onHoldType);
+//            onHoldStatus.setOnHold(false);
+//            this.onHoldStatusList.add(onHoldStatus);
+//        }
         this.studentId = studentId;
         this.setFirstName(firstName);
         this.setLastName(lastName);

@@ -78,6 +78,58 @@ app.post('/generate-svg', async (req, res) => {
         res.status(500).json({ error: 'Failed to render Mermaid diagram.' });
     }
 });
+app.post('/generate-svg-batch', async (req, res) => {
+    const { diagrams } = req.body;
+
+    if (!Array.isArray(diagrams)) {
+        return res.status(400).json({ error: "Expected a list of diagram objects." });
+    }
+
+    const results = [];
+
+    for (const { code, meta } of diagrams) {
+        if (!code) {
+            results.push({ meta, svg: "<svg><text x='10' y='20'>Missing code</text></svg>" });
+            continue;
+        }
+
+        try {
+            await page.goto('about:blank');
+            await page.setContent(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <script>${mermaidJs}</script>
+                </head>
+                <body>
+                  <div id="container">Loading...</div>
+                  <script>
+                    mermaid.initialize({ startOnLoad: false });
+                    const diagram = ${JSON.stringify(code)};
+                    mermaid.render("generated", diagram).then(({ svg }) => {
+                        document.getElementById("container").innerHTML = svg;
+                        window.__MERMAID_RENDERED__ = true;
+                    }).catch(err => {
+                        document.getElementById("container").innerHTML = "<svg><text x='10' y='20'>Render error</text></svg>";
+                        window.__MERMAID_RENDERED__ = true;
+                    });
+                  </script>
+                </body>
+                </html>
+            `, { waitUntil: 'networkidle0' });
+
+            await page.waitForFunction('window.__MERMAID_RENDERED__ === true');
+            const svg = await page.$eval('#container', el => el.innerHTML);
+
+            results.push({ meta, svg });
+        } catch (err) {
+            console.error("Error generating diagram:", err);
+            results.push({ meta, svg: "<svg><text x='10' y='20'>Render error</text></svg>" });
+        }
+    }
+
+    res.json(results);
+});
 
 // shutdown
 const shutdown = async () => {

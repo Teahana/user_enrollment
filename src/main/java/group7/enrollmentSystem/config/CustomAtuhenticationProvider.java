@@ -41,8 +41,8 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
 //            Student student = studentRepo.findById(user.getId())
 //                    .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));;
 //            OnHoldTypes onHoldType = student.getOnHoldType();
-            Student student = (Student) user;
-            System.out.println("student: " + student);
+//            Student student = (Student) user;
+//            System.out.println("student: " + student);
 
             throw new DisabledException("Unpaid fees");
         }

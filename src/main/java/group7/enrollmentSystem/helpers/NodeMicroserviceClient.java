@@ -47,7 +47,7 @@ public class NodeMicroserviceClient {
 
                 pb = new ProcessBuilder("docker", "run", "--rm", "--name", "mermaid", "-p", "3001:3001", "mermaid");
             } else {
-                // Linux server (Amazon EC2) - full path to Docker for safety
+                // Linux server (lightsail) - full path to Docker for safety
                 pb = new ProcessBuilder(
                         "/usr/bin/docker", "run", "--rm",
                         "--name", "mermaid",

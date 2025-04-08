@@ -49,6 +49,11 @@ public class AdminController {
         return "admin";
     }
 
+    @GetMapping("/holds")
+    public String showHoldManagementPage(Model model) {
+        return "studentHolds";
+    }
+
     @GetMapping("/courses")
     public String getCourses(Model model) {
         List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();

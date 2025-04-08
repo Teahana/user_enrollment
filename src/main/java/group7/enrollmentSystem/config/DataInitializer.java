@@ -144,7 +144,7 @@ public class DataInitializer implements CommandLineRunner {
         User admin = new User();
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(password));
-        admin.setRoles(Set.of("ROLE_ADMIN","ROLE_STUDENT"));
+        admin.setRoles(Set.of("ROLE_ADMIN"));
         admin.setFirstName(adminFirstName);
         admin.setLastName(adminLastName);
 

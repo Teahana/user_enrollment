@@ -9,7 +9,7 @@ data class StudentDto(
     val phoneNumber: String,
 )
 
-data class StudentFullAuditDto(
+data class StudentAuditDto(
     val studentId: String,
     val studentName: String,
     val programmeName: String,
@@ -21,9 +21,10 @@ data class CourseAuditDto(
     val courseId: Long,
     val courseTitle: String,
     val courseCode: String,
-    val isCurrentlyEnrolled: Boolean,
-    val level: Int,
-    val isCompleted: Boolean
+    val enrolled: Boolean,
+    val completed: Boolean,
+    val level: Int
+
 )
 
 data class EnrollCourseRequest(

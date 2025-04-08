@@ -3,6 +3,7 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.appDtos.StudentDto;
+import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
@@ -116,11 +117,13 @@ public class StudentApiController {
     public ResponseEntity<?> getStudentAudit(Authentication auth) {
         String email = auth.getName();
         Student student = studentService.getStudentByEmail(email);
+        studentProgrammeAuditService.getFullAudit(student.getStudentId());
         if (student == null) {
             return ResponseEntity.notFound().build();
         }
+        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
         try {
-            return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(student.getStudentId()));
+            return ResponseEntity.ok(auditDto);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("message", "Failed to retrieve programme audit.");

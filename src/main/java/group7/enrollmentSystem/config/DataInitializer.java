@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.config;
 
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.StudentProgrammeService;
@@ -36,12 +37,14 @@ public class DataInitializer implements CommandLineRunner {
     private final EnrollmentStateRepo enrollmentStateRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final StudentProgrammeRepo studentProgrammeRepo;
+    private final StudentHoldHistoryRepo studentHoldHistoryRepo;
 
     @Override
     public void run(String... args) {
         initializeCourseEnrollmentStatus();
         initializeAdminUser();
         initializeStudents();
+        initializeStudentHolds();
         initializeCourses();
         initializeProgrammes();         // Now BSE & BNS
         initializeCourseProgrammes();   // Link BSE & BNS
@@ -175,6 +178,52 @@ public class DataInitializer implements CommandLineRunner {
 
             studentRepo.save(student);
             System.out.println("Registered student: " + email);
+        });
+    }
+
+    // --------------------------------------------------------------
+    //  4) Student Holds
+    // --------------------------------------------------------------
+    private void initializeStudentHolds() {
+        if (studentHoldHistoryRepo.count() > 0) {
+            System.out.println("Student holds already initialized. Skipping.");
+            return;
+        }
+
+        // Initialize hold for s11212749 (UNPAID_FEES)
+        studentRepo.findByStudentId("s11212749").ifPresent(student -> {
+            OnHoldStatus unpaidFeeStatus = new OnHoldStatus();
+            unpaidFeeStatus.setOnHoldType(OnHoldTypes.UNPAID_FEES);
+            unpaidFeeStatus.setOnHold(true);
+            student.getOnHoldStatusList().add(unpaidFeeStatus);
+            studentRepo.save(student);
+
+            // Record in history
+            StudentHoldHistory history = StudentHoldHistory.create(
+                    student.getId(),
+                    OnHoldTypes.UNPAID_FEES,
+                    true
+            );
+            studentHoldHistoryRepo.save(history);
+            System.out.println(student.getStudentId() + " Hold initialized");
+        });
+
+        // Initialize hold for s11212750 (DISCIPLINARY_ISSUES)
+        studentRepo.findByStudentId("s11212750").ifPresent(student -> {
+            OnHoldStatus disciplinaryStatus = new OnHoldStatus();
+            disciplinaryStatus.setOnHoldType(OnHoldTypes.DISCIPLINARY_ISSUES);
+            disciplinaryStatus.setOnHold(true);
+            student.getOnHoldStatusList().add(disciplinaryStatus);
+            studentRepo.save(student);
+
+            // Record in history
+            StudentHoldHistory history = StudentHoldHistory.create(
+                    student.getId(),
+                    OnHoldTypes.DISCIPLINARY_ISSUES,
+                    true
+            );
+            studentHoldHistoryRepo.save(history);
+            System.out.println(student.getStudentId() + " Hold initialized");
         });
     }
 

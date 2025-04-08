@@ -2,12 +2,15 @@ package group7.enrollmentSystem.models;
 
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import jakarta.persistence.*;
-import lombok.Data;
+        import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+<<<<<<< Updated upstream
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
+=======
+>>>>>>> Stashed changes
 import java.util.*;
 
 @EqualsAndHashCode(callSuper = true)
@@ -25,6 +28,7 @@ public class Student extends User {
     private String studentId;
     private String phoneNumber;
     private String address;
+<<<<<<< Updated upstream
     private boolean feesPaid;
     @OneToMany
     private List<OnHoldStatus> onHoldStatusList;
@@ -42,6 +46,13 @@ public class Student extends User {
 //            onHoldStatus.setOnHold(false);
 //            this.onHoldStatusList.add(onHoldStatus);
 //        }
+=======
+
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OnHoldStatus> onHoldStatusList = new ArrayList<>();
+
+    public Student(String studentId, String firstName, String lastName, String address, String phoneNumber) {
+>>>>>>> Stashed changes
         this.studentId = studentId;
         this.setFirstName(firstName);
         this.setLastName(lastName);
@@ -51,6 +62,7 @@ public class Student extends User {
     }
     @Override
     public boolean isEnabled() {
+<<<<<<< Updated upstream
 //        for(OnHoldStatus onHoldStatus : onHoldStatusList){
 //            if(onHoldStatus.isOnHold()){
 //                this.onHoldType = onHoldStatus.getOnHoldType();
@@ -59,5 +71,16 @@ public class Student extends User {
 //        }
  //       return true;
         return feesPaid;
+=======
+        return onHoldStatusList.stream().noneMatch(OnHoldStatus::isOnHold);
+>>>>>>> Stashed changes
+    }
+
+    public Optional<OnHoldStatus> getActiveHold() {
+        return onHoldStatusList.stream()
+                .filter(h -> {
+                    return h.isOnHold();
+                })
+                .findFirst();
     }
 }

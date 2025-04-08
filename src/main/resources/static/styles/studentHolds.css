@@ -1,0 +1,155 @@
+/* Student Holds Management Page Styles */
+.container {
+    max-width: 100%;
+    padding: 0 2rem;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.card-body {
+    padding: 0;
+}
+
+#studentsTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+}
+
+#studentsTable thead th {
+    background-color: #343a40;
+    color: white;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+
+#studentsTable tbody tr {
+    background-color: white;
+    transition: background-color 0.2s;
+}
+
+#studentsTable tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+#studentsTable tbody tr:hover {
+    background-color: #e9ecef;
+}
+
+#studentsTable td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+    white-space: nowrap;
+}
+
+#studentsTable .badge {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 0.25rem;
+}
+
+#studentsTable .btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+    min-width: 110px;
+}
+
+.alert {
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.modal-content {
+    border-radius: 0.5rem;
+}
+
+.form-select, .form-control {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .container {
+        padding: 0 1rem;
+    }
+
+    #studentsTable td, #studentsTable th {
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    #studentsTable {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    #studentsTable td {
+        white-space: normal;
+    }
+}
+
+/* Hold History Section */
+#holdHistorySection {
+    margin-top: 2rem;
+}
+
+#holdHistoryTable {
+    width: 100%;
+}
+
+#holdHistoryTable th {
+    background-color: #f8f9fa;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+#holdHistoryTable td {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+#studentFilter {
+    max-width: 300px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    #holdHistoryTable th, #holdHistoryTable td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #studentFilter {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}

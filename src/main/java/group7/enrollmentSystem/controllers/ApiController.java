@@ -54,7 +54,7 @@ public class ApiController {
         }
     }
 
-    @PostMapping("/generate-batch")
+    @PostMapping("/generateSvgBatch")
     public ResponseEntity<?> generateBatchSvg(@RequestBody Map<String, List<Long>> request) {
         List<Long> courseIds = request.get("courseIds");
         List<CourseIdsResponse> response = new ArrayList<>();
@@ -67,6 +67,15 @@ public class ApiController {
             response.add(new CourseIdsResponse(id, code));
         }
         return ResponseEntity.ok(response);
+    }
+    @PostMapping("/generateSvg")
+    public ResponseEntity<?> generateSvg(@RequestBody Map<String, String> request) {
+        String code = courseService.getMermaidDiagramForCourse(Long.parseLong(request.get("courseId")));
+        if (code == null || code.trim().isEmpty()) {
+            code = "graph TD; A[Code missing] --> B[Course ID: " + request.get("courseId") + "]";
+        }
+        code = code.replace("\n", "; ").replace("\r", "");
+        return ResponseEntity.ok(code);
     }
 
 }

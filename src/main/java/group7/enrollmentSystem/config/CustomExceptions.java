@@ -1,11 +1,9 @@
 package group7.enrollmentSystem.config;
 
-<<<<<<< Updated upstream
-=======
+
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import org.springframework.security.authentication.DisabledException;
 
->>>>>>> Stashed changes
 public class CustomExceptions {
 
     // Custom error handling logic can be added here
@@ -14,8 +12,6 @@ public class CustomExceptions {
     // You can also create custom exception classes for specific error scenarios
     // and handle them in this class if needed
 
-<<<<<<< Updated upstream
-=======
     public static class StudentOnHoldException extends DisabledException {
         private final OnHoldTypes holdType;
 
@@ -41,7 +37,6 @@ public class CustomExceptions {
             };
         }
     }
->>>>>>> Stashed changes
 
     public static class StudentNotFoundException extends RuntimeException {
         public StudentNotFoundException(String email) {

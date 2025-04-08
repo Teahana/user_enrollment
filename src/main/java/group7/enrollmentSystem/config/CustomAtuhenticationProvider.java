@@ -1,10 +1,9 @@
 package group7.enrollmentSystem.config;
 
 import group7.enrollmentSystem.enums.OnHoldTypes;
-<<<<<<< Updated upstream
-=======
+
 import group7.enrollmentSystem.models.OnHoldStatus;
->>>>>>> Stashed changes
+
 import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.StudentRepo;
@@ -44,15 +43,7 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
         }
 
         if(!user.isEnabled()){
-<<<<<<< Updated upstream
-//            Student student = studentRepo.findById(user.getId())
-//                    .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));;
-//            OnHoldTypes onHoldType = student.getOnHoldType();
-//            Student student = (Student) user;
-//            System.out.println("student: " + student);
 
-            throw new DisabledException("Unpaid fees");
-=======
             if (user instanceof Student) {
                 Student student = (Student) user;
                 Optional<OnHoldStatus> activeHold = student.getActiveHold();
@@ -61,7 +52,6 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
                 }
             }
             throw new DisabledException("Your account is disabled.");
->>>>>>> Stashed changes
         }
 
         return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());

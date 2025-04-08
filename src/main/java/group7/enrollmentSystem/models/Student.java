@@ -5,12 +5,7 @@ import jakarta.persistence.*;
         import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-<<<<<<< Updated upstream
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serializable;
-=======
->>>>>>> Stashed changes
 import java.util.*;
 
 @EqualsAndHashCode(callSuper = true)
@@ -28,31 +23,11 @@ public class Student extends User {
     private String studentId;
     private String phoneNumber;
     private String address;
-<<<<<<< Updated upstream
-    private boolean feesPaid;
-    @OneToMany
-    private List<OnHoldStatus> onHoldStatusList;
-    @Enumerated(EnumType.STRING)
-    private OnHoldTypes onHoldType;
-
-    public Student(String studentId, String firstName, String lastName, String address, String phoneNumber) {
-        if("s11209521".equals(studentId)){
-            this.feesPaid = true;
-        }
-//        List<OnHoldTypes> onHoldTypesList = Arrays.asList(OnHoldTypes.values());
-//        for(OnHoldTypes onHoldType : onHoldTypesList){
-//            OnHoldStatus onHoldStatus = new OnHoldStatus();
-//            onHoldStatus.setOnHoldType(onHoldType);
-//            onHoldStatus.setOnHold(false);
-//            this.onHoldStatusList.add(onHoldStatus);
-//        }
-=======
 
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OnHoldStatus> onHoldStatusList = new ArrayList<>();
 
     public Student(String studentId, String firstName, String lastName, String address, String phoneNumber) {
->>>>>>> Stashed changes
         this.studentId = studentId;
         this.setFirstName(firstName);
         this.setLastName(lastName);
@@ -62,18 +37,7 @@ public class Student extends User {
     }
     @Override
     public boolean isEnabled() {
-<<<<<<< Updated upstream
-//        for(OnHoldStatus onHoldStatus : onHoldStatusList){
-//            if(onHoldStatus.isOnHold()){
-//                this.onHoldType = onHoldStatus.getOnHoldType();
-//                return false;
-//            }
-//        }
- //       return true;
-        return feesPaid;
-=======
         return onHoldStatusList.stream().noneMatch(OnHoldStatus::isOnHold);
->>>>>>> Stashed changes
     }
 
     public Optional<OnHoldStatus> getActiveHold() {

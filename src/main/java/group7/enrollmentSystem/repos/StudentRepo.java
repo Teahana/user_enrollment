@@ -18,14 +18,11 @@ public interface StudentRepo extends JpaRepository<Student, Long> {
 
     @Query("SELECT COUNT(e) FROM CourseEnrollment e WHERE e.student = :student AND e.applied = true")
     int getCurrentlyAppliedByStudent(Student student);
-<<<<<<< Updated upstream
-=======
-
     @Query("SELECT new group7.enrollmentSystem.dtos.classDtos.StudentHoldDto(" +
             "s.id, s.email, s.firstName, s.lastName, s.studentId, " +
             "CASE WHEN (EXISTS (SELECT 1 FROM s.onHoldStatusList h WHERE h.onHold = true)) THEN true ELSE false END, " +
             "(SELECT h.onHoldType FROM s.onHoldStatusList h WHERE h.onHold = true)) " +
             "FROM Student s")
     List<StudentHoldDto> findAllStudentsWithHoldStatus();
->>>>>>> Stashed changes
+
 }

@@ -59,7 +59,7 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         String dbUser = "root";
-        String dbPassword = "12345";
+        String dbPassword = "tinodaman08";
         String dbName = "enrollment_database";
         String mysqlBinary = "mysql";
 

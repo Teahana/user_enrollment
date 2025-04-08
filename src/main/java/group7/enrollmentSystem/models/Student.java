@@ -54,12 +54,13 @@ public class Student extends User {
     }
     @Override
     public boolean isEnabled() {
-        for(OnHoldStatus onHoldStatus : onHoldStatusList){
-            if(onHoldStatus.isOnHold()){
-                this.onHoldType = onHoldStatus.getOnHoldType();
-                return false;
-            }
-        }
-        return true;
+//        for(OnHoldStatus onHoldStatus : onHoldStatusList){
+//            if(onHoldStatus.isOnHold()){
+//                this.onHoldType = onHoldStatus.getOnHoldType();
+//                return false;
+//            }
+//        }
+ //       return true;
+        return feesPaid;
     }
 }

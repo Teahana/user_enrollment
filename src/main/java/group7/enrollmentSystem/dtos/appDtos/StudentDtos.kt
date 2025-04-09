@@ -22,7 +22,7 @@ data class StudentAuditDto(
 
 data class CourseAuditDto(
     val id: Long,
-    val courseTitle: String,
+    val title: String,
     val courseCode: String,
     val enrolled: Boolean,
     val completed: Boolean,

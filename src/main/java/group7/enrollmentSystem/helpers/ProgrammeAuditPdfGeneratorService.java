@@ -53,7 +53,6 @@ public class ProgrammeAuditPdfGeneratorService {
         document.close();
         return out.toByteArray();
     }
-
     private void addAuditSection(Document document, String sectionTitle, List<CourseAuditDto> courses, Font headerFont, Font normalFont) throws DocumentException {
         document.add(new Paragraph(sectionTitle, headerFont));
 
@@ -69,10 +68,30 @@ public class ProgrammeAuditPdfGeneratorService {
             table.addCell(cell);
         }
 
+        // Sort by course level so grouped together
+        courses.sort((a, b) -> Integer.compare(a.getLevel(), b.getLevel()));
+
+        int currentLevel = -1;
+        BaseColor[] levelColors = {
+                new BaseColor(230, 240, 255), // Light blue
+                new BaseColor(240, 255, 230), // Light green
+                new BaseColor(255, 245, 230), // Light orange
+                new BaseColor(255, 230, 245)  // Light pink
+        };
+
+        int colorIndex = 0;
+        BaseColor rowColor = BaseColor.WHITE;
+
         for (CourseAuditDto course : courses) {
-            table.addCell(new PdfPCell(new Phrase(course.getCourseCode(), normalFont)));
-            table.addCell(new PdfPCell(new Phrase(course.getTitle(), normalFont)));
-            table.addCell(new PdfPCell(new Phrase(String.valueOf(course.getLevel()), normalFont)));
+            if (course.getLevel() != currentLevel) {
+                currentLevel = course.getLevel();
+                rowColor = levelColors[colorIndex % levelColors.length];
+                colorIndex++;
+            }
+
+            table.addCell(createColoredCell(course.getCourseCode(), normalFont, rowColor));
+            table.addCell(createColoredCell(course.getTitle(), normalFont, rowColor));
+            table.addCell(createColoredCell(String.valueOf(course.getLevel()), normalFont, rowColor));
 
             String status;
             if (course.isCompleted()) {
@@ -83,7 +102,7 @@ public class ProgrammeAuditPdfGeneratorService {
                 status = "Unregistered";
             }
 
-            table.addCell(new PdfPCell(new Phrase(status, normalFont)));
+            table.addCell(createColoredCell(status, normalFont, rowColor));
         }
 
         if (courses.isEmpty()) {
@@ -95,6 +114,13 @@ public class ProgrammeAuditPdfGeneratorService {
         document.add(table);
         document.add(new Paragraph("\n"));
     }
+
+    private PdfPCell createColoredCell(String text, Font font, BaseColor backgroundColor) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(backgroundColor);
+        return cell;
+    }
+
 
     private List<CourseAuditDto> filterCoursesByStatus(List<CourseAuditDto> allCourses, String status) {
         return allCourses.stream()

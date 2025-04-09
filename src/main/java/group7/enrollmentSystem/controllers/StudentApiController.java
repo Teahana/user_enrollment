@@ -1,13 +1,11 @@
 package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.config.CustomExceptions;
-import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
-import group7.enrollmentSystem.dtos.appDtos.StudentDto;
+import group7.enrollmentSystem.dtos.appDtos.*;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
-import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
@@ -122,14 +120,8 @@ public class StudentApiController {
             return ResponseEntity.notFound().build();
         }
         StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
-        try {
-            return ResponseEntity.ok(auditDto);
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("message", "Failed to retrieve programme audit.");
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok(auditDto);
+
     }
 
 

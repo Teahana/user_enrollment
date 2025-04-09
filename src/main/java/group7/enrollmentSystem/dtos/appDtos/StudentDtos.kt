@@ -1,5 +1,8 @@
 package group7.enrollmentSystem.dtos.appDtos
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class StudentDto(
     val studentId: String,
     val studentName: String,
@@ -18,7 +21,7 @@ data class StudentAuditDto(
 )
 
 data class CourseAuditDto(
-    val courseId: Long,
+    val id: Long,
     val courseTitle: String,
     val courseCode: String,
     val enrolled: Boolean,

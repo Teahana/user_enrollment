@@ -2,12 +2,12 @@ package group7.enrollmentSystem.controllers;
 
 import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
-import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
-import group7.enrollmentSystem.dtos.appDtos.StudentDto;
+import group7.enrollmentSystem.dtos.appDtos.*;
+import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.helpers.JwtService;
+import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
-import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
@@ -122,18 +122,35 @@ public class StudentApiController {
     public ResponseEntity<?> getStudentAudit(Authentication auth) {
         String email = auth.getName();
         Student student = studentService.getStudentByEmail(email);
+        studentProgrammeAuditService.getFullAudit(student.getStudentId());
         if (student == null) {
             return ResponseEntity.notFound().build();
         }
-        try {
-            return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(student.getStudentId()));
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("message", "Failed to retrieve programme audit.");
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
+        return ResponseEntity.ok(auditDto);
+
     }
+
+    @PostMapping("/audit/download")
+    public ResponseEntity<byte[]> downloadStudentAudit(Authentication authentication) throws Exception {
+        String email = authentication.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Build the audit DTO from service
+        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
+
+        // Generate PDF
+        byte[] pdfBytes = programmeAuditPdfGeneratorService.generateAuditPdf(auditDto);
+
+        // Return PDF as a downloadable response
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "student_audit.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
+
     /*
     *________________________________________________________________________________________________*
     * STUDENT ENROLLMENT COURSES API's

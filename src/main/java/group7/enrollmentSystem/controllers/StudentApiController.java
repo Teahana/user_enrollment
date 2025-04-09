@@ -3,7 +3,9 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.appDtos.StudentDto;
+import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.helpers.JwtService;
+import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
@@ -13,7 +15,9 @@ import group7.enrollmentSystem.repos.EnrollmentStateRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +37,7 @@ public class StudentApiController {
     private final CourseEnrollmentService courseEnrollmentService;
     private final JwtService jwtService;
     private final UserRepo userRepo;
+    private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
     @PostMapping("/testing")
     public ResponseEntity<?> testToken() {
         System.out.println("test received");
@@ -141,6 +146,25 @@ public class StudentApiController {
         }
     }
 
+    @PostMapping("/audit/download")
+    public ResponseEntity<byte[]> downloadStudentAudit(Authentication authentication) throws Exception {
+        String email = authentication.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Build the audit DTO from service
+        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
+
+        // Generate PDF
+        byte[] pdfBytes = programmeAuditPdfGeneratorService.generateAuditPdf(auditDto);
+
+        // Return PDF as a downloadable response
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "student_audit.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
 
 
     /*

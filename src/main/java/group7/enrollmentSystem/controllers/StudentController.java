@@ -3,13 +3,12 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
+import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
+import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
-import group7.enrollmentSystem.services.CourseEnrollmentService;
-import group7.enrollmentSystem.services.CourseService;
+import group7.enrollmentSystem.services.*;
 import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
-import group7.enrollmentSystem.services.StudentProgrammeService;
-import group7.enrollmentSystem.services.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -42,7 +41,8 @@ public class StudentController {
     private final UserRepo userRepo;
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
     private final StudentService studentService;
-
+    private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
+    private final StudentProgrammeAuditService studentProgrammeAuditService;
 
 
     @GetMapping("/enrollment")
@@ -239,6 +239,7 @@ public class StudentController {
 
         return "studentAudit";
     }
+
     @GetMapping("/invoice/download")
     public ResponseEntity<byte[]> downloadInvoice(Principal principal) throws Exception {
         String email = principal.getName();
@@ -275,4 +276,25 @@ public class StudentController {
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
+
+    @GetMapping("/audit/download")
+    public ResponseEntity<byte[]> downloadStudentAudit(Principal principal) throws Exception {
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Build the audit DTO
+        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
+
+        // Generate PDF
+        byte[] pdfBytes = programmeAuditPdfGeneratorService.generateAuditPdf(auditDto);
+
+        // Return PDF as response
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "student_audit.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
+
 }

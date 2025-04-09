@@ -4,22 +4,23 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
-import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
-import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseAuditDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import javax.tools.DocumentationTool;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class ProgrammeAuditPdfGeneratorService {
 
-    public byte[] generateAuditPdf(StudentFullAuditDto studentFullAuditDto) throws DocumentException, IOException {
+    public byte[] generateAuditPdf(StudentFullAuditDto auditDto) throws DocumentException, IOException {
         Document document = new Document();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        PdfWriter.getInstance(document, outputStream);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PdfWriter.getInstance(document, out);
         document.open();
 
         Font titleFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD);
@@ -29,49 +30,80 @@ public class ProgrammeAuditPdfGeneratorService {
         // Add USP Logo
         ClassPathResource imageResource = new ClassPathResource("static/images/usp_logo.png");
         Image logo = Image.getInstance(imageResource.getURL());
-        logo.scaleToFit(110, 110); //Scale the image
-        //logo.setAlignment(Element.ALIGN_CENTER); // Center the image
+        logo.scaleToFit(110, 110);
         document.add(logo);
-
-        // Add a space after the image
         document.add(new Paragraph("\n"));
 
-        // Audit document Header
-        document.add(new Paragraph("STUDENT Audit", titleFont));
-        document.add(new Paragraph("\n"));
-        document.add(new Paragraph("Student ID: " + studentFullAuditDto.getStudentId(), normalFont));
-        document.add(new Paragraph("Student Name: " + studentFullAuditDto.getStudentName(), normalFont));
-        document.add(new Paragraph("Programme: " + studentFullAuditDto.getProgrammeName(), normalFont));
+        // Title
+        document.add(new Paragraph("USP Student Audit", titleFont));
         document.add(new Paragraph("\n"));
 
-        // Table for Course Enrollments
-        PdfPTable table = new PdfPTable(3);
+        // Student Info
+        document.add(new Paragraph("Student ID: " + auditDto.getStudentId(), normalFont));
+        document.add(new Paragraph("Student Name: " + auditDto.getStudentName(), normalFont));
+        document.add(new Paragraph("Programme: " + auditDto.getProgrammeName(), normalFont));
+        document.add(new Paragraph("Status: " + auditDto.getStatus(), normalFont));
+        document.add(new Paragraph("\n"));
+
+        // Audit Sections
+        addAuditSection(document, "Completed:", filterCoursesByStatus(auditDto.getProgrammeCourses(), "Completed"), headerFont, normalFont);
+        addAuditSection(document, "Registered:", filterCoursesByStatus(auditDto.getProgrammeCourses(), "Registered"), headerFont, normalFont);
+        addAuditSection(document, "Unregistered Courses:", filterCoursesByStatus(auditDto.getProgrammeCourses(), "Unregistered"), headerFont, normalFont);
+
+        document.close();
+        return out.toByteArray();
+    }
+
+    private void addAuditSection(Document document, String sectionTitle, List<CourseAuditDto> courses, Font headerFont, Font normalFont) throws DocumentException {
+        document.add(new Paragraph(sectionTitle, headerFont));
+
+        PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
-        table.setSpacingBefore(10f);
-        table.setWidths(new float[]{3, 2, 2});
+        table.setSpacingBefore(5f);
+        table.setWidths(new float[]{2, 4, 2, 2});
 
-        // Table Headers
-        String[] headers = {"Description", "Courses", "Reg Status"};
+        String[] headers = {"Course Code", "Course Name", "Course Level", "Course Status"};
         for (String header : headers) {
             PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
             cell.setBackgroundColor(BaseColor.LIGHT_GRAY);
             table.addCell(cell);
         }
 
-        // Course Data
-        InvoiceDto invoiceDto = new InvoiceDto();
-        for (CourseEnrollmentDto course : invoiceDto.getEnrolledCourses()) {
-            table.addCell(new PdfPCell(new Phrase(course.getTitle(), normalFont)));
+        for (CourseAuditDto course : courses) {
             table.addCell(new PdfPCell(new Phrase(course.getCourseCode(), normalFont)));
-            //table.addCell(new PdfPCell(new Phrase("Face to Face", normalFont)));
-            table.addCell(new PdfPCell(new Phrase("**Registered**", normalFont)));
-            table.addCell(new PdfPCell(new Phrase("$" + course.getCost(), normalFont)));
-            table.addCell(new PdfPCell(new Phrase("$0.00", normalFont))); // No credit column for now
+            table.addCell(new PdfPCell(new Phrase(course.getTitle(), normalFont)));
+            table.addCell(new PdfPCell(new Phrase(String.valueOf(course.getLevel()), normalFont)));
+
+            String status;
+            if (course.isCompleted()) {
+                status = "Completed";
+            } else if (course.isEnrolled()) {
+                status = "Registered";
+            } else {
+                status = "Unregistered";
+            }
+
+            table.addCell(new PdfPCell(new Phrase(status, normalFont)));
+        }
+
+        if (courses.isEmpty()) {
+            PdfPCell empty = new PdfPCell(new Phrase("No courses in this category", normalFont));
+            empty.setColspan(4);
+            table.addCell(empty);
         }
 
         document.add(table);
+        document.add(new Paragraph("\n"));
+    }
 
-        document.close();
-        return outputStream.toByteArray();
+    private List<CourseAuditDto> filterCoursesByStatus(List<CourseAuditDto> allCourses, String status) {
+        return allCourses.stream()
+                .filter(c -> {
+                    if ("Completed".equalsIgnoreCase(status)) return c.isCompleted();
+                    if ("Registered".equalsIgnoreCase(status)) return !c.isCompleted() && c.isEnrolled();
+                    if ("Unregistered".equalsIgnoreCase(status)) return !c.isCompleted() && !c.isEnrolled();
+                    return false;
+                })
+                .collect(Collectors.toList());
     }
 }

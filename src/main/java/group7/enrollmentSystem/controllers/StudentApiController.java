@@ -128,9 +128,6 @@ public class StudentApiController {
             return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
-
     /*
     *________________________________________________________________________________________________*
     * STUDENT ENROLLMENT COURSES API's

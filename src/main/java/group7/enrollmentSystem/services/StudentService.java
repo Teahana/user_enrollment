@@ -1,14 +1,18 @@
 package group7.enrollmentSystem.services;
 
+import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
+import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +27,9 @@ public class StudentService {
     private final StudentProgrammeRepo studentProgrammeRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final EnrollmentStateRepo enrollmentStateRepo;
+    private final StudentProgrammeService studentProgrammeService;
+    private final CourseEnrollmentService courseEnrollmentService;
+    private final InvoicePdfGeneratorService invoicePdfGeneratorService;
 
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
         Student student = studentRepo.findByEmail(email)
@@ -260,6 +267,40 @@ public class StudentService {
         return studentRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found with email: " + email));
     }
+    public byte[] generateInvoicePdfForStudent(String email) throws DocumentException, IOException {
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<CourseEnrollmentDto> enrolledCourses = courseEnrollmentService.getActiveEnrollments(student.getId())
+                .stream()
+                .map(ce -> new CourseEnrollmentDto(
+                        ce.getCourse().getId(),
+                        ce.getCourse().getCourseCode(),
+                        ce.getCourse().getTitle(),
+                        ce.getCourse().getCost()))
+                .collect(Collectors.toList());
+
+        double totalDue = enrolledCourses.stream()
+                .mapToDouble(CourseEnrollmentDto::getCost)
+                .sum();
+
+        InvoiceDto invoiceDto = new InvoiceDto();
+        invoiceDto.setStudentName(student.getFirstName() + " " + student.getLastName());
+        invoiceDto.setStudentId(student.getStudentId());
+
+        Optional<StudentProgramme> currentProgramme = studentProgrammeService.getCurrentProgramme(student);
+        if (currentProgramme.isPresent()) {
+            invoiceDto.setProgramme(currentProgramme.get().getProgramme().getName());
+        } else {
+            throw new RuntimeException("No current programme found for the student");
+        }
+
+        invoiceDto.setEnrolledCourses(enrolledCourses);
+        invoiceDto.setTotalDue(totalDue);
+
+        return invoicePdfGeneratorService.generateInvoicePdf(invoiceDto);
+    }
+
 
 }
 

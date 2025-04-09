@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
+import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.appDtos.StudentDto;
@@ -10,10 +11,15 @@ import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -143,6 +149,14 @@ public class StudentApiController {
     public ResponseEntity<?> getEligibleCourses(@RequestBody Map<String, String> request) {
         return ResponseEntity.ok(studentService.getEligibleCourses(request.get("email")));
     }
-
+    @PostMapping("/invoice/download")
+    public ResponseEntity<byte[]> downloadInvoice(@RequestBody Map<String,Long> request) throws DocumentException, IOException {
+        Student student = studentRepo.findById(request.get("userId")).orElseThrow();
+        byte[] pdfBytes = studentService.generateInvoicePdfForStudent(student.getEmail());
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice.pdf");
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
 
 }

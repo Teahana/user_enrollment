@@ -242,7 +242,6 @@ public class StudentController {
     @GetMapping("/invoice/download")
     public ResponseEntity<byte[]> downloadInvoice(Principal principal) throws DocumentException, IOException {
         byte[] pdfBytes = studentService.generateInvoicePdfForStudent(principal.getName());
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "invoice.pdf");

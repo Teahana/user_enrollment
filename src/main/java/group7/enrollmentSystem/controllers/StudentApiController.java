@@ -34,6 +34,7 @@ public class StudentApiController {
     private final CourseEnrollmentService courseEnrollmentService;
     private final JwtService jwtService;
     private final UserRepo userRepo;
+    private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
     @PostMapping("/testing")
     public ResponseEntity<?> testToken() {
         System.out.println("test received");

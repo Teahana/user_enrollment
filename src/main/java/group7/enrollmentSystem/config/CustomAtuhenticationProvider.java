@@ -48,6 +48,7 @@ public class CustomAtuhenticationProvider implements AuthenticationProvider {
                 Student student = (Student) user;
                 Optional<OnHoldStatus> activeHold = student.getActiveHold();
                 if (activeHold.isPresent()) {
+                    System.out.println("throwing here");
                     throw new CustomExceptions.StudentOnHoldException(activeHold.get().getOnHoldType());
                 }
             }

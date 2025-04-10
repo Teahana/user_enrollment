@@ -1,5 +1,7 @@
 package group7.enrollmentSystem.dtos.serverKtDtos
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import group7.enrollmentSystem.dtos.classDtos.FlatCoursePrerequisiteRequest
 import group7.enrollmentSystem.models.Course
 import group7.enrollmentSystem.models.Programme
@@ -25,8 +27,8 @@ data class CourseCodesDto(
 data class PrerequisitesDto(
     val prerequisites: FlatCoursePrerequisiteRequest
 )
-data class EmailDto(
-    val email: String
+data class EmailDto @JsonCreator constructor(
+    @JsonProperty("email") val email: String
 )
 data class UserIdDto(
     val userId: Long

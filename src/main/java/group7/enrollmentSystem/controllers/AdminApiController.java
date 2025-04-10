@@ -5,6 +5,7 @@ import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.dtos.interfaceDtos.ProgrammeIdAndCode;
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.Course;
@@ -14,6 +15,7 @@ import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
+import group7.enrollmentSystem.services.StudentHoldService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +39,7 @@ public class AdminApiController {
     private final ProgrammeRepo programmeRepo;
     private final UserRepo userRepo;
     private final JwtService jwtService;
+    private final StudentHoldService studentHoldService;
 
     @PostMapping("/someEndpoint")
     public ResponseEntity<?> someEndpoint() {
@@ -142,6 +145,48 @@ public class AdminApiController {
             @RequestParam String programmeCode) {
         courseProgrammeService.removeCourseFromProgramme(courseCode, programmeCode);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/holds")
+    public ResponseEntity<List<StudentHoldDto>> getAllStudentHolds() {
+        return ResponseEntity.ok(studentHoldService.getAllStudentsWithHoldStatus());
+    }
+
+    @PostMapping("/holds/place")
+    public ResponseEntity<?> placeHold(@RequestBody Map<String, String> request) {
+        try {
+            Long studentId = Long.parseLong(request.get("studentId"));
+            OnHoldTypes holdType = OnHoldTypes.valueOf(request.get("holdType"));
+            studentHoldService.placeStudentOnHold(studentId, holdType);
+            return ResponseEntity.ok(Map.of("message", "Hold placed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/holds/remove")
+    public ResponseEntity<?> removeHold(@RequestBody Map<String, Long> request) {
+        try {
+            studentHoldService.removeHoldFromStudent(request.get("studentId"));
+            return ResponseEntity.ok(Map.of("message", "Hold removed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/holds/history")
+    public ResponseEntity<List<StudentHoldHistoryDto>> getAllHoldHistory() {
+        return ResponseEntity.ok(studentHoldService.getAllHoldHistory());
+    }
+
+    @GetMapping("/holds/history/filter")
+    public ResponseEntity<List<StudentHoldDto>> getStudentsForFilter() {
+        return ResponseEntity.ok(studentHoldService.getStudentsForFilter());
+    }
+
+    @GetMapping("/holds/history/{studentId}")
+    public ResponseEntity<List<StudentHoldHistoryDto>> getHoldHistoryByStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(studentHoldService.getHoldHistoryByStudent(studentId));
     }
 }
 //    @PostMapping("/addPreReqs")

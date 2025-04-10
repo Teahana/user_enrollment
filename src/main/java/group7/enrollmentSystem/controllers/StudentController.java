@@ -1,10 +1,10 @@
 package group7.enrollmentSystem.controllers;
 
+import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
-import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.*;
@@ -19,6 +19,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,17 +33,16 @@ public class StudentController {
 
     private final CourseEnrollmentService courseEnrollmentService;
     private final StudentRepo studentRepo;
-    private final CourseProgrammeRepo courseProgrammeRepo;
     private final StudentProgrammeService studentProgrammeService;
-    private final CourseService courseService;
     private final EnrollmentStateRepo enrollmentStateRepo;
     private final CourseRepo courseRepo;
     private final CourseEnrollmentRepo courseEnrollmentRepo;
     private final UserRepo userRepo;
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
     private final StudentService studentService;
-    private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
-    private final StudentProgrammeAuditService studentProgrammeAuditService;
+    private final StudentProgrammeAuditService auditService;
+
+
 
 
     @GetMapping("/enrollment")
@@ -233,66 +233,18 @@ public class StudentController {
         User user = userRepo.findByEmail(email).orElse(null);
 
         if (user instanceof Student student) {
-            model.addAttribute("studentId", student.getStudentId());
-            model.addAttribute("studentName", student.getFirstName() + " " + student.getLastName());
+            StudentFullAuditDto auditDto = auditService.getFullAudit(student.getStudentId());
+            model.addAttribute("auditData", auditDto);
         }
 
-        return "studentAudit";
+        return "studentAudit"; // this maps to studentAudit.html in templates folder
     }
-
     @GetMapping("/invoice/download")
-    public ResponseEntity<byte[]> downloadInvoice(Principal principal) throws Exception {
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-
-        List<CourseEnrollmentDto> enrolledCourses = courseEnrollmentService.getActiveEnrollments(student.getId())
-                .stream()
-                .map(ce -> new CourseEnrollmentDto(
-                        ce.getCourse().getId(),
-                        ce.getCourse().getCourseCode(),
-                        ce.getCourse().getTitle(),
-                        ce.getCourse().getCost()))
-                .collect(Collectors.toList());
-
-        double totalDue = enrolledCourses.stream().mapToDouble(CourseEnrollmentDto::getCost).sum();
-
-        InvoiceDto invoiceDto = new InvoiceDto();
-        invoiceDto.setStudentName(student.getFirstName() + " " + student.getLastName());
-        invoiceDto.setStudentId(student.getStudentId());
-        Optional<StudentProgramme> currentProgramme = studentProgrammeService.getCurrentProgramme(student);
-        if (currentProgramme.isPresent()) {
-            invoiceDto.setProgramme(currentProgramme.get().getProgramme().getName());
-        } else {
-            throw new RuntimeException("No current programme found for the student");
-        }
-        invoiceDto.setEnrolledCourses(enrolledCourses);
-        invoiceDto.setTotalDue(totalDue);
-
-        byte[] pdfBytes = invoicePdfGeneratorService.generateInvoicePdf(invoiceDto);
-
+    public ResponseEntity<byte[]> downloadInvoice(Principal principal) throws DocumentException, IOException {
+        byte[] pdfBytes = studentService.generateInvoicePdfForStudent(principal.getName());
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "invoice.pdf");
-
-        return ResponseEntity.ok().headers(headers).body(pdfBytes);
-    }
-
-    @GetMapping("/audit/download")
-    public ResponseEntity<byte[]> downloadStudentAudit(Principal principal) throws Exception {
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        // Build the audit DTO
-        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
-
-        // Generate PDF
-        byte[] pdfBytes = programmeAuditPdfGeneratorService.generateAuditPdf(auditDto);
-
-        // Return PDF as response
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "student_audit.pdf");
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }

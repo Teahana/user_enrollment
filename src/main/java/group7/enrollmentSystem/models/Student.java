@@ -1,13 +1,12 @@
 package group7.enrollmentSystem.models;
 
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import jakarta.persistence.*;
-import lombok.Data;
+        import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serializable;
-import java.util.List;
+import java.util.*;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -24,12 +23,11 @@ public class Student extends User {
     private String studentId;
     private String phoneNumber;
     private String address;
-    private boolean feesPaid;
+
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OnHoldStatus> onHoldStatusList = new ArrayList<>();
 
     public Student(String studentId, String firstName, String lastName, String address, String phoneNumber) {
-        if("s11209521".equals(studentId)){
-            this.feesPaid = true;
-        }
         this.studentId = studentId;
         this.setFirstName(firstName);
         this.setLastName(lastName);
@@ -39,6 +37,14 @@ public class Student extends User {
     }
     @Override
     public boolean isEnabled() {
-        return this.feesPaid;
+        return onHoldStatusList.stream().noneMatch(OnHoldStatus::isOnHold);
+    }
+
+    public Optional<OnHoldStatus> getActiveHold() {
+        return onHoldStatusList.stream()
+                .filter(h -> {
+                    return h.isOnHold();
+                })
+                .findFirst();
     }
 }

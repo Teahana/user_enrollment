@@ -1,17 +1,13 @@
 package group7.enrollmentSystem.controllers;
 
+import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.appDtos.StudentDto;
-import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.helpers.JwtService;
-import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
-import group7.enrollmentSystem.repos.CourseEnrollmentRepo;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.EnrollmentStateRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +17,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import java.util.ArrayList;
+
+import java.io.IOException;
+import java.security.Principal;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -37,7 +34,6 @@ public class StudentApiController {
     private final CourseEnrollmentService courseEnrollmentService;
     private final JwtService jwtService;
     private final UserRepo userRepo;
-    private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
     @PostMapping("/testing")
     public ResponseEntity<?> testToken() {
         System.out.println("test received");
@@ -58,10 +54,6 @@ public class StudentApiController {
     }
 
     private final StudentRepo studentRepo;
-    private final CourseRepo courseRepo;
-    private final CourseEnrollmentRepo courseEnrollmentRepo;
-    private final EnrollmentStateRepo enrollmentStatusRepo;
-
 
     /**
      * Retrieves the details of the currently logged-in student.
@@ -100,10 +92,6 @@ public class StudentApiController {
     public ResponseEntity<String> getMermaidCode(@RequestBody Map<String, Long> request) {
         return ResponseEntity.ok(courseService.getMermaidDiagramForCourse(request.get("courseId")));
     }
-    @PostMapping("/getEligibleCourses")
-    public ResponseEntity<?> getEligibleCourses(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(studentService.getEligibleCourses(request.get("email")));
-    }
     @PostMapping("/givePass")
     public ResponseEntity<?> givePass(@RequestBody Map<String, Object> request) {
         try {
@@ -133,9 +121,10 @@ public class StudentApiController {
     @PostMapping("/audit")
     public ResponseEntity<?> getStudentAudit(Authentication auth) {
         String email = auth.getName();
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
-
+        Student student = studentService.getStudentByEmail(email);
+        if (student == null) {
+            return ResponseEntity.notFound().build();
+        }
         try {
             return ResponseEntity.ok(studentProgrammeAuditService.getFullAudit(student.getStudentId()));
         } catch (Exception e) {
@@ -145,28 +134,6 @@ public class StudentApiController {
             return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    @PostMapping("/audit/download")
-    public ResponseEntity<byte[]> downloadStudentAudit(Authentication authentication) throws Exception {
-        String email = authentication.getName();
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        // Build the audit DTO from service
-        StudentFullAuditDto auditDto = studentProgrammeAuditService.getFullAudit(student.getStudentId());
-
-        // Generate PDF
-        byte[] pdfBytes = programmeAuditPdfGeneratorService.generateAuditPdf(auditDto);
-
-        // Return PDF as a downloadable response
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "student_audit.pdf");
-
-        return ResponseEntity.ok().headers(headers).body(pdfBytes);
-    }
-
-
     /*
     *________________________________________________________________________________________________*
     * STUDENT ENROLLMENT COURSES API's
@@ -174,49 +141,22 @@ public class StudentApiController {
 
 
     @PostMapping("/enrollCourses")
-    public ResponseEntity<?> enrollCourses(@RequestBody EnrollCourseRequest request, Authentication auth) {
-        if (request.getSelectedCourses() == null || request.getSelectedCourses().isEmpty()) {
-            return ResponseEntity.badRequest().body("No courses selected.");
-        }
-
-        String email = auth.getName();
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        EnrollmentState enrollmentState = enrollmentStatusRepo.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
-        int semester = enrollmentState.isSemesterOne() ? 1 : 2;
-
-        int currentCount = courseEnrollmentRepo
-                .countByStudentAndSemesterEnrolledAndCurrentlyTakingIsTrue(student, semester);
-
-        int totalIfAdded = currentCount + request.getSelectedCourses().size();
-        if (totalIfAdded > 4) {
-            return ResponseEntity.badRequest().body(
-                    "You cannot enroll in more than 4 courses this semester. " +
-                            "Already taking: " + currentCount + ", tried to add: " + request.getSelectedCourses().size()
-            );
-        }
-
-        List<CourseEnrollment> enrollments = new ArrayList<>();
-        for (String courseCode : request.getSelectedCourses()) {
-            Course course = courseRepo.findByCourseCode(courseCode)
-                    .orElseThrow(() -> new RuntimeException("Course not found: " + courseCode));
-
-            CourseEnrollment e = new CourseEnrollment();
-            e.setStudent(student);
-            e.setCourse(course);
-            e.setSemesterEnrolled(semester);
-            e.setCurrentlyTaking(true);
-            e.setCompleted(false);
-
-            enrollments.add(e);
-        }
-
-        courseEnrollmentRepo.saveAll(enrollments);
-        return ResponseEntity.ok("Enrolled in " + enrollments.size() + " course(s).");
+    public ResponseEntity<?> enrollCourses(@RequestBody EnrollCourseRequest request) {
+        studentService.enrollStudent(request);
+        return ResponseEntity.ok(Map.of("message", "Enrolled successfully"));
     }
-
-
+    @PostMapping("/getEligibleCourses")
+    public ResponseEntity<?> getEligibleCourses(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(studentService.getEligibleCourses(request.get("email")));
+    }
+    @PostMapping("/invoice/download")
+    public ResponseEntity<byte[]> downloadInvoice(@RequestBody Map<String,Long> request) throws DocumentException, IOException {
+        Student student = studentRepo.findById(request.get("userId")).orElseThrow();
+        byte[] pdfBytes = studentService.generateInvoicePdfForStudent(student.getEmail());
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice.pdf");
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
 
 }

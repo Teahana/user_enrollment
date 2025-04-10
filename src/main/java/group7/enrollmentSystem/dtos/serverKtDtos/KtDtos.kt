@@ -38,3 +38,7 @@ data class MessageDto @JsonCreator constructor(
 data class UserIdDto @JsonCreator constructor(
     @JsonProperty("userId") val userId: Long
 )
+data class CancelCourseRequest @JsonCreator constructor(
+    @JsonProperty("courseId") val courseId: Long,
+    @JsonProperty("userId") val userId: Long
+)

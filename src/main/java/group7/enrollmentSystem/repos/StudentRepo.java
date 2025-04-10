@@ -16,7 +16,7 @@ public interface StudentRepo extends JpaRepository<Student, Long> {
 
     Optional<Student> findByStudentId(String studentId);
 
-    @Query("SELECT COUNT(e) FROM CourseEnrollment e WHERE e.student = :student AND e.applied = true")
+    @Query("SELECT COUNT(e) FROM CourseEnrollment e WHERE e.student = :student AND e.currentlyTaking = true")
     int getCurrentlyAppliedByStudent(Student student);
     @Query("SELECT new group7.enrollmentSystem.dtos.classDtos.StudentHoldDto(" +
             "s.id, s.email, s.firstName, s.lastName, s.studentId, " +

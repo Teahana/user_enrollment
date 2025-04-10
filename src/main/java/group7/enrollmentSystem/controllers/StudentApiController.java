@@ -5,6 +5,7 @@ import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.*;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.CancelCourseRequest;
 import group7.enrollmentSystem.dtos.serverKtDtos.EmailDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.UserIdDto;
@@ -228,6 +229,11 @@ public class StudentApiController {
         studentService.enrollStudent(request);
         return ResponseEntity.ok(new MessageDto("Courses enrolled successfully"));
     }
+    @PostMapping("/cancelCourse")
+    public ResponseEntity<MessageDto> cancelCourse(@RequestBody CancelCourseRequest request) {
+        studentService.cancelCourse(request.getCourseId(), request.getUserId());
+        return ResponseEntity.ok(new MessageDto("Course cancelled successfully"));
+    }
     /**
      * Retrieves a list of eligible courses for a student based on their email.
      *
@@ -242,8 +248,14 @@ public class StudentApiController {
             description = "Returns a list of courses a student is eligible to enroll in, based on completed and enrolled courses."
     )
     @PostMapping("/getEligibleCourses")
-    public ResponseEntity<List<CourseEnrollmentDto>> getEligibleCourses(@RequestBody EmailDto request) {
-        return ResponseEntity.ok(studentService.getEligibleCourses(request.getEmail()));
+    public ResponseEntity<List<CourseEnrollmentDto>> getEligibleCourses(@RequestBody UserIdDto request) {
+        Student student = studentRepo.findById(request.getUserId()).orElseThrow();
+        return ResponseEntity.ok(studentService.getEligibleCourses(student.getEmail()));
+    }
+    @PostMapping("/getEnrolledCourses")
+    public ResponseEntity<List<CourseEnrollmentDto>> getEnrolledCourses(@RequestBody UserIdDto request) {
+        Student student = studentRepo.findById(request.getUserId()).orElseThrow();
+        return ResponseEntity.ok(studentService.getEnrolledCourses(student));
     }
 
 

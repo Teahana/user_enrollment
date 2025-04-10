@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class StudentDto(
-    val userId: Long,
     val studentId: String,
     val studentName: String,
     val email: String,

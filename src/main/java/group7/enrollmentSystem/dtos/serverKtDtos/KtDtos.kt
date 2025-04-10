@@ -8,20 +8,20 @@ import group7.enrollmentSystem.models.Programme
 
 class KtDtos {
 }
-data class ProgrammesAndCoursesDto(
-    val programmes: Programme,
-    val courses: List<Course>)
+data class ProgrammesAndCoursesDto @JsonCreator constructor(
+    @JsonProperty("programmes") val programmes: Programme,
+    @JsonProperty("courses") val courses: List<Course>)
 
 
-data class CourseIdsDto(
-    val courseIds: List<Long>
+data class CourseIdsDto @JsonCreator constructor(
+    @JsonProperty("courseIds") val courseIds: List<Long>
 )
 
-data class CourseCodesDto(
-    val courseCodes: List<String>
+data class CourseCodesDto @JsonCreator constructor(
+    @JsonProperty("courseCodes") val courseCodes: List<String>
 )
-data class PrerequisitesDto(
-    val prerequisites: FlatCoursePrerequisiteRequest
+data class PrerequisitesDto @JsonCreator constructor(
+    @JsonProperty("prerequisites") val prerequisites: FlatCoursePrerequisiteRequest
 )
 data class EmailDto @JsonCreator constructor(
     @JsonProperty("email") val email: String
@@ -36,5 +36,9 @@ data class MessageDto @JsonCreator constructor(
 )
 
 data class UserIdDto @JsonCreator constructor(
+    @JsonProperty("userId") val userId: Long
+)
+data class CancelCourseRequest @JsonCreator constructor(
+    @JsonProperty("courseId") val courseId: Long,
     @JsonProperty("userId") val userId: Long
 )

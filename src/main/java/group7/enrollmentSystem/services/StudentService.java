@@ -11,6 +11,7 @@ import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -45,7 +46,6 @@ public class StudentService {
                 ? courseProgrammeRepo.getCourseIdsByProgrammeAndSemester1(programme)
                 : courseProgrammeRepo.getCourseIdsByProgrammeAndSemester2(programme);
         List<Long> courseIdsForProgramme = courseProgrammeRepo.getCourseIdsByProgramme(programme);
-
         List<Long> completedCourseIds = courseEnrollmentRepo.getCompletedCourseIdsByStudent(student);
         List<Long> appliedCourseIds = courseEnrollmentRepo.getAppliedCourseIdsByStudent(student);
 
@@ -210,6 +210,8 @@ public class StudentService {
         if(request.getSelectedCourses() == null || request.getSelectedCourses().isEmpty()) {
             throw new RuntimeException("No courses selected for enrollment.");
         }
+        System.out.println("Currently applied courses: " + currentlyApplied);
+        System.out.println("Selected courses: " + request.getSelectedCourses().size());
         if(currentlyApplied + request.getSelectedCourses().size() > 4){
             throw new RuntimeException("You have reached the maximum number of courses you can apply for (4).");
         }
@@ -225,7 +227,6 @@ public class StudentService {
                 enrollment.setStudent(student);
                 enrollment.setCourse(course);
                 enrollment.setCurrentlyTaking(true);
-                enrollment.setApplied(true);
                 enrollment.setDateEnrolled(LocalDate.now());
                 enrollment.setProgramme(programme);
                 enrollment.setSemesterEnrolled(semester);
@@ -302,5 +303,32 @@ public class StudentService {
     }
 
 
+    public List<CourseEnrollmentDto> getEnrolledCourses(Student student) {
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCurrentlyTakingTrue(student);
+        return courseEnrollments.stream()
+                .map(ce -> new CourseEnrollmentDto(
+                        ce.getCourse().getId(),
+                        ce.getCourse().getCourseCode(),
+                        ce.getCourse().getTitle(),
+                        ce.getCourse().getCost()))
+                .collect(Collectors.toList());
+
+    }
+    @Transactional
+    public void cancelCourse(long courseId, long userId) {
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        CourseEnrollment courseEnrollment = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(student, course);
+
+        if (courseEnrollment == null) {
+            throw new RuntimeException("No ongoing course enrollment found for cancellation.");
+        }
+
+        courseEnrollment.setCancelled(true);
+        courseEnrollment.setCurrentlyTaking(false);
+        courseEnrollmentRepo.save(courseEnrollment);
+    }
 }
 

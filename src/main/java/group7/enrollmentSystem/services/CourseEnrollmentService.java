@@ -249,7 +249,6 @@ public class CourseEnrollmentService {
             enrollment.setFailed(false);
             enrollment.setCancelled(false);
             enrollment.setCurrentlyTaking(false);
-            enrollment.setApplied(false);
             enrollment.setDateEnrolled(LocalDate.now());
             enrollment.setSemesterEnrolled(state.isSemesterOne() ? 1 : 2);
             enrollment.setProgramme(programme);

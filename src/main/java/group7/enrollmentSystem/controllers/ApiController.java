@@ -3,6 +3,7 @@ package group7.enrollmentSystem.controllers;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.CourseIdsResponse;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
+import group7.enrollmentSystem.dtos.classDtos.ErrorResponseDTO;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.User;
@@ -33,7 +34,7 @@ public class ApiController {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -49,7 +50,10 @@ public class ApiController {
                     token
             );
             return ResponseEntity.ok(response);
-        } catch (AuthenticationException e) {
+        } catch (CustomExceptions.StudentOnHoldException ex) {
+            return ResponseEntity.status(423).body(new ErrorResponseDTO(ex.getMessage(), 423));
+        }
+         catch (AuthenticationException e) {
             throw new CustomExceptions.UserNotFoundException(request.getEmail());
         }
     }

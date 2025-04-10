@@ -356,6 +356,7 @@ public class StudentService {
                 enrollment.setCompleted(true);
                 enrollment.setCurrentlyTaking(false);
                 enrollment.setCancelled(false);
+                enrollment.setFailed(false);
                 courseEnrollmentRepo.save(enrollment);
             }
         }

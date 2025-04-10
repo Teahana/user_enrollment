@@ -99,7 +99,7 @@ function placeHold() {
     const studentId = document.getElementById('modalStudentId').value;
     const holdType = document.getElementById('holdType').value;
 
-    fetch('/api/admin/holds/place', {
+    fetch('/api/admin/holds/placeHold', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -125,8 +125,8 @@ function placeHold() {
 function removeHold(studentId) {
     if (!confirm('Are you sure you want to remove this hold?')) return;
 
-    fetch('/api/admin/holds/remove', {
-        method: 'POST',
+    fetch('/api/admin/holds/removeHold', {
+        method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
         },
@@ -239,12 +239,13 @@ function renderHistoryTable(history) {
     history.forEach(record => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${new Date(record.timestamp).toLocaleString()}</td>
+            <td>${new Date(record.timestamp).toLocaleString()|| 'N/A'}</td>
             <td>${record.studentId || 'N/A'}</td>
             <td>${record.firstName} ${record.lastName}</td>
             <td>${record.email}</td>
             <td>${record.action}</td>
-            <td>${record.holdType}</td>
+            <td>${record.holdType || 'N/A'}</td>
+            <td>${record.actionBy || 'System'}</td>
         `;
         historyTable.appendChild(row);
     });

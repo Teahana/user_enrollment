@@ -190,6 +190,8 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
+        String adminEmail = "admin@gmail.com";
+
         // Initialize hold for s11212749 (UNPAID_FEES)
         studentRepo.findByStudentId("s11212749").ifPresent(student -> {
             OnHoldStatus unpaidFeeStatus = new OnHoldStatus();
@@ -202,7 +204,8 @@ public class DataInitializer implements CommandLineRunner {
             StudentHoldHistory history = StudentHoldHistory.create(
                     student.getId(),
                     OnHoldTypes.UNPAID_FEES,
-                    true
+                    true,
+                    adminEmail
             );
             studentHoldHistoryRepo.save(history);
             System.out.println(student.getStudentId() + " Hold initialized");
@@ -220,7 +223,8 @@ public class DataInitializer implements CommandLineRunner {
             StudentHoldHistory history = StudentHoldHistory.create(
                     student.getId(),
                     OnHoldTypes.DISCIPLINARY_ISSUES,
-                    true
+                    true,
+                    adminEmail
             );
             studentHoldHistoryRepo.save(history);
             System.out.println(student.getStudentId() + " Hold initialized");

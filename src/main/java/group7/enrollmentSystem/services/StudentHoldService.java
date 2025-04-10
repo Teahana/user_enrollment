@@ -27,7 +27,7 @@ public class StudentHoldService {
     }
 
     @Transactional
-    public void placeStudentOnHold(Long studentId, OnHoldTypes holdType) {
+    public void placeStudentOnHold(Long studentId, OnHoldTypes holdType, String actionBy) {
         Student student = studentRepo.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
@@ -43,12 +43,12 @@ public class StudentHoldService {
         studentRepo.save(student);
 
         // Record in history
-        StudentHoldHistory history = StudentHoldHistory.create(studentId, holdType, true);
+        StudentHoldHistory history = StudentHoldHistory.create(studentId, holdType, true, actionBy);
         studentHoldHistoryRepo.save(history);
     }
 
     @Transactional
-    public void removeHoldFromStudent(Long studentId) {
+    public void removeHoldFromStudent(Long studentId, String actionBy) {
         Student student = studentRepo.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
@@ -64,7 +64,7 @@ public class StudentHoldService {
 
         // Record in history if there was a hold to remove
         if (currentHoldType != null) {
-            StudentHoldHistory history = StudentHoldHistory.create(studentId, currentHoldType, false);
+            StudentHoldHistory history = StudentHoldHistory.create(studentId, currentHoldType, false, actionBy);
             studentHoldHistoryRepo.save(history);
         }
     }

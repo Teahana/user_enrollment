@@ -16,7 +16,8 @@ public interface StudentHoldHistoryRepo extends JpaRepository<StudentHoldHistory
             "s.email, " +
             "h.holdType, " +
             "CASE WHEN h.holdPlaced = true THEN 'Hold Placed' ELSE 'Hold Removed' END, " +
-            "h.timestamp) " +
+            "h.timestamp, " +
+            "h.actionBy) " +
             "FROM StudentHoldHistory h " +
             "JOIN Student s ON h.studentId = s.id " +
             "ORDER BY h.timestamp DESC")
@@ -29,7 +30,8 @@ public interface StudentHoldHistoryRepo extends JpaRepository<StudentHoldHistory
             "s.email, " +
             "h.holdType, " +
             "CASE WHEN h.holdPlaced = true THEN 'Hold Placed' ELSE 'Hold Removed' END, " +
-            "h.timestamp) " +
+            "h.timestamp, " +
+            "h.actionBy) " +
             "FROM StudentHoldHistory h " +
             "JOIN Student s ON h.studentId = s.id " +
             "WHERE h.studentId = :studentId " +

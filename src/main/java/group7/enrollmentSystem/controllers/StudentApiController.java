@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,6 +31,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
@@ -376,4 +379,15 @@ public class StudentApiController {
             return ResponseEntity.ok().build();
 
     }
+    @GetMapping("/getPfp/{userId}")
+    public ResponseEntity<Resource> getProfilePicture(@PathVariable Long userId) throws IOException {
+        Resource fileResource = studentService.getProfilePicture(userId);
+
+        String contentType = Files.probeContentType(Paths.get(fileResource.getURI()));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType != null ? contentType : "application/octet-stream"))
+                .body(fileResource);
+    }
+
 }

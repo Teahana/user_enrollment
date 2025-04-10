@@ -6,12 +6,6 @@ import org.springframework.security.authentication.DisabledException;
 
 public class CustomExceptions {
 
-    // Custom error handling logic can be added here
-    // For example, you can log the error details or send notifications
-
-    // You can also create custom exception classes for specific error scenarios
-    // and handle them in this class if needed
-
     public static class StudentOnHoldException extends DisabledException {
         private final OnHoldTypes holdType;
 

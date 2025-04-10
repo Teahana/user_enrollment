@@ -201,7 +201,7 @@
         document.getElementById("mermaidRenderContainer").innerHTML = 'Loading...';
         document.getElementById("noPrereqsMessage").style.display = "none";
 
-        fetch("/student/getMermaidCode", {
+        fetch("/api/student/getMermaidCode", {
             method: "POST",
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ courseId: courseId })

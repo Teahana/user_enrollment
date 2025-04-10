@@ -1,14 +1,19 @@
 package group7.enrollmentSystem.services;
 
+import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
+import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +28,9 @@ public class StudentService {
     private final StudentProgrammeRepo studentProgrammeRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final EnrollmentStateRepo enrollmentStateRepo;
+    private final StudentProgrammeService studentProgrammeService;
+    private final CourseEnrollmentService courseEnrollmentService;
+    private final InvoicePdfGeneratorService invoicePdfGeneratorService;
 
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
         Student student = studentRepo.findByEmail(email)
@@ -38,7 +46,6 @@ public class StudentService {
                 ? courseProgrammeRepo.getCourseIdsByProgrammeAndSemester1(programme)
                 : courseProgrammeRepo.getCourseIdsByProgrammeAndSemester2(programme);
         List<Long> courseIdsForProgramme = courseProgrammeRepo.getCourseIdsByProgramme(programme);
-
         List<Long> completedCourseIds = courseEnrollmentRepo.getCompletedCourseIdsByStudent(student);
         List<Long> appliedCourseIds = courseEnrollmentRepo.getAppliedCourseIdsByStudent(student);
 
@@ -203,6 +210,8 @@ public class StudentService {
         if(request.getSelectedCourses() == null || request.getSelectedCourses().isEmpty()) {
             throw new RuntimeException("No courses selected for enrollment.");
         }
+        System.out.println("Currently applied courses: " + currentlyApplied);
+        System.out.println("Selected courses: " + request.getSelectedCourses().size());
         if(currentlyApplied + request.getSelectedCourses().size() > 4){
             throw new RuntimeException("You have reached the maximum number of courses you can apply for (4).");
         }
@@ -218,7 +227,6 @@ public class StudentService {
                 enrollment.setStudent(student);
                 enrollment.setCourse(course);
                 enrollment.setCurrentlyTaking(true);
-                enrollment.setApplied(true);
                 enrollment.setDateEnrolled(LocalDate.now());
                 enrollment.setProgramme(programme);
                 enrollment.setSemesterEnrolled(semester);
@@ -260,6 +268,67 @@ public class StudentService {
         return studentRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found with email: " + email));
     }
+    public byte[] generateInvoicePdfForStudent(String email) throws DocumentException, IOException {
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
+        List<CourseEnrollmentDto> enrolledCourses = courseEnrollmentService.getActiveEnrollments(student.getId())
+                .stream()
+                .map(ce -> new CourseEnrollmentDto(
+                        ce.getCourse().getId(),
+                        ce.getCourse().getCourseCode(),
+                        ce.getCourse().getTitle(),
+                        ce.getCourse().getCost()))
+                .collect(Collectors.toList());
+
+        double totalDue = enrolledCourses.stream()
+                .mapToDouble(CourseEnrollmentDto::getCost)
+                .sum();
+
+        InvoiceDto invoiceDto = new InvoiceDto();
+        invoiceDto.setStudentName(student.getFirstName() + " " + student.getLastName());
+        invoiceDto.setStudentId(student.getStudentId());
+
+        Optional<StudentProgramme> currentProgramme = studentProgrammeService.getCurrentProgramme(student);
+        if (currentProgramme.isPresent()) {
+            invoiceDto.setProgramme(currentProgramme.get().getProgramme().getName());
+        } else {
+            throw new RuntimeException("No current programme found for the student");
+        }
+
+        invoiceDto.setEnrolledCourses(enrolledCourses);
+        invoiceDto.setTotalDue(totalDue);
+
+        return invoicePdfGeneratorService.generateInvoicePdf(invoiceDto);
+    }
+
+
+    public List<CourseEnrollmentDto> getEnrolledCourses(Student student) {
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCurrentlyTakingTrue(student);
+        return courseEnrollments.stream()
+                .map(ce -> new CourseEnrollmentDto(
+                        ce.getCourse().getId(),
+                        ce.getCourse().getCourseCode(),
+                        ce.getCourse().getTitle(),
+                        ce.getCourse().getCost()))
+                .collect(Collectors.toList());
+
+    }
+    @Transactional
+    public void cancelCourse(long courseId, long userId) {
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        CourseEnrollment courseEnrollment = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(student, course);
+
+        if (courseEnrollment == null) {
+            throw new RuntimeException("No ongoing course enrollment found for cancellation.");
+        }
+
+        courseEnrollment.setCancelled(true);
+        courseEnrollment.setCurrentlyTaking(false);
+        courseEnrollmentRepo.save(courseEnrollment);
+    }
 }
 

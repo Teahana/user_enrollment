@@ -86,12 +86,16 @@ public class StudentApiController {
         String email = auth.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(()
                 -> new CustomExceptions.StudentNotFoundException(email));
+        User user = userRepo.findByEmail(email).orElseThrow(()
+                -> new CustomExceptions.UserNotFoundException(email));
         Programme programme = studentProgrammeService.getStudentProgramme(student);
         if (student == null) {
             return ResponseEntity.notFound().build();
         }
         String fullName = student.getFirstName() + " " + student.getLastName();
+        Long userId = user.getId();
         StudentDto dto = new StudentDto(
+                userId,
                 student.getStudentId(),
                 fullName,
                 student.getEmail(),

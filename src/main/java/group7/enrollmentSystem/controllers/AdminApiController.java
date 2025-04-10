@@ -1,10 +1,13 @@
 package group7.enrollmentSystem.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
 import group7.enrollmentSystem.dtos.interfaceDtos.ProgrammeIdAndCode;
+import group7.enrollmentSystem.dtos.serverKtDtos.CourseCodesDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.CourseIdDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.PrerequisitesDto;
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import group7.enrollmentSystem.helpers.JwtService;
@@ -17,7 +20,6 @@ import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.StudentHoldService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -41,19 +43,14 @@ public class AdminApiController {
     private final JwtService jwtService;
     private final StudentHoldService studentHoldService;
 
-    @PostMapping("/someEndpoint")
-    public ResponseEntity<?> someEndpoint() {
-        someFunction();
-        return ResponseEntity.ok(Map.of("message", "Success"));
-    }
     @PostMapping("/getCourses")
-    public ResponseEntity<?> getCourses() {
+    public ResponseEntity< List<CourseDto>> getCourses() {
         List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
         courseDtos.sort(Comparator.comparing(CourseDto::getLevel));
         return ResponseEntity.ok(courseDtos);
     }
     @PostMapping("/tokenLogin")
-    public ResponseEntity<?> tokenLogin(Authentication authentication) {
+    public ResponseEntity<LoginResponse> tokenLogin(Authentication authentication) {
         System.out.println("Token login request received.");
         User user = userRepo.findByEmail(authentication.getName()).orElseThrow();
         String token = jwtService.generateToken(user, 3600);
@@ -65,70 +62,48 @@ public class AdminApiController {
         );
         return ResponseEntity.ok(response);
     }
-    private void someFunction() {
-        throw new RuntimeException("SOME FUCKING EXCEPTION");
-    }
     @GetMapping("/getSpecialTypes")
     public ResponseEntity<?> getSpecialTypes() {
         return ResponseEntity.ok(Map.of("specialTypes", Arrays.toString(SpecialPrerequisiteType.values())));
     }
     @GetMapping("/getAllCourses")
-    public ResponseEntity<?> getAllCourses() {
+    public ResponseEntity<List<CourseIdAndCode>> getAllCourses() {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
         return ResponseEntity.ok(courses);
     }
     @GetMapping("/getAllProgrammes")
-    public ResponseEntity<?> getAllProgrammes() {
+    public ResponseEntity<List<ProgrammeIdAndCode>> getAllProgrammes() {
         List<ProgrammeIdAndCode> programmes = programmeRepo.findAllBy();
         return ResponseEntity.ok(programmes);
     }
     @PostMapping("/addPreReqs")
-    public ResponseEntity<?> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
-        try{
-            System.out.println("Request: "+request);
-            courseService.addPrerequisites(request);
-            return ResponseEntity.ok(Map.of("message", "Prerequisites added successfully"));
-        }
-        catch (Exception e){
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+    public ResponseEntity<MessageDto> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
+         System.out.println("Request: "+request);
+        courseService.addPrerequisites(request);
+        return ResponseEntity.ok(new MessageDto("Prerequisites added successfully"));
     }
     @PostMapping("/updatePreReqs")
-    public ResponseEntity<?> updatePrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
-        try{
-            courseService.updatePrerequisites(request);
-            return ResponseEntity.ok(Map.of("message", "Prerequisites updated successfully"));
-        }
-        catch (Exception e){
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+    public ResponseEntity<MessageDto> updatePrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
+        courseService.updatePrerequisites(request);
+        return ResponseEntity.ok(new MessageDto("Prerequisites updated successfully"));
     }
     @PostMapping("/getPreReqs")
-    public ResponseEntity<?> getPreReqs(@RequestBody Map<String,Long> request) {
-        try{
-            FlatCoursePrerequisiteRequest prerequisites = courseService.getPrerequisitesForCourse(request.get("courseId"));
-            return ResponseEntity.ok(Map.of("prerequisites", prerequisites));
-        }
-        catch (Exception e){
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<?> getPreReqs(@RequestBody CourseIdDto request) {
+        FlatCoursePrerequisiteRequest prerequisites = courseService.getPrerequisitesForCourse(request.getCourseId());
+        return ResponseEntity.ok(new PrerequisitesDto(prerequisites));
     }
     @PostMapping("/getPreReqTree")
-    public ResponseEntity<?> getPrereqTree(@RequestBody Map<String, Long> request) {
-        try {
-            Long courseId = request.get("courseId");
-            GraphicalPrerequisiteNode root = courseService.buildPrerequisiteTree(courseId);
-            return ResponseEntity.ok(root);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<GraphicalPrerequisiteNode> getPrereqTree(@RequestBody CourseIdDto request) {
+        Long courseId = request.getCourseId();
+        GraphicalPrerequisiteNode root = courseService.buildPrerequisiteTree(courseId);
+        return ResponseEntity.ok(root);
     }
 
     @GetMapping("/getCoursesExcept/{id}")
-    public ResponseEntity<?> getCoursePrerequisites(@PathVariable Long id) {
+    public ResponseEntity<CourseCodesDto> getCoursePrerequisites(@PathVariable Long id) {
         List<Course> courses = courseRepo.findByIdNot(id);
         List<String> courseCodes = courses.stream().map(Course::getCourseCode).toList();
-        return ResponseEntity.ok(Map.of("courseCodes", courseCodes));
+        return ResponseEntity.ok(new CourseCodesDto(courseCodes));
     }
 
     // Fetch courses for programmess
@@ -153,25 +128,18 @@ public class AdminApiController {
     }
 
     @PostMapping("/holds/place")
-    public ResponseEntity<?> placeHold(@RequestBody Map<String, String> request) {
-        try {
-            Long studentId = Long.parseLong(request.get("studentId"));
-            OnHoldTypes holdType = OnHoldTypes.valueOf(request.get("holdType"));
-            studentHoldService.placeStudentOnHold(studentId, holdType);
-            return ResponseEntity.ok(Map.of("message", "Hold placed successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<MessageDto> placeHold(@RequestBody Map<String, String> request) {
+        Long studentId = Long.parseLong(request.get("studentId"));
+        OnHoldTypes holdType = OnHoldTypes.valueOf(request.get("holdType"));
+        studentHoldService.placeStudentOnHold(studentId, holdType);
+        return ResponseEntity.ok(new MessageDto("Hold Placed successfully"));
     }
 
     @PostMapping("/holds/remove")
-    public ResponseEntity<?> removeHold(@RequestBody Map<String, Long> request) {
-        try {
-            studentHoldService.removeHoldFromStudent(request.get("studentId"));
-            return ResponseEntity.ok(Map.of("message", "Hold removed successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<MessageDto> removeHold(@RequestBody Map<String, Long> request) {
+        studentHoldService.removeHoldFromStudent(request.get("studentId"));
+        return ResponseEntity.ok(new MessageDto("Hold Removed successfully"));
+
     }
 
     @GetMapping("/holds/history")
@@ -189,13 +157,3 @@ public class AdminApiController {
         return ResponseEntity.ok(studentHoldService.getHoldHistoryByStudent(studentId));
     }
 }
-//    @PostMapping("/addPreReqs")
-//    public ResponseEntity<?> addPrerequisites(@RequestBody AddCourseReq requestData) {
-//        try {
-//            courseService.addPrerequisites(requestData.getCourseId(), requestData.getPrerequisites());
-//            return ResponseEntity.ok(Map.of("message", "Successfully added prerequisites"));
-//        } catch (Exception e) {
-//            System.out.println("Exception: "+ e.getMessage());
-//            return ResponseEntity.badRequest().body("Failed to add prerequisites");
-//        }
-//    }

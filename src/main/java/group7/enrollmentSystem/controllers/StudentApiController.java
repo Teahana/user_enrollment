@@ -3,13 +3,18 @@ package group7.enrollmentSystem.controllers;
 import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.*;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.EmailDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.UserIdDto;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.services.*;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,8 +24,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -35,13 +40,20 @@ public class StudentApiController {
     private final JwtService jwtService;
     private final UserRepo userRepo;
     private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
-    @PostMapping("/testing")
-    public ResponseEntity<?> testToken() {
-        System.out.println("test received");
-        return ResponseEntity.ok(Map.of("message","Token is valid and not expired."));
-    }
+    private final StudentRepo studentRepo;
+
+    /**
+     * Authenticates the user using a token and returns a new session token if valid.
+     *
+     * @param authentication the authentication object with user credentials.
+     * @return a {@link ResponseEntity} containing {@link LoginResponse} with user details and token.
+     */
+    @Operation(
+            summary = "Token-based login",
+            description = "Authenticates the user using an existing valid JWT and returns a new session token."
+    )
     @PostMapping("/tokenLogin")
-    public ResponseEntity<?> tokenLogin(Authentication authentication) {
+    public ResponseEntity<LoginResponse> tokenLogin(Authentication authentication) {
         System.out.println("Token login request received.");
         User user = userRepo.findByEmail(authentication.getName()).orElseThrow();
         String token = jwtService.generateToken(user, 3600);
@@ -53,9 +65,6 @@ public class StudentApiController {
         );
         return ResponseEntity.ok(response);
     }
-
-    private final StudentRepo studentRepo;
-
     /**
      * Retrieves the details of the currently logged-in student.
      * <p>
@@ -67,6 +76,10 @@ public class StudentApiController {
      * @return a {@link ResponseEntity} containing the student's details as a {@link StudentDto}.
      * @throws RuntimeException if the student is not found.
      */
+    @Operation(
+            summary = "Get student details",
+            description = "Fetches details of the currently authenticated student including name, email, and programme info."
+    )
     @PostMapping("/getStudentDetails")
     public ResponseEntity<StudentDto> getStudentDetails(Authentication auth) {
         String email = auth.getName();
@@ -88,25 +101,37 @@ public class StudentApiController {
 
         return ResponseEntity.ok(dto);
     }
-
+    /**
+     * Generates and returns Mermaid diagram code for a given course.
+     *
+     * @param request a map containing the "courseId".
+     * @return a {@link ResponseEntity} with Mermaid diagram code as a String.
+     */
+    @Operation(
+            summary = "Generate Mermaid diagram for a course",
+            description = "Returns a Mermaid diagram string representing the prerequisite structure for a given course ID."
+    )
     @PostMapping("/getMermaidCode")
     public ResponseEntity<String> getMermaidCode(@RequestBody Map<String, Long> request) {
         return ResponseEntity.ok(courseService.getMermaidDiagramForCourse(request.get("courseId")));
     }
+    /**
+     * Gives a pass to a student for a specific academic level.
+     *
+     * @param request a map containing "email" and "level".
+     * @return a success message or an error response.
+     */
+    @Operation(
+            summary = "Give pass for a level",
+            description = "Assigns a pass to a student for a specific academic level, identified by email and level."
+    )
     @PostMapping("/givePass")
-    public ResponseEntity<?> givePass(@RequestBody Map<String, Object> request) {
-        try {
+    public ResponseEntity<String> givePass(@RequestBody Map<String, Object> request) {
             String email = (String) request.get("email");
             Integer levelInt = (Integer) request.get("level");
             short level = levelInt.shortValue();
             courseEnrollmentService.passStudentByEmailAndYear(email, level);
             return ResponseEntity.ok("Pass given successfully.");
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("message", "Failed to give pass.");
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
 
     /**
@@ -119,8 +144,12 @@ public class StudentApiController {
      * @param auth the authentication object containing the student's email.
      * @return a {@link ResponseEntity} containing the student's programme audit.
      */
+    @Operation(
+            summary = "Get student programme audit",
+            description = "Retrieves the full programme audit for the currently logged-in student, including completed and enrolled courses."
+    )
     @PostMapping("/audit")
-    public ResponseEntity<?> getStudentAudit(Authentication auth) {
+    public ResponseEntity<StudentFullAuditDto> getStudentAudit(Authentication auth) {
         String email = auth.getName();
         Student student = studentService.getStudentByEmail(email);
         studentProgrammeAuditService.getFullAudit(student.getStudentId());
@@ -132,6 +161,17 @@ public class StudentApiController {
 
     }
 
+    /**
+     * Downloads the student's programme audit as a PDF.
+     *
+     * @param authentication the authentication object containing the student's email.
+     * @return a PDF file containing the audit report.
+     * @throws Exception if PDF generation fails.
+     */
+    @Operation(
+            summary = "Download audit report (PDF)",
+            description = "Generates and downloads the full programme audit for the logged-in student as a PDF document."
+    )
     @PostMapping("/audit/download")
     public ResponseEntity<byte[]> downloadStudentAudit(Authentication authentication) throws Exception {
         String email = authentication.getName();
@@ -151,30 +191,60 @@ public class StudentApiController {
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
-
-    /*
-    *________________________________________________________________________________________________*
-    * STUDENT ENROLLMENT COURSES API's
-    ________________________________________________________________________________________________*/
-
-
-    @PostMapping("/enrollCourses")
-    public ResponseEntity<?> enrollCourses(@RequestBody EnrollCourseRequest request) {
-        studentService.enrollStudent(request);
-        return ResponseEntity.ok(Map.of("message", "Enrolled successfully"));
-    }
-    @PostMapping("/getEligibleCourses")
-    public ResponseEntity<?> getEligibleCourses(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(studentService.getEligibleCourses(request.get("email")));
-    }
+    /**
+     * Downloads the student's invoice as a PDF document.
+     *
+     * @param request a map containing "userId" of the student.
+     * @return a PDF invoice for the student.
+     * @throws DocumentException if there's an error generating the PDF.
+     * @throws IOException if file IO fails.
+     */
+    @Operation(
+            summary = "Download student invoice (PDF)",
+            description = "Downloads the fee invoice for a given student (by userId) as a PDF document."
+    )
     @PostMapping("/invoice/download")
-    public ResponseEntity<byte[]> downloadInvoice(@RequestBody Map<String,Long> request) throws DocumentException, IOException {
-        Student student = studentRepo.findById(request.get("userId")).orElseThrow();
+    public ResponseEntity<byte[]> downloadInvoice(@RequestBody UserIdDto request) throws DocumentException, IOException {
+        Student student = studentRepo.findById(request.getUserId()).orElseThrow();
         byte[] pdfBytes = studentService.generateInvoicePdfForStudent(student.getEmail());
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "invoice.pdf");
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
+
+    /**
+     * Enrolls the student in selected courses.
+     *
+     * @param request an {@link EnrollCourseRequest} with selected course IDs and user ID.
+     * @return a confirmation message on success.
+     */
+    @Operation(
+            summary = "Enroll in courses",
+            description = "Enrolls the student in a list of selected courses using course codes and their user ID."
+    )
+    @PostMapping("/enrollCourses")
+    public ResponseEntity<MessageDto> enrollCourses(@RequestBody EnrollCourseRequest request) {
+        studentService.enrollStudent(request);
+        return ResponseEntity.ok(new MessageDto("Courses enrolled successfully"));
+    }
+    /**
+     * Retrieves a list of eligible courses for a student based on their email.
+     *
+     * This endpoint checks which courses the student is eligible to enroll in
+     * and returns a list of course details including course ID, code, title, and cost.
+     *
+     * @param request a map containing the student's "email".
+     * @return a {@link ResponseEntity} containing a list of {@link CourseEnrollmentDto} objects.
+     */
+    @Operation(
+            summary = "Get eligible courses",
+            description = "Returns a list of courses a student is eligible to enroll in, based on completed and enrolled courses."
+    )
+    @PostMapping("/getEligibleCourses")
+    public ResponseEntity<List<CourseEnrollmentDto>> getEligibleCourses(@RequestBody EmailDto request) {
+        return ResponseEntity.ok(studentService.getEligibleCourses(request.getEmail()));
+    }
+
 
 }

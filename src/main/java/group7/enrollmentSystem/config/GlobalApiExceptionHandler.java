@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.naming.AuthenticationException;
 import java.io.IOException;
 
 @RestControllerAdvice(annotations = RestController.class)
@@ -56,5 +57,15 @@ public class GlobalApiExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleUserNotFound(CustomExceptions.UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDTO(e.getMessage(), 404));
+    }
+    @ExceptionHandler(CustomExceptions.StudentOnHoldException.class)
+    public ResponseEntity<ErrorResponseDTO> handleStudentOnHold(CustomExceptions.StudentOnHoldException e) {
+        return ResponseEntity.status(HttpStatus.LOCKED)
+                .body(new ErrorResponseDTO(e.getMessage(), 423));
+    }
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAuthenticationException(AuthenticationException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponseDTO(e.getMessage(), 401));
     }
 }

@@ -5,6 +5,8 @@ import group7.enrollmentSystem.dtos.appDtos.CourseIdsResponse;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.ErrorResponseDTO;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
+import group7.enrollmentSystem.dtos.serverKtDtos.CourseIdDto;
+import group7.enrollmentSystem.dtos.serverKtDtos.CourseIdsDto;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.services.*;
@@ -34,8 +36,7 @@ public class ApiController {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
@@ -50,17 +51,11 @@ public class ApiController {
                     token
             );
             return ResponseEntity.ok(response);
-        } catch (CustomExceptions.StudentOnHoldException ex) {
-            return ResponseEntity.status(423).body(new ErrorResponseDTO(ex.getMessage(), 423));
-        }
-         catch (AuthenticationException e) {
-            throw new CustomExceptions.UserNotFoundException(request.getEmail());
-        }
     }
 
     @PostMapping("/generateSvgBatch")
-    public ResponseEntity<?> generateBatchSvg(@RequestBody Map<String, List<Long>> request) {
-        List<Long> courseIds = request.get("courseIds");
+    public ResponseEntity<List<CourseIdsResponse>> generateBatchSvg(@RequestBody CourseIdsDto request) {
+        List<Long> courseIds = request.getCourseIds();
         List<CourseIdsResponse> response = new ArrayList<>();
         for(Long id : courseIds) {
             String code = courseService.getMermaidDiagramForCourse(id);
@@ -73,10 +68,10 @@ public class ApiController {
         return ResponseEntity.ok(response);
     }
     @PostMapping("/generateSvg")
-    public ResponseEntity<?> generateSvg(@RequestBody Map<String, String> request) {
-        String code = courseService.getMermaidDiagramForCourse(Long.parseLong(request.get("courseId")));
+    public ResponseEntity<String> generateSvg(@RequestBody CourseIdDto request) {
+        String code = courseService.getMermaidDiagramForCourse(request.getCourseId());
         if (code == null || code.trim().isEmpty()) {
-            code = "graph TD; A[Code missing] --> B[Course ID: " + request.get("courseId") + "]";
+            code = "graph TD; A[Code missing] --> B[Course ID: " + request.getCourseId() + "]";
         }
         code = code.replace("\n", "; ").replace("\r", "");
         return ResponseEntity.ok(code);

@@ -12,15 +12,11 @@ data class ProgrammesAndCoursesDto(
     val programmes: Programme,
     val courses: List<Course>)
 
-data class CourseIdDto(
-    val courseId: Long
-)
+
 data class CourseIdsDto(
     val courseIds: List<Long>
 )
-data class MessageDto(
-    val message: String
-)
+
 data class CourseCodesDto(
     val courseCodes: List<String>
 )
@@ -30,6 +26,15 @@ data class PrerequisitesDto(
 data class EmailDto @JsonCreator constructor(
     @JsonProperty("email") val email: String
 )
-data class UserIdDto(
-    val userId: Long
+
+data class CourseIdDto @JsonCreator constructor(
+    @JsonProperty("courseId") val courseId: Long
+)
+
+data class MessageDto @JsonCreator constructor(
+    @JsonProperty("message") val message: String
+)
+
+data class UserIdDto @JsonCreator constructor(
+    @JsonProperty("userId") val userId: Long
 )

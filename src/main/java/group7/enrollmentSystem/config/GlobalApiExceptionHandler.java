@@ -5,10 +5,12 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.naming.AuthenticationException;
 import java.io.IOException;
 
 @RestControllerAdvice(annotations = RestController.class)
@@ -20,7 +22,6 @@ public class GlobalApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponseDTO(e.getMessage(), 500));
     }
-
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentException(IllegalArgumentException e) {
         return ResponseEntity.badRequest()
@@ -57,6 +58,14 @@ public class GlobalApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDTO(e.getMessage(), 404));
     }
-
-
+    @ExceptionHandler(CustomExceptions.StudentOnHoldException.class)
+    public ResponseEntity<ErrorResponseDTO> handleStudentOnHold(CustomExceptions.StudentOnHoldException e) {
+        return ResponseEntity.status(HttpStatus.LOCKED)
+                .body(new ErrorResponseDTO(e.getMessage(), 423));
+    }
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAuthenticationException(AuthenticationException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponseDTO(e.getMessage(), 401));
+    }
 }

@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.services;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.enums.PrerequisiteType;
@@ -249,7 +250,6 @@ public class CourseEnrollmentService {
             enrollment.setFailed(false);
             enrollment.setCancelled(false);
             enrollment.setCurrentlyTaking(false);
-            enrollment.setApplied(false);
             enrollment.setDateEnrolled(LocalDate.now());
             enrollment.setSemesterEnrolled(state.isSemesterOne() ? 1 : 2);
             enrollment.setProgramme(programme);

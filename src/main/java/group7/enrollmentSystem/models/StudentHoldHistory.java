@@ -25,11 +25,16 @@ public class StudentHoldHistory {
     @CreationTimestamp
     private LocalDateTime timestamp;
 
-    public static StudentHoldHistory create(Long studentId, OnHoldTypes holdType, boolean holdPlaced) {
+    @Column(name = "action_by")
+    private String actionBy;
+
+    public static StudentHoldHistory create(Long studentId, OnHoldTypes holdType,
+                                            boolean holdPlaced, String actionBy) {
         StudentHoldHistory history = new StudentHoldHistory();
         history.setStudentId(studentId);
         history.setHoldType(holdType);
         history.setHoldPlaced(holdPlaced);
+        history.setActionBy(actionBy);
         return history;
     }
 }

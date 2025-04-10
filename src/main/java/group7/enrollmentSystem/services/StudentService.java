@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.services;
 
 import com.itextpdf.text.DocumentException;
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
@@ -10,9 +11,18 @@ import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,7 +55,6 @@ public class StudentService {
                 ? courseProgrammeRepo.getCourseIdsByProgrammeAndSemester1(programme)
                 : courseProgrammeRepo.getCourseIdsByProgrammeAndSemester2(programme);
         List<Long> courseIdsForProgramme = courseProgrammeRepo.getCourseIdsByProgramme(programme);
-
         List<Long> completedCourseIds = courseEnrollmentRepo.getCompletedCourseIdsByStudent(student);
         List<Long> appliedCourseIds = courseEnrollmentRepo.getAppliedCourseIdsByStudent(student);
 
@@ -210,6 +219,8 @@ public class StudentService {
         if(request.getSelectedCourses() == null || request.getSelectedCourses().isEmpty()) {
             throw new RuntimeException("No courses selected for enrollment.");
         }
+        System.out.println("Currently applied courses: " + currentlyApplied);
+        System.out.println("Selected courses: " + request.getSelectedCourses().size());
         if(currentlyApplied + request.getSelectedCourses().size() > 4){
             throw new RuntimeException("You have reached the maximum number of courses you can apply for (4).");
         }
@@ -225,7 +236,6 @@ public class StudentService {
                 enrollment.setStudent(student);
                 enrollment.setCourse(course);
                 enrollment.setCurrentlyTaking(true);
-                enrollment.setApplied(true);
                 enrollment.setDateEnrolled(LocalDate.now());
                 enrollment.setProgramme(programme);
                 enrollment.setSemesterEnrolled(semester);
@@ -301,5 +311,111 @@ public class StudentService {
         return invoicePdfGeneratorService.generateInvoicePdf(invoiceDto);
     }
 
+
+    public List<CourseEnrollmentDto> getEnrolledCourses(Student student) {
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCurrentlyTakingTrue(student);
+        return courseEnrollments.stream()
+                .map(ce -> new CourseEnrollmentDto(
+                        ce.getCourse().getId(),
+                        ce.getCourse().getCourseCode(),
+                        ce.getCourse().getTitle(),
+                        ce.getCourse().getCost()))
+                .collect(Collectors.toList());
+
+    }
+    @Transactional
+    public void cancelCourse(long courseId, long userId) {
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        CourseEnrollment courseEnrollment = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(student, course);
+
+        if (courseEnrollment == null) {
+            throw new RuntimeException("No ongoing course enrollment found for cancellation.");
+        }
+
+        courseEnrollment.setCancelled(true);
+        courseEnrollment.setCurrentlyTaking(false);
+        courseEnrollmentRepo.save(courseEnrollment);
+    }
+
+    public void passEnrolledCourses(long userId, List<String> selectedCourses) {
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        List<Course> courses = courseRepo.findByCourseCodeIn(selectedCourses);
+        if(courses.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses could not be found.");
+        }
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCourseInAndCurrentlyTakingTrue(student, courses);
+        if(courseEnrollments.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses are not currently enrolled.");
+        }
+        for (CourseEnrollment enrollment : courseEnrollments) {
+            if (selectedCourses.contains(enrollment.getCourse().getCourseCode())) {
+                enrollment.setCompleted(true);
+                enrollment.setCurrentlyTaking(false);
+                enrollment.setCancelled(false);
+                courseEnrollmentRepo.save(enrollment);
+            }
+        }
+    }
+    public void failEnrolledCourses(long userId, List<String> selectedCourses) {
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        List<Course> courses = courseRepo.findByCourseCodeIn(selectedCourses);
+        if(courses.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses could not be found.");
+        }
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCourseInAndCurrentlyTakingTrue(student, courses);
+        if(courseEnrollments.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses are not currently enrolled.");
+        }
+        for (CourseEnrollment enrollment : courseEnrollments) {
+            if (selectedCourses.contains(enrollment.getCourse().getCourseCode())) {
+                enrollment.setCompleted(false);
+                enrollment.setFailed(true);
+                enrollment.setCurrentlyTaking(false);
+                enrollment.setCancelled(false);
+                courseEnrollmentRepo.save(enrollment);
+            }
+        }
+    }
+
+    public void saveProfilePicture(String email, MultipartFile file) throws IOException {
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+        // This will resolve to: <project-root>/uploadedFiles/
+        Path uploadPath = Paths.get("uploadedFiles/");
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // Store relative path for use in frontend
+        student.setPfpFilePath(filename);
+        studentRepo.save(student);
+    }
+    public Resource getProfilePicture(Long userId) throws IOException {
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException("Student with ID " + userId + " not found"));
+
+        String filename = student.getPfpFilePath();
+        if (filename == null || filename.isBlank()) {
+            throw new IllegalArgumentException("No profile picture uploaded for student");
+        }
+
+        Path filePath = Paths.get("uploadedFiles").resolve(filename);
+        if (!Files.exists(filePath)) {
+            throw new FileNotFoundException("Profile picture file not found on server");
+        }
+
+        return new UrlResource(filePath.toUri());
+    }
 }
 

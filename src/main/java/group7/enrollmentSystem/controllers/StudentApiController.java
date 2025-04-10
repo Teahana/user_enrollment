@@ -27,8 +27,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -364,5 +366,14 @@ public class StudentApiController {
     public ResponseEntity<MessageDto> failEnrolledCourses(@RequestBody EnrollCourseRequest request){
         studentService.failEnrolledCourses(request.getUserId(), request.getSelectedCourses());
         return ResponseEntity.ok(new MessageDto("Courses failed successfully"));
+    }
+    @PostMapping(value = "/savePfp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadProfilePicture(
+            @RequestParam("file") MultipartFile file,
+            Principal principal) throws IOException {
+            String email = principal.getName();
+            studentService.saveProfilePicture(email, file);
+            return ResponseEntity.ok().build();
+
     }
 }

@@ -12,8 +12,13 @@ import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -372,5 +377,26 @@ public class StudentService {
             }
         }
     }
+
+    public void saveProfilePicture(String email, MultipartFile file) throws IOException {
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Optional: validate image type, size, etc.
+        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+        Path uploadPath = Paths.get("uploads/profile_pics/");
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // Save the file path or URL to the student
+        student.setPfpFilePath("/uploads/profile_pics/" + filename);
+        studentRepo.save(student);
+    }
+
 }
 

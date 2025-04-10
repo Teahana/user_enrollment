@@ -330,7 +330,5 @@ public class StudentService {
         courseEnrollment.setCurrentlyTaking(false);
         courseEnrollmentRepo.save(courseEnrollment);
     }
-
-
 }
 

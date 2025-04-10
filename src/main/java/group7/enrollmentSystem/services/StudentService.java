@@ -301,6 +301,5 @@ public class StudentService {
         return invoicePdfGeneratorService.generateInvoicePdf(invoiceDto);
     }
 
-
 }
 

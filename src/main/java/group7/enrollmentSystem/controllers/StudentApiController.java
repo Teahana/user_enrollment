@@ -4,6 +4,8 @@ import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.appDtos.StudentDto;
+import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
+import group7.enrollmentSystem.dtos.classDtos.PaymentDto;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.UserRepo;
@@ -19,14 +21,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/student")
 @RequiredArgsConstructor
 public class StudentApiController {
+
+    private final FinanceService financeService;
     private final CourseService courseService;
     private final StudentProgrammeAuditService studentProgrammeAuditService;
     private final StudentService studentService;
@@ -34,6 +38,36 @@ public class StudentApiController {
     private final CourseEnrollmentService courseEnrollmentService;
     private final JwtService jwtService;
     private final UserRepo userRepo;
+
+
+    @PostMapping("/finance/invoice")
+    public ResponseEntity<InvoiceDto> getStudentInvoice(Authentication auth) {
+        String email = auth.getName();
+        InvoiceDto invoice = financeService.getStudentInvoiceByEmail(email);
+        return ResponseEntity.ok(invoice);
+    }
+
+    @PostMapping("/finance/payments")
+    public ResponseEntity<List<PaymentDto>> getStudentPayments(Authentication auth) {
+        String email = auth.getName();
+        List<PaymentDto> payments = financeService.getStudentPaymentsByEmail(email);
+        return ResponseEntity.ok(payments);
+    }
+
+    @PostMapping("/updateStudentPayments")
+    public ResponseEntity<?> updateStudentPayment(@RequestBody Map<String, Object> request) {
+        Long paymentId = Long.parseLong(request.get("paymentId").toString());
+        boolean paid = Boolean.parseBoolean(request.get("paid").toString());
+
+        financeService.updateStudentPayment(paymentId, paid);
+        return ResponseEntity.ok(Map.of("message", "Payment status updated."));
+    }
+
+    @PostMapping("/getAllInvoices")
+    public ResponseEntity<List<InvoiceDto>> getAllInvoices() {
+        return ResponseEntity.ok(financeService.getAllInvoices());
+    }
+
     @PostMapping("/testing")
     public ResponseEntity<?> testToken() {
         System.out.println("test received");
@@ -158,5 +192,6 @@ public class StudentApiController {
         headers.setContentDispositionFormData("attachment", "invoice.pdf");
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
+
 
 }

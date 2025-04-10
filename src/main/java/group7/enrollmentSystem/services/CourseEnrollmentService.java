@@ -1,6 +1,7 @@
 package group7.enrollmentSystem.services;
 
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollDto;
+import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.CoursePrerequisiteDto;
 import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
 import group7.enrollmentSystem.enums.PrerequisiteType;

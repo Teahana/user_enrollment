@@ -46,18 +46,25 @@ public class StudentProgrammeAuditService {
                 .map(e -> e.getCourse().getId())
                 .collect(Collectors.toSet());
 
+        Set<Long> failedCourseIds = enrollments.stream()
+                .filter(CourseEnrollment::isFailed)
+                .map(e -> e.getCourse().getId())
+                .collect(Collectors.toSet());
+
         List<CourseAuditDto> courseAudit = courseProgrammeList.stream()
                 .map(cp -> {
                     Course course = cp.getCourse();
                     boolean isEnrolled = enrolledCourseIds.contains(course.getId());
                     boolean isCompleted = completedCourseIds.contains(course.getId());
+                    boolean isFailed = failedCourseIds.contains(course.getId());
                     return new CourseAuditDto(
                             course.getId(),
                             course.getTitle(),
                             course.getCourseCode(),
                             isEnrolled,
                             course.getLevel(),
-                            isCompleted
+                            isCompleted,
+                            isFailed
                     );
                 })
                 .collect(Collectors.toList());

@@ -42,9 +42,6 @@ public class StudentController {
     private final StudentService studentService;
     private final StudentProgrammeAuditService auditService;
 
-
-
-
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
         EnrollmentState state = enrollmentStateRepo.findById(1L)

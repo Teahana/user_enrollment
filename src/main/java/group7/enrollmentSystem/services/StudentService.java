@@ -330,5 +330,47 @@ public class StudentService {
         courseEnrollment.setCurrentlyTaking(false);
         courseEnrollmentRepo.save(courseEnrollment);
     }
+
+    public void passEnrolledCourses(long userId, List<String> selectedCourses) {
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        List<Course> courses = courseRepo.findByCourseCodeIn(selectedCourses);
+        if(courses.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses could not be found.");
+        }
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCourseInAndCurrentlyTakingTrue(student, courses);
+        if(courseEnrollments.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses are not currently enrolled.");
+        }
+        for (CourseEnrollment enrollment : courseEnrollments) {
+            if (selectedCourses.contains(enrollment.getCourse().getCourseCode())) {
+                enrollment.setCompleted(true);
+                enrollment.setCurrentlyTaking(false);
+                enrollment.setCancelled(false);
+                courseEnrollmentRepo.save(enrollment);
+            }
+        }
+    }
+    public void failEnrolledCourses(long userId, List<String> selectedCourses) {
+        Student student = studentRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
+        List<Course> courses = courseRepo.findByCourseCodeIn(selectedCourses);
+        if(courses.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses could not be found.");
+        }
+        List<CourseEnrollment> courseEnrollments = courseEnrollmentRepo.findByStudentAndCourseInAndCurrentlyTakingTrue(student, courses);
+        if(courseEnrollments.size() != selectedCourses.size()) {
+            throw new RuntimeException("One or more selected courses are not currently enrolled.");
+        }
+        for (CourseEnrollment enrollment : courseEnrollments) {
+            if (selectedCourses.contains(enrollment.getCourse().getCourseCode())) {
+                enrollment.setCompleted(false);
+                enrollment.setFailed(true);
+                enrollment.setCurrentlyTaking(false);
+                enrollment.setCancelled(false);
+                courseEnrollmentRepo.save(enrollment);
+            }
+        }
+    }
 }
 

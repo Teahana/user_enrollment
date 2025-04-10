@@ -355,6 +355,14 @@ public class StudentApiController {
         Student student = studentRepo.findById(request.getUserId()).orElseThrow();
         return ResponseEntity.ok(studentService.getEnrolledCourses(student));
     }
-
-
+    @PostMapping("/passEnrolledCourses")
+    public ResponseEntity<MessageDto> passEnrolledCourses(@RequestBody EnrollCourseRequest request){
+        studentService.passEnrolledCourses(request.getUserId(), request.getSelectedCourses());
+        return ResponseEntity.ok(new MessageDto("Courses passed successfully"));
+    }
+    @PostMapping("/failEnrolledCourses")
+    public ResponseEntity<MessageDto> failEnrolledCourses(@RequestBody EnrollCourseRequest request){
+        studentService.failEnrolledCourses(request.getUserId(), request.getSelectedCourses());
+        return ResponseEntity.ok(new MessageDto("Courses failed successfully"));
+    }
 }

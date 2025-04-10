@@ -30,7 +30,7 @@ public class User implements UserDetails {
     private String firstName;
     private String lastName;
     private String userId;
-
+    private String pfpFilePath;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()

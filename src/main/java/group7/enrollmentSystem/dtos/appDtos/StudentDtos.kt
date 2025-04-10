@@ -26,6 +26,7 @@ data class CourseAuditDto(
     val courseCode: String,
     val enrolled: Boolean,
     val completed: Boolean,
+    val failed: Boolean,
     val level: Int
 
 )

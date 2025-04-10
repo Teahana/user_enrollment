@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
@@ -19,6 +20,11 @@ import group7.enrollmentSystem.repos.UserRepo;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.StudentHoldService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -43,12 +49,17 @@ public class AdminApiController {
     private final JwtService jwtService;
     private final StudentHoldService studentHoldService;
 
-    @PostMapping("/getCourses")
-    public ResponseEntity< List<CourseDto>> getCourses() {
-        List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
-        courseDtos.sort(Comparator.comparing(CourseDto::getLevel));
-        return ResponseEntity.ok(courseDtos);
-    }
+    @Operation(
+            summary = "Token-based admin login",
+            description = "Generates a new JWT token for already authenticated admin users."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated and returned new token",
+                    content =@Content(schema =@Schema(implementation = LoginResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/tokenLogin")
     public ResponseEntity<LoginResponse> tokenLogin(Authentication authentication) {
         System.out.println("Token login request received.");
@@ -62,36 +73,140 @@ public class AdminApiController {
         );
         return ResponseEntity.ok(response);
     }
+
+//------------Courses and Preqs Section-------------------------------------------------------------------
+
+    @Operation(
+            summary = "Get all courses with details",
+            description = "Retrieves all courses with their programme associations and prerequisites, sorted by level."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved all courses"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @PostMapping("/getCourses")
+    public ResponseEntity< List<CourseDto>> getCourses() {
+        List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();
+        courseDtos.sort(Comparator.comparing(CourseDto::getLevel));
+        return ResponseEntity.ok(courseDtos);
+    }
+
+    @Operation(
+            summary = "Get special prerequisite types",
+            description = "Returns all available special prerequisite types."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved special types"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/getSpecialTypes")
     public ResponseEntity<?> getSpecialTypes() {
         return ResponseEntity.ok(Map.of("specialTypes", Arrays.toString(SpecialPrerequisiteType.values())));
     }
+
+    @Operation(
+            summary = "Get all course IDs and codes",
+            description = "Returns minimal course information (ID and code) for all courses."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved all courses"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/getAllCourses")
     public ResponseEntity<List<CourseIdAndCode>> getAllCourses() {
         List<CourseIdAndCode> courses = courseRepo.findAllBy();
         return ResponseEntity.ok(courses);
     }
+
+    @Operation(
+            summary = "Get all programme IDs and codes",
+            description = "Returns minimal programme information (ID and code) for all programmes."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved all programmes"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/getAllProgrammes")
     public ResponseEntity<List<ProgrammeIdAndCode>> getAllProgrammes() {
         List<ProgrammeIdAndCode> programmes = programmeRepo.findAllBy();
         return ResponseEntity.ok(programmes);
     }
+
+    @Operation(
+            summary = "Add course prerequisites",
+            description = "Adds new prerequisite relationships for a course."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully added prerequisites"),
+            @ApiResponse(responseCode = "400", description = "Invalid prerequisite data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Course not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/addPreReqs")
     public ResponseEntity<MessageDto> addPrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
          System.out.println("Request: "+request);
         courseService.addPrerequisites(request);
         return ResponseEntity.ok(new MessageDto("Prerequisites added successfully"));
     }
+
+    @Operation(
+            summary = "Update course prerequisites",
+            description = "Updates existing prerequisite relationships for a course."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully updated prerequisites"),
+            @ApiResponse(responseCode = "400", description = "Invalid prerequisite data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Course not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/updatePreReqs")
     public ResponseEntity<MessageDto> updatePrerequisites(@RequestBody FlatCoursePrerequisiteRequest request) {
         courseService.updatePrerequisites(request);
         return ResponseEntity.ok(new MessageDto("Prerequisites updated successfully"));
     }
+
+    @Operation(
+            summary = "Get course prerequisites",
+            description = "Retrieves all prerequisite relationships for a specific course."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved prerequisites"),
+            @ApiResponse(responseCode = "400", description = "Invalid course ID"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Course not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/getPreReqs")
     public ResponseEntity<?> getPreReqs(@RequestBody CourseIdDto request) {
         FlatCoursePrerequisiteRequest prerequisites = courseService.getPrerequisitesForCourse(request.getCourseId());
         return ResponseEntity.ok(new PrerequisitesDto(prerequisites));
     }
+
+    @Operation(
+            summary = "Get prerequisite tree",
+            description = "Returns a hierarchical tree structure of all prerequisites for a course."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved prerequisite tree"),
+            @ApiResponse(responseCode = "400", description = "Invalid course ID"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Course not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/getPreReqTree")
     public ResponseEntity<GraphicalPrerequisiteNode> getPrereqTree(@RequestBody CourseIdDto request) {
         Long courseId = request.getCourseId();
@@ -99,6 +214,17 @@ public class AdminApiController {
         return ResponseEntity.ok(root);
     }
 
+    @Operation(
+            summary = "Get courses except specified",
+            description = "Returns all courses except the one with the given ID."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved courses"),
+            @ApiResponse(responseCode = "400", description = "Invalid course ID"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/getCoursesExcept/{id}")
     public ResponseEntity<CourseCodesDto> getCoursePrerequisites(@PathVariable Long id) {
         List<Course> courses = courseRepo.findByIdNot(id);
@@ -106,14 +232,35 @@ public class AdminApiController {
         return ResponseEntity.ok(new CourseCodesDto(courseCodes));
     }
 
-    // Fetch courses for programmess
+    @Operation(
+            summary = "Get unlinked courses",
+            description = "Returns courses not currently linked to a specific programme."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved unlinked courses"),
+            @ApiResponse(responseCode = "400", description = "Invalid programme code"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/getCoursesNotLinkedToProgramme")
     public ResponseEntity<List<Course>> getCoursesNotLinkedToProgramme(@RequestParam String programmeCode) {
         List<Course> courses = courseProgrammeService.getCoursesNotLinkedToProgramme(programmeCode);
         return ResponseEntity.ok(courses);
     }
 
-    // This is to remove a course from a programme useddd by admin
+    @Operation(
+            summary = "Remove course from programme",
+            description = "Removes a course from a programme's curriculum."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully removed course from programme"),
+            @ApiResponse(responseCode = "400", description = "Invalid course or programme code"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Course or programme not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @DeleteMapping("/removeCourseFromProgramme")
     public ResponseEntity<Void> removeCourseFromProgramme(
             @RequestParam String courseCode,
@@ -122,36 +269,105 @@ public class AdminApiController {
         return ResponseEntity.ok().build();
     }
 
+    //------------Student Holds Section-------------------------------------------------------------------
+    @Operation(
+            summary = "Get all student holds",
+            description = "Returns a list of all students with their current hold status."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved student holds"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/holds")
     public ResponseEntity<List<StudentHoldDto>> getAllStudentHolds() {
         return ResponseEntity.ok(studentHoldService.getAllStudentsWithHoldStatus());
     }
 
-    @PostMapping("/holds/place")
-    public ResponseEntity<MessageDto> placeHold(@RequestBody Map<String, String> request) {
+    @Operation(
+            summary = "Place student hold",
+            description = "Places a hold on a student account with specified hold type."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully placed hold"),
+            @ApiResponse(responseCode = "400", description = "Invalid student ID or hold type"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Student not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @PostMapping("/holds/placeHold")
+    public ResponseEntity<MessageDto> placeHold(@RequestBody Map<String, String> request, Authentication authentication) {
         Long studentId = Long.parseLong(request.get("studentId"));
         OnHoldTypes holdType = OnHoldTypes.valueOf(request.get("holdType"));
-        studentHoldService.placeStudentOnHold(studentId, holdType);
+        String actionBy = authentication.getName();
+        studentHoldService.placeStudentOnHold(studentId, holdType, actionBy);
         return ResponseEntity.ok(new MessageDto("Hold Placed successfully"));
     }
 
-    @PostMapping("/holds/remove")
-    public ResponseEntity<MessageDto> removeHold(@RequestBody Map<String, Long> request) {
-        studentHoldService.removeHoldFromStudent(request.get("studentId"));
+    @Operation(
+            summary = "Remove student hold",
+            description = "Removes any active hold from a student account."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully removed hold"),
+            @ApiResponse(responseCode = "400", description = "Invalid student ID"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Student not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @DeleteMapping("/holds/removeHold")
+    public ResponseEntity<MessageDto> removeHold(@RequestBody Map<String, Long> request, Authentication authentication) {
+        String actionBy = authentication.getName();
+        studentHoldService.removeHoldFromStudent(request.get("studentId"), actionBy);
         return ResponseEntity.ok(new MessageDto("Hold Removed successfully"));
 
     }
 
+    @Operation(
+            summary = "Get all hold history",
+            description = "Returns complete history of all hold placements and removals."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved hold history"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/holds/history")
     public ResponseEntity<List<StudentHoldHistoryDto>> getAllHoldHistory() {
         return ResponseEntity.ok(studentHoldService.getAllHoldHistory());
     }
 
+    @Operation(
+            summary = "Get students for hold history filter",
+            description = "Returns student list for hold history filtering purposes."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved students for filter"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/holds/history/filter")
     public ResponseEntity<List<StudentHoldDto>> getStudentsForFilter() {
         return ResponseEntity.ok(studentHoldService.getStudentsForFilter());
     }
 
+    @Operation(
+            summary = "Get hold history by student",
+            description = "Returns hold history for a specific student."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved student hold history"),
+            @ApiResponse(responseCode = "400", description = "Invalid student ID"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
+            @ApiResponse(responseCode = "404", description = "Student not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/holds/history/{studentId}")
     public ResponseEntity<List<StudentHoldHistoryDto>> getHoldHistoryByStudent(@PathVariable Long studentId) {
         return ResponseEntity.ok(studentHoldService.getHoldHistoryByStudent(studentId));

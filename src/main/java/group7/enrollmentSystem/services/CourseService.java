@@ -557,9 +557,6 @@ public class CourseService {
                 );
                 groupNode.getChildren().add(childNode);
 
-                // If you want to go multiple levels deep (the child’s prerequisites, etc.),
-                // you could RECURSE here: childNode.setChildren( ... buildPrerequisiteTree(...) ... )
-                // But be mindful to avoid cycles in your data.
             }
 
             children.add(groupNode);

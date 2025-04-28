@@ -23,6 +23,7 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final StudentRepo studentRepo;
 
+    //Some changes for pull request demo
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         System.out.println("Email: " + email);

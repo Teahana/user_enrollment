@@ -35,8 +35,8 @@
       <th>Course Code</th>
       <th>Title</th>
       <th>Description</th>
-      <th>Credits</th>
-      <th>Date Enrolled</th>
+      <th>Grade</th>
+<!--      <th>Date Enrolled</th>-->
     </tr>
     </thead>
     <tbody>
@@ -44,8 +44,8 @@
       <td th:text="${enrollment.course.courseCode}"></td>
       <td th:text="${enrollment.course.title}"></td>
       <td th:text="${enrollment.course.description}"></td>
-      <td th:text="${enrollment.course.creditPoints}"></td>
-      <td th:text="${enrollment.dateEnrolled}"></td>
+      <td th:text="${enrollment.grade}"></td>
+<!--      <td th:text="${enrollment.dateEnrolled}"></td>-->
     </tr>
     </tbody>
   </table>

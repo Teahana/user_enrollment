@@ -2,9 +2,11 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.appDtos.CourseIdsResponse;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
+import group7.enrollmentSystem.dtos.classDtos.EmailRequest;
 import group7.enrollmentSystem.dtos.classDtos.LoginRequest;
 import group7.enrollmentSystem.dtos.serverKtDtos.CourseIdDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.CourseIdsDto;
+import group7.enrollmentSystem.helpers.EmailService;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.services.*;
@@ -21,7 +23,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -32,6 +36,19 @@ public class ApiController {
     private final CourseService courseService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
+
+    @PostMapping("/send")
+    public ResponseEntity<String> sendTestMail(@RequestBody EmailRequest request) {
+        Map<String, Object> model = new HashMap<>();
+        model.put("subject", request.getSubject());
+        model.put("header", request.getHeader());
+        model.put("body", request.getBody());
+
+        emailService.sendHtmlMail(request.getTo(), request.getSubject(), "notification", model);
+
+        return ResponseEntity.ok("Email sent to " + request.getTo());
+    }
 
     @Operation(
             summary = "User login",

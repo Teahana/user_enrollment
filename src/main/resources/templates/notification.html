@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${subject}">Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .content { padding: 20px; border: 1px solid #ccc; border-radius: 6px; }
+        .footer { font-size: 0.8em; margin-top: 20px; color: #888; }
+    </style>
+</head>
+<body>
+<div class="content">
+    <h2 th:text="${header}">Notification</h2>
+    <p th:utext="${body}">Email content goes here.</p>
+</div>
+<div class="footer">
+    This is an automated message. Please do not reply.
+</div>
+</body>
+</html>

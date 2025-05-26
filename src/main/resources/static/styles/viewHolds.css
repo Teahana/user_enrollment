@@ -1,0 +1,60 @@
+/* viewHolds.css - Light Blue Theme */
+
+body {
+    background-color: #e6f7ff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+.container {
+    max-width: 700px;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.section-heading {
+    color: #0056b3;
+    font-weight: 600;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+.alert {
+    border-radius: 10px;
+}
+
+.alert-warning {
+    background-color: #fff8e1;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.list-group-item-warning {
+    background-color: #fff3cd;
+    border: none;
+    color: #856404;
+}
+
+.support-msg {
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}

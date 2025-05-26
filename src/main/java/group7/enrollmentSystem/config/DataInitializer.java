@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.config;
 
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.StudentProgrammeService;
@@ -36,12 +37,14 @@ public class DataInitializer implements CommandLineRunner {
     private final EnrollmentStateRepo enrollmentStateRepo;
     private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final StudentProgrammeRepo studentProgrammeRepo;
+    private final StudentHoldHistoryRepo studentHoldHistoryRepo;
 
     @Override
     public void run(String... args) {
         initializeCourseEnrollmentStatus();
         initializeAdminUser();
         initializeStudents();
+        initializeStudentHolds();
         initializeCourses();
         initializeProgrammes();         // Now BSE & BNS
         initializeCourseProgrammes();   // Link BSE & BNS
@@ -141,7 +144,7 @@ public class DataInitializer implements CommandLineRunner {
         User admin = new User();
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(password));
-        admin.setRoles(Set.of("ROLE_ADMIN","ROLE_STUDENT"));
+        admin.setRoles(Set.of("ROLE_ADMIN"));
         admin.setFirstName(adminFirstName);
         admin.setLastName(adminLastName);
 
@@ -175,6 +178,56 @@ public class DataInitializer implements CommandLineRunner {
 
             studentRepo.save(student);
             System.out.println("Registered student: " + email);
+        });
+    }
+
+    // --------------------------------------------------------------
+    //  4) Student Holds
+    // --------------------------------------------------------------
+    private void initializeStudentHolds() {
+        if (studentHoldHistoryRepo.count() > 0) {
+            System.out.println("Student holds already initialized. Skipping.");
+            return;
+        }
+
+        String adminEmail = "admin@gmail.com";
+
+        // Initialize hold for s11212749 (UNPAID_FEES)
+        studentRepo.findByStudentId("s11212749").ifPresent(student -> {
+            OnHoldStatus unpaidFeeStatus = new OnHoldStatus();
+            unpaidFeeStatus.setOnHoldType(OnHoldTypes.UNPAID_FEES);
+            unpaidFeeStatus.setOnHold(true);
+            student.getOnHoldStatusList().add(unpaidFeeStatus);
+            studentRepo.save(student);
+
+            // Record in history
+            StudentHoldHistory history = StudentHoldHistory.create(
+                    student.getId(),
+                    OnHoldTypes.UNPAID_FEES,
+                    true,
+                    adminEmail
+            );
+            studentHoldHistoryRepo.save(history);
+            System.out.println(student.getStudentId() + " Hold initialized");
+        });
+
+        // Initialize hold for s11212750 (DISCIPLINARY_ISSUES)
+        studentRepo.findByStudentId("s11212750").ifPresent(student -> {
+            OnHoldStatus disciplinaryStatus = new OnHoldStatus();
+            disciplinaryStatus.setOnHoldType(OnHoldTypes.DISCIPLINARY_ISSUES);
+            disciplinaryStatus.setOnHold(true);
+            student.getOnHoldStatusList().add(disciplinaryStatus);
+            studentRepo.save(student);
+
+            // Record in history
+            StudentHoldHistory history = StudentHoldHistory.create(
+                    student.getId(),
+                    OnHoldTypes.DISCIPLINARY_ISSUES,
+                    true,
+                    adminEmail
+            );
+            studentHoldHistoryRepo.save(history);
+            System.out.println(student.getStudentId() + " Hold initialized");
         });
     }
 
@@ -812,6 +865,7 @@ public class DataInitializer implements CommandLineRunner {
         studentProgrammeService.saveStudentProgramme(students.get(2).getId(), programmes.get(0).getId(), true); // BSE
         studentProgrammeService.saveStudentProgramme(students.get(3).getId(), programmes.get(1).getId(), true); // BNS
         studentProgrammeService.saveStudentProgramme(students.get(4).getId(), programmes.get(1).getId(), true); // BNS
+        studentProgrammeService.saveStudentProgramme(students.get(5).getId(), programmes.get(2).getId(), true); // BNS
 
         System.out.println("Linked students to (BSE/BNS) programmes successfully.");
     }

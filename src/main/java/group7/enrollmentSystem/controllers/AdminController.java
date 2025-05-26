@@ -1,13 +1,12 @@
 package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
+import group7.enrollmentSystem.dtos.serverKtDtos.ProgrammesAndCoursesDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.EnrollmentState;
+import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.models.User;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.EnrollmentStateRepo;
-import group7.enrollmentSystem.repos.ProgrammeRepo;
-import group7.enrollmentSystem.repos.UserRepo;
+import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
@@ -18,8 +17,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin")
@@ -33,6 +34,7 @@ public class AdminController {
     private final ProgrammeRepo programmeRepo;
     private final ProgrammeService programmeService;
     private final UserRepo userRepo;
+    private final CourseProgrammeRepo courseProgrammeRepo;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
@@ -46,6 +48,17 @@ public class AdminController {
 
         return "admin";
     }
+
+    @GetMapping("/holds")
+    public String showHoldManagementPage(Model model) {
+        return "studentHolds";
+    }
+
+    @GetMapping("/holdRestrictions")
+    public String showHoldRestrictionsPage(Model model) {
+        return "holdRestrictions";
+    }
+
 
     @GetMapping("/courses")
     public String getCourses(Model model) {
@@ -121,7 +134,17 @@ public class AdminController {
     // Display all programmes
     @GetMapping("/programmes")
     public String getProgrammes(Model model) {
-        model.addAttribute("programmes", programmeRepo.findAll());
+        List<Programme> programmes = programmeService.getAllProgrammes();
+        if (programmes == null) {
+            throw new RuntimeException("Programmes not found");
+        }
+        List<ProgrammesAndCoursesDto> data = new ArrayList<>();
+        for(Programme programme : programmes) {
+            List<Course> course = courseProgrammeRepo.findAllByProgramme(programme);
+            ProgrammesAndCoursesDto dto = new ProgrammesAndCoursesDto(programme, course);
+            data.add(dto);
+        }
+        model.addAttribute("programmes", data);
         model.addAttribute("programmeDto", new ProgrammeDto());
         return "programmes";
     }
@@ -134,6 +157,41 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("message", "Programme added");
             return "redirect:/admin/programmes";
         } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/programmes";
+        }
+    }
+
+    @PostMapping("/deleteProgramme")
+    public String deleteProgramme (@ModelAttribute ProgrammeDto dto, RedirectAttributes redirectAttributes)
+    {
+
+        try {
+            String programmeCode = dto.getProgrammeCode();
+            programmeService.deleteProgramme(programmeCode);
+            redirectAttributes.addFlashAttribute("message", "Programme Deleted successfully.");
+            return "redirect:/admin/programmes";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/programmes";
+        }
+    }
+
+    @PostMapping("/updateProgramme")
+    public String updateProgramme(@ModelAttribute ProgrammeDto dto, RedirectAttributes redirectAttributes) {
+
+        try
+        {
+        String programmeCode = dto.getProgrammeCode();
+        String name = dto.getName();
+        String faculty = dto.getFaculty();
+
+        programmeService.updateProgramme(programmeCode, name, faculty);
+        redirectAttributes.addFlashAttribute("message", "Programme updated successfully.");
+
+        return "redirect:/admin/programmes";
+        }
+        catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/admin/programmes";
         }

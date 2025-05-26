@@ -30,21 +30,27 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/test/**").hasRole("ADMIN")
-                        .anyRequest().permitAll()
-//                        .requestMatchers("/login", "/register", "/styles/**", "/images/**").permitAll()
-//                        .anyRequest().authenticated()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/student/**").hasRole("STUDENT")
+                        .requestMatchers("/login","/api/**", "/register", "/styles/**", "/images/**").permitAll()
+                        .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
                 .formLogin(login -> login
                         .loginPage("/login")
                         .failureHandler((request, response, exception) -> {
-                            if (exception instanceof DisabledException) {
+                            if (exception instanceof CustomExceptions.StudentOnHoldException) {
+                                response.sendRedirect("/login?hold=" +
+                                        ((CustomExceptions.StudentOnHoldException)exception).getHoldType().name());
+                            } else if (exception instanceof DisabledException) {
                                 response.sendRedirect("/login?disabled");
                             } else {
                                 response.sendRedirect("/login?error");
                             }
                         })
+
                         .successHandler((request, response, authentication) -> {
                             String redirectUrl = "/home";
                             boolean isAdmin = authentication.getAuthorities().stream()
@@ -56,8 +62,8 @@ public class SecurityConfig {
                             response.sendRedirect(redirectUrl);
                         })
                         .permitAll()
-
                 )
+
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")

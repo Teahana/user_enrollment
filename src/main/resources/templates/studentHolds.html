@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Holds Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/styles/studentHolds.css}">
+    <link rel="stylesheet" th:href="@{/styles/navbar.css}">
+</head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+        <h2 class="mb-0">Student Holds Management</h2>
+    </div>
+
+    <!-- Message Display Area -->
+    <div id="messageArea" class="alert d-none" role="alert"></div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <table class="table" id="studentsTable">
+                <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Current Holds</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!-- Will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Hold Modal -->
+<div class="modal fade" id="addHoldModal" tabindex="-1" aria-labelledby="addHoldModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addHoldModalLabel">Add Hold to Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addHoldForm">
+                <div class="modal-body">
+                    <input type="hidden" id="addHoldStudentId" name="studentId">
+                    <div class="mb-3">
+                        <label for="addHoldStudentName" class="form-label">Student:</label>
+                        <input type="text" class="form-control" id="addHoldStudentName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addHoldType" class="form-label">Hold Type:</label>
+                        <select class="form-select" id="addHoldType" name="holdType" required>
+                            <option value="">Select a hold type</option>
+                            <option th:each="type : ${T(group7.enrollmentSystem.enums.OnHoldTypes).values()}"
+                                    th:value="${type}"
+                                    th:text="${type}"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Hold</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Hold Modal -->
+<div class="modal fade" id="removeHoldModal" tabindex="-1" aria-labelledby="removeHoldModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeHoldModalLabel">Remove Hold from Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="removeHoldForm">
+                <div class="modal-body">
+                    <input type="hidden" id="removeHoldStudentId" name="studentId">
+                    <div class="mb-3">
+                        <label for="removeHoldStudentName" class="form-label">Student:</label>
+                        <input type="text" class="form-control" id="removeHoldStudentName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="holdToRemove" class="form-label">Hold to Remove:</label>
+                        <select class="form-select" id="holdToRemove" name="holdToRemove" required>
+                            <option value="">Select a hold to remove</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Remove Hold</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Hold History Section -->
+<div class="card shadow mt-4" id="holdHistorySection" style="display: none;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Hold History</h5>
+        <div class="d-flex">
+            <select id="studentFilter" class="form-select me-2" style="width: 250px;">
+                <option value="">All Students</option>
+            </select>
+            <button id="closeHistoryBtn" class="btn btn-secondary">Close</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table" id="holdHistoryTable">
+            <thead>
+            <tr>
+                <th>Date/Time</th>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Action</th>
+                <th>Hold Type</th>
+                <th>Action By</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mb-3 d-flex justify-content-between">
+    <button id="showHistoryBtn" class="btn btn-info">Show Hold History</button>
+    <a href="/admin/holdRestrictions" class="btn btn-warning">Manage Hold Restrictions</a>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/scripts/studentHolds.js}"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const OnHoldTypes = {
+        UNPAID_FEES: /*[[${T(group7.enrollmentSystem.enums.OnHoldTypes).UNPAID_FEES}]]*/ 'UNPAID_FEES',
+        UNPAID_REGISTRATION: /*[[${T(group7.enrollmentSystem.enums.OnHoldTypes).UNPAID_REGISTRATION}]]*/ 'UNPAID_REGISTRATION',
+        DISCIPLINARY_ISSUES: /*[[${T(group7.enrollmentSystem.enums.OnHoldTypes).DISCIPLINARY_ISSUES}]]*/ 'DISCIPLINARY_ISSUES',
+        UNSATISFACTORY_ACADEMIC_PROGRESS: /*[[${T(group7.enrollmentSystem.enums.OnHoldTypes).UNSATISFACTORY_ACADEMIC_PROGRESS}]]*/ 'UNSATISFACTORY_ACADEMIC_PROGRESS'
+    };
+    /*]]>*/
+</script>
+</body>
+</html>

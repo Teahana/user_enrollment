@@ -252,40 +252,12 @@ public class StudentHoldService {
                 });
     }
 
-    @Transactional
-    public void removeAllHoldsFromStudent(Long studentId, String actionBy) {
-        Student student = studentRepo.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        // Record each removed hold in history
-        student.getOnHoldStatusList().stream()
-                .filter(OnHoldStatus::isOnHold)
-                .forEach(hold -> {
-                    StudentHoldHistory history = StudentHoldHistory.create(
-                            studentId, hold.getOnHoldType(), false, actionBy);
-                    studentHoldHistoryRepo.save(history);
-                });
-
-        // Deactivate all holds
-        student.getOnHoldStatusList().forEach(h -> h.setOnHold(false));
-        studentRepo.save(student);
-    }
-
-    public StudentHoldDto getStudentHoldStatus(Long studentId) {
-        return studentRepo.findStudentHoldStatusById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-    }
-
     public List<StudentHoldHistoryDto> getAllHoldHistory() {
         return studentHoldHistoryRepo.findAllHoldsHistory();
     }
 
     public List<StudentHoldHistoryDto> getHoldHistoryByStudent(Long studentId) {
         return studentHoldHistoryRepo.findHistoryByStudentId(studentId);
-    }
-
-    public List<StudentHoldDto> getStudentsForFilter() {
-        return studentRepo.findAllStudentsWithHoldStatus();
     }
 
     private void enableAllServices(StudentHoldViewDto dto) {

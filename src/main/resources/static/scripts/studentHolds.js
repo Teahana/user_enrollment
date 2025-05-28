@@ -1,3 +1,10 @@
+
+const OnHoldTypes = {
+    UNPAID_FEES: 'UNPAID_FEES',
+    UNPAID_REGISTRATION: 'UNPAID_REGISTRATION',
+    DISCIPLINARY_ISSUES: 'DISCIPLINARY_ISSUES',
+    UNSATISFACTORY_ACADEMIC_PROGRESS: 'UNSATISFACTORY_ACADEMIC_PROGRESS'
+};
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Fetch and display students
@@ -277,6 +284,10 @@ function showAllHoldHistory() {
             return response.json();
         })
         .then(history => {
+            if (!Array.isArray(history)) {
+                console.error('Expected array but got:', history);
+                throw new Error('Unexpected response format - expected array');
+            }
             renderHistoryTable(history);
             document.getElementById('holdHistorySection').style.display = 'block';
             document.getElementById('studentsTable').style.display = 'none';
@@ -288,56 +299,31 @@ function showAllHoldHistory() {
         });
 }
 
-// Render history table
-function renderHistoryTable(history) {
-    const historyTable = document.querySelector('#holdHistoryTable tbody');
-    if (!historyTable) return;
-    
-    historyTable.innerHTML = '';
-
-    history.forEach(record => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${new Date(record.timestamp).toLocaleString() || 'N/A'}</td>
-            <td>${record.studentId || 'N/A'}</td>
-            <td>${record.firstName} ${record.lastName}</td>
-            <td>${record.action}</td>
-            <td>${record.holdType || 'N/A'}</td>
-            <td>${record.actionBy || 'System'}</td>
-        `;
-        historyTable.appendChild(row);
-    });
-}
-
 function populateStudentFilter() {
-    fetch('/api/admin/holds/history/filter')
+    fetch('/api/admin/holds/history') // First get all history to extract unique students
         .then(response => response.json())
-        .then(students => {
+        .then(history => {
             const filter = document.getElementById('studentFilter');
+            filter.innerHTML = '<option value="">All Students</option>';
 
-            // Clear existing options
-            filter.innerHTML = '';
+            // Create a map to track unique students
+            const studentMap = new Map();
 
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'All Students';
-            filter.appendChild(defaultOption);
-
-            // Track unique students using a Set
-            const uniqueStudents = new Set();
-
-            students.forEach(student => {
-                const studentKey = `${student.studentId}-${student.firstName}-${student.lastName}`;
-                if (!uniqueStudents.has(studentKey)) {
-                    uniqueStudents.add(studentKey);
+            history.forEach(record => {
+                if (!studentMap.has(record.studentId)) {
+                    studentMap.set(record.studentId, {
+                        firstName: record.firstName,
+                        lastName: record.lastName,
+                    });
 
                     const option = document.createElement('option');
-                    option.value = student.studentId;
-                    option.textContent = `${student.firstName} ${student.lastName} (${student.studentNumber})`;
+                    option.value = record.studentId;
+                    option.textContent = `${record.firstName} ${record.lastName} `;
                     filter.appendChild(option);
                 }
             });
 
+            // Set up filter change handler
             filter.addEventListener('change', function() {
                 const studentId = this.value;
                 if (studentId) {
@@ -352,9 +338,32 @@ function populateStudentFilter() {
         })
         .catch(error => {
             console.error('Error:', error);
-            filter.innerHTML = '<option value="">Error loading students</option>';
+            showMessage('Error loading student filter', 'danger');
         });
 }
+
+// Render history table
+function renderHistoryTable(history) {
+    const historyTable = document.querySelector('#holdHistoryTable tbody');
+    if (!historyTable) return;
+
+    historyTable.innerHTML = '';
+
+    history.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${new Date(record.timestamp).toLocaleString() || 'N/A'}</td>
+            <td>${record.studentId || 'N/A'}</td>
+            <td>${record.firstName} ${record.lastName}</td>
+            <td>${record.email}</td>
+            <td>${record.action}</td>
+            <td>${record.holdType || 'N/A'}</td>
+            <td>${record.actionBy || 'System'}</td>
+        `;
+        historyTable.appendChild(row);
+    });
+}
+
 
 // Show a message to the user
 function showMessage(message, type) {

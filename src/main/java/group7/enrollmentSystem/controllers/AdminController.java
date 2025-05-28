@@ -59,7 +59,6 @@ public class AdminController {
         return "holdRestrictions";
     }
 
-
     @GetMapping("/courses")
     public String getCourses(Model model) {
         List<CourseDto> courseDtos = courseService.getAllCoursesWithProgrammesAndPrereqs();

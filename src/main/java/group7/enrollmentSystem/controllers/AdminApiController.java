@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +48,7 @@ public class AdminApiController {
     private final ProgrammeRepo programmeRepo;
     private final UserRepo userRepo;
     private final JwtService jwtService;
+
     private final StudentRepo studentRepo;
     private final StudentHoldHistoryRepo studentHoldHistoryRepo;
     private final StudentHoldService studentHoldService;
@@ -297,6 +299,7 @@ public class AdminApiController {
     @GetMapping("/holds/{studentId}")
     public ResponseEntity<StudentHoldDto> getStudentHolds(@PathVariable Long studentId) {
         return ResponseEntity.ok(studentHoldService.getStudentHolds(studentId));
+
     }
 
     @Operation(
@@ -318,7 +321,6 @@ public class AdminApiController {
         String actionBy = authentication.getName();
         return studentHoldService.placeHold(studentId, holdType, actionBy);
     }
-
 
     @Operation(
             summary = "Remove student hold",

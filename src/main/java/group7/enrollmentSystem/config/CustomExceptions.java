@@ -9,12 +9,12 @@ public class CustomExceptions {
     public static class StudentOnHoldException extends DisabledException {
         private final OnHoldTypes holdType;
 
-
         public static class ServiceRestrictedException extends RuntimeException {
             public ServiceRestrictedException(String message) {
                 super(message);
             }
         }
+
         public StudentOnHoldException(OnHoldTypes holdType) {
             super(getHoldMessage(holdType));
             this.holdType = holdType;
@@ -24,7 +24,8 @@ public class CustomExceptions {
             return holdType;
         }
 
-        public static String getHoldMessage(OnHoldTypes holdType) {
+
+        private static String getHoldMessage(OnHoldTypes holdType) {
             return switch (holdType) {
                 case UNPAID_FEES -> "Your account is on hold for unpaid fees. Please pay your fees to continue.";
                 case UNPAID_REGISTRATION ->

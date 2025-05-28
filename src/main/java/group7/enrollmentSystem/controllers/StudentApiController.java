@@ -11,6 +11,7 @@ import group7.enrollmentSystem.dtos.serverKtDtos.EmailDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.UserIdDto;
 import group7.enrollmentSystem.enums.OnHoldTypes;
+
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
@@ -55,6 +56,7 @@ public class StudentApiController {
     private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
     private final StudentRepo studentRepo;
     private final StudentHoldService studentHoldService;
+
 
     /**
      * Authenticates the user using a token and returns a new session token if valid.
@@ -446,5 +448,4 @@ public class StudentApiController {
         };
 
         return ResponseEntity.ok(Map.of("accessible", isAccessible));
-    }
 }

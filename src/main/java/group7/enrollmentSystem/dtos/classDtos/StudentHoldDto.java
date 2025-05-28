@@ -2,7 +2,6 @@ package group7.enrollmentSystem.dtos.classDtos;
 
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import lombok.Data;
-
 import java.util.List;
 
 @Data

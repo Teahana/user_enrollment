@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" th:href="@{/styles/enrollment.css}">
     <link rel="stylesheet" th:href="@{/styles/navbar.css}">
+
 </head>
 <body>
 <div th:replace="~{fragments/navbar :: navbar}"></div>
@@ -85,7 +86,6 @@
         </form>
     </div>
 </div>
-
 
 <div class="access-denied-overlay" th:if="${!pageOpen}">
 </div>

@@ -44,6 +44,7 @@ public class ApiController {
         model.put("subject", request.getSubject());
         model.put("header", request.getHeader());
         model.put("body", request.getBody());
+
         emailService.sendHtmlMail(request.getTo(), request.getSubject(), "notification", model);
         return ResponseEntity.ok("Email sent to " + request.getTo());
     }

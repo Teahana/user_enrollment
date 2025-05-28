@@ -52,6 +52,7 @@ public class StudentController {
         }
     }
 
+
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
         EnrollmentState state = enrollmentStateRepo.findById(1L)

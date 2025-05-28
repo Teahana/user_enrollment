@@ -2,9 +2,10 @@ package group7.enrollmentSystem.services;
 
 import group7.enrollmentSystem.dtos.classDtos.ProgrammeDto;
 import group7.enrollmentSystem.models.Programme;
-import group7.enrollmentSystem.repos.ProgrammeRepo;
+import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,10 @@ import java.util.Optional;
 public class ProgrammeService {
 
     private final ProgrammeRepo programmeRepo;
+    private final CourseProgrammeRepo courseProgrammeRepo;
+    private final CoursePrerequisiteRepo coursePrerequisiteRepo;
+    private final StudentProgrammeRepo studentProgrammeRepo;
+    private final CourseEnrollmentRepo courseEnrollmentRepo;
 
 
     // Add a new programme
@@ -52,21 +57,28 @@ public class ProgrammeService {
         if (optionalProgramme.isPresent()) {
             Programme programme = optionalProgramme.get();
             programme.setName(name);
+            programme.setProgrammeCode(programmeCode);
             programme.setFaculty(faculty);
             programmeRepo.save(programme);
         } else {
-            throw new RuntimeException("Programme not found with programmecode: " + programmeCode);
+            throw new RuntimeException("Programme not found with programme code: " + programmeCode);
         }
-    }
 
-    // Delete a programme record
+    }
+    @Transactional
     public void deleteProgramme(String programmeCode) {
         Optional<Programme> optionalProgramme = programmeRepo.findByProgrammeCode(programmeCode);
         if (optionalProgramme.isPresent()) {
-            programmeRepo.delete(optionalProgramme.get());
+            Programme programme = optionalProgramme.get();
+            //Delete first from tables that references programme before deleting programmes since foreign keys and constraints will stop you
+            //cause we use @Mappings in Jpa
+            courseProgrammeRepo.deleteAllByProgramme(programme);
+            coursePrerequisiteRepo.deleteAllByProgramme(programme);
+            studentProgrammeRepo.deleteAllByProgramme(programme);
+            courseEnrollmentRepo.deleteAllByProgramme(programme);
+            programmeRepo.delete(programme);
         } else {
-            throw new RuntimeException("Programme not found with code: " + programmeCode);
+            throw new RuntimeException("Programme not found with programme code: " + programmeCode);
         }
     }
-
 }

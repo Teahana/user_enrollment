@@ -3,6 +3,7 @@ package group7.enrollmentSystem.repos;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.models.Course;
 import group7.enrollmentSystem.models.CourseEnrollment;
+import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.models.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,8 +39,16 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     List<CourseEnrollment> findByStudent(Student student);
     @Query("SELECT ce.course.id FROM CourseEnrollment ce WHERE ce.completed = TRUE AND ce.student = :student")
     List<Long> getCompletedCourseIdsByStudent(Student student);
-    @Query("SELECT ce.course.id FROM CourseEnrollment ce WHERE ce.applied = TRUE AND ce.student = :student")
+    @Query("SELECT ce.course.id FROM CourseEnrollment ce WHERE ce.currentlyTaking = TRUE AND ce.student = :student")
     List<Long> getAppliedCourseIdsByStudent(Student student);
+
+    void deleteAllByProgramme(Programme programme);
+
+    List<CourseEnrollment> findByStudentAndCurrentlyTakingTrue(Student student);
+
+    CourseEnrollment findByStudentAndCourseAndCurrentlyTakingTrue(Student student, Course course);
+
+    List<CourseEnrollment> findByStudentAndCourseInAndCurrentlyTakingTrue(Student student, List<Course> selectedCourses);
 }
 
 

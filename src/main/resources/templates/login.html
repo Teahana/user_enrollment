@@ -12,7 +12,7 @@
     <!-- Logo -->
     <img th:src="@{/images/usp_logo2.jpg}" alt="USP Logo" class="logo">
 
-    <h3 class="text-center">Loginnn</h3>
+    <h3 class="text-center">Login</h3>
     <!-- Error message for invalid login -->
     <div th:if="${param.error}" class="alert alert-danger">
         Invalid username or password.
@@ -20,6 +20,17 @@
     <!-- Logout message -->
     <div th:if="${param.logout}" class="alert alert-success">
         You have been logged out successfully.
+    </div>
+
+    <!-- Hold messages -->
+    <div th:if="${param.hold}" class="alert alert-warning">
+    <span th:switch="${param.hold[0]}">
+        <span th:case="'UNPAID_FEES'">Your account is on hold for unpaid fees. Please pay your fees to continue.</span>
+        <span th:case="'UNPAID_REGISTRATION'">Your account is on hold for unpaid registration. Please complete your registration payment.</span>
+        <span th:case="'DISCIPLINARY_ISSUES'">Your account is on hold due to disciplinary issues. Please contact the administration.</span>
+        <span th:case="'UNSATISFACTORY_ACADEMIC_PROGRESS'">Your account is on hold due to unsatisfactory academic progress. Please meet with your advisor.</span>
+        <span th:case="*">Your account is on hold. Please contact the administration.</span>
+    </span>
     </div>
     <!-- Expired message -->
     <div th:if="${param.disabled}" class="alert alert-warning">
@@ -60,6 +71,13 @@
         document.getElementById('password').value = password;
         document.getElementById('loginForm').submit();
     }
+
+    // Remove URL parameters after page loads
+    window.onload = function() {
+        if(window.location.href.indexOf('?') > -1) {
+            history.replaceState(null, null, window.location.pathname);
+        }
+    };
 </script>
 
 </body>

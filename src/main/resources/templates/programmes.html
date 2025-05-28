@@ -6,6 +6,7 @@
   <title>Programmes</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" th:href="@{/styles/programmes.css}">
+  <link rel="stylesheet" th:href="@{/styles/navbar.css}">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
@@ -16,7 +17,7 @@
   <h2 class="mb-3">Programmes</h2>
 
   <!-- Add Programme Button -->
-  <button class="btn btn-primary add-programme-btn" data-bs-toggle="modal" data-bs-target="#addProgrammeModal">
+  <button class="btn btn-primary add-programme-btn mb-3" data-bs-toggle="modal" data-bs-target="#addProgrammeModal">
     Add Programme
   </button>
 
@@ -40,29 +41,46 @@
     </tr>
     </thead>
     <tbody>
-    <tr th:each="programme : ${programmes}">
-      <td th:text="${programme.programmeCode}"></td>
-      <td th:text="${programme.name}"></td>
-      <td th:text="${programme.faculty}"></td>
+    <tr th:each="dto : ${programmes}">
+      <td th:text="${dto.programmes.programmeCode}"></td>
+      <td th:text="${dto.programmes.name}"></td>
+      <td th:text="${dto.programmes.faculty}"></td>
       <td>
         <ul style="list-style-type: none; padding-left: 0;">
-          <li th:each="courseProgramme : ${programme.courseProgrammes}">
-            <span th:text="${courseProgramme.course.courseCode + ' - ' + courseProgramme.course.title}"></span>
-            <button class="btn btn-sm btn-danger removeCourseBtn"
-                    th:data-course-code="${courseProgramme.course.courseCode}"
-                    th:data-programme-code="${programme.programmeCode}">
-              Remove
-            </button>
+          <li th:each="course : ${dto.courses}">
+            <span th:text="${course.courseCode + ' - ' + course.title}"></span>
           </li>
         </ul>
       </td>
       <td>
-        <button class="btn btn-sm btn-secondary linkCourseBtn"
-                data-bs-toggle="modal"
-                data-bs-target="#linkCourseModal"
-                th:data-programme-code="${programme.programmeCode}">
-          Link Course
-        </button>
+        <div class="d-flex flex-column">
+          <!-- Link Course Button -->
+          <button class="btn btn-sm btn-secondary linkCourseBtn mb-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#linkCourseModal"
+                  th:data-programme-code="${dto.programmes.programmeCode}">
+            Link Course
+          </button>
+
+          <!-- Update Programme Button -->
+          <button class="btn btn-sm btn-info editProgrammeBtn mb-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#updateProgrammeModal"
+                  th:data-programme-code="${dto.programmes.programmeCode}"
+                  th:data-programme-name="${dto.programmes.name}"
+                  th:data-programme-faculty="${dto.programmes.faculty}">
+            Update
+          </button>
+
+          <!-- Delete Programme Form -->
+          <form th:action="@{/admin/deleteProgramme}" method="post">
+            <input type="hidden" name="programmeCode" th:value="${dto.programmes.programmeCode}" />
+            <button type="submit" class="btn btn-sm btn-danger mt-1"
+                    onclick="return confirm('Are you sure you want to delete this programme?')">
+              Delete
+            </button>
+          </form>
+        </div>
       </td>
     </tr>
     </tbody>
@@ -98,6 +116,35 @@
   </div>
 </div>
 
+<!-- Update Programme Modal -->
+<div class="modal fade" id="updateProgrammeModal" tabindex="-1" aria-labelledby="updateProgrammeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Programme</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form th:action="@{/admin/updateProgramme}" method="post">
+          <div class="mb-3">
+            <label class="form-label">Programme Code</label>
+            <input type="text" class="form-control" name="programmeCode" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Faculty</label>
+            <input type="text" class="form-control" name="faculty" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Update Programme</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Link Course Modal -->
 <div class="modal fade" id="linkCourseModal" tabindex="-1" aria-labelledby="linkCourseModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -122,7 +169,30 @@
   </div>
 </div>
 
+<!-- Scripts -->
 <script th:src="@{/scripts/programmes.js}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Inline JS for Update Modal population -->
+<script>
+  $(document).on("click", ".editProgrammeBtn", function () {
+    const code = $(this).data("programme-code");
+    const name = $(this).data("programme-name");
+    const faculty = $(this).data("programme-faculty");
+
+    const modal = $("#updateProgrammeModal");
+    modal.find('input[name="programmeCode"]').val(code);
+    modal.find('input[name="name"]').val(name);
+    modal.find('input[name="faculty"]').val(faculty);
+  });
+
+  $(document).on("click", ".linkCourseBtn", function () {
+    const programmeCode = $(this).data("programme-code");
+    $("#selectedProgrammeCode").val(programmeCode);
+
+    // Optionally, load courses dynamically here
+  });
+</script>
+
 </body>
 </html>

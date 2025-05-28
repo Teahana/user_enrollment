@@ -21,10 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/student")
@@ -42,16 +39,6 @@ public class StudentController {
     private final StudentService studentService;
     private final StudentProgrammeAuditService auditService;
     private final StudentHoldService studentHoldService;
-
-    private boolean checkAccess(Principal principal, StudentHoldService.HoldRestrictionType restrictionType) {
-        try {
-            studentHoldService.checkAccess(principal.getName(), restrictionType);
-            return true;
-        } catch (CustomExceptions.StudentOnHoldException e) {
-            return false;
-        }
-    }
-
 
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
@@ -191,6 +178,14 @@ public class StudentController {
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 
+    private boolean checkAccess(Principal principal, StudentHoldService.HoldRestrictionType restrictionType) {
+        try {
+            studentHoldService.checkAccess(principal.getName(), restrictionType);
+            return true;
+        } catch (CustomExceptions.StudentOnHoldException e) {
+            return false;
+        }
+    }
     @GetMapping("/viewHolds")
     public String viewHolds(Authentication authentication, Model model) {
         Student student = studentRepo.findByEmail(authentication.getName())

@@ -110,46 +110,6 @@ function setupEditModal() {
     });
 }
 
-function saveRestrictionChanges() {
-    const holdType = document.getElementById('editHoldType').value;
-    const restrictionData = {
-        holdType: holdType,
-        blockCourseEnrollment: document.getElementById('blockCourseEnrollment').checked,
-        blockViewCompletedCourses: document.getElementById('blockViewCompletedCourses').checked,
-        blockStudentAudit: document.getElementById('blockStudentAudit').checked,
-        blockGenerateTranscript: document.getElementById('blockGenerateTranscript').checked,
-        blockGraduationApplication: document.getElementById('blockGraduationApplication').checked
-    };
-
-    showLoading();
-    fetch(`/api/admin/hold-restrictions/${holdType}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(restrictionData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(text => { throw new Error(text) });
-        }
-        return response.json();
-    })
-    .then(data => {
-        fetchHoldRestrictions();
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editRestrictionModal'));
-        modal.hide();
-        showSuccess('Restrictions updated successfully');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showError(error.message || 'Failed to update restrictions');
-    })
-    .finally(() => {
-        hideLoading();
-    });
-}
-
 function initializeDefaultRestrictions() {
     fetch('/api/admin/hold-restrictions')
         .then(response => response.json())
@@ -179,8 +139,52 @@ function createDefaultRestrictions() {
     });
 }
 
+function saveRestrictionChanges() {
+    const holdType = document.getElementById('editHoldType').value;
+    const restrictionData = {
+        holdType: holdType,
+        blockCourseEnrollment: document.getElementById('blockCourseEnrollment').checked,
+        blockViewCompletedCourses: document.getElementById('blockViewCompletedCourses').checked,
+        blockStudentAudit: document.getElementById('blockStudentAudit').checked,
+        blockGenerateTranscript: document.getElementById('blockGenerateTranscript').checked,
+        blockGraduationApplication: document.getElementById('blockGraduationApplication').checked
+    };
+
+    showLoading();
+    fetch(`/api/admin/hold-restrictions/${holdType}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(restrictionData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text) });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Update successful:', data);
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editRestrictionModal'));
+        modal.hide();
+        showSuccess('Restriction(s) updated successfully');
+        fetchHoldRestrictions();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError(error.message || 'Failed to update restrictions');
+    })
+    .finally(() => {
+        hideLoading();
+    });
+}
+
 function showLoading() {
-    document.getElementById('messageArea').innerHTML = `
+    const alertDiv = document.getElementById('messageArea');
+    if (!alertDiv) return;
+
+    alertDiv.innerHTML = `
         <div class="d-flex align-items-center">
             <div class="spinner-border spinner-border-sm me-2" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -188,40 +192,58 @@ function showLoading() {
             <span>Loading...</span>
         </div>
     `;
-    document.getElementById('messageArea').className = 'alert alert-info d-block';
+    alertDiv.classList.remove('d-none', 'alert-success', 'alert-danger');
+    alertDiv.classList.add('alert-info', 'd-block');
 }
 
 function hideLoading() {
-    document.getElementById('messageArea').className = 'alert d-none';
-}
-
-function showError(message) {
     const alertDiv = document.getElementById('messageArea');
-    alertDiv.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
-            <span><strong>Error!</strong> ${message}</span>
-            <button type="button" class="btn-close" onclick="hideError()"></button>
-        </div>
-    `;
-    alertDiv.className = 'alert alert-danger d-block';
-}
-
-function hideError() {
-    document.getElementById('messageArea').className = 'alert d-none';
+    if (!alertDiv) return;
+    alertDiv.classList.add('d-none');
 }
 
 function showSuccess(message) {
     const alertDiv = document.getElementById('messageArea');
+    if (!alertDiv) {
+        console.error('Message area not found');
+        return;
+    }
+
     alertDiv.innerHTML = `
         <div class="d-flex justify-content-between align-items-center">
-            <span><strong>Success!</strong> ${message}</span>
-            <button type="button" class="btn-close" onclick="hideSuccess()"></button>
+            <span><i class="bi bi-check-circle-fill me-2"></i> ${message}</span>
+            <button type="button" class="btn-close" onclick="this.closest('.alert').classList.add('d-none')"></button>
         </div>
     `;
-    alertDiv.className = 'alert alert-success d-block';
-    setTimeout(hideSuccess, 5000);
+    alertDiv.classList.remove('d-none', 'alert-danger', 'alert-info');
+    alertDiv.classList.add('alert-success', 'd-block');
+
+    setTimeout(() => {
+        alertDiv.classList.add('d-none');
+    }, 5000);
 }
 
-function hideSuccess() {
+function showError(message) {
+    const alertDiv = document.getElementById('messageArea');
+    if (!alertDiv) {
+        console.error('Message area not found');
+        return;
+    }
+
+    alertDiv.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-exclamation-triangle-fill me-2"></i> ${message}</span>
+            <button type="button" class="btn-close" onclick="this.closest('.alert').classList.add('d-none')"></button>
+        </div>
+    `;
+    alertDiv.classList.remove('d-none', 'alert-success', 'alert-info');
+    alertDiv.classList.add('alert-danger', 'd-block');
+
+    setTimeout(() => {
+        alertDiv.classList.add('d-none');
+    }, 5000);
+}
+
+function hideLoading() {
     document.getElementById('messageArea').className = 'alert d-none';
 }

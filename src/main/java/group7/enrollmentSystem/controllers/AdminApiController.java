@@ -1,6 +1,5 @@
 package group7.enrollmentSystem.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.*;
@@ -25,7 +24,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -41,16 +39,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminApiController {
 
-    //private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final CourseRepo courseRepo;
     private final CourseProgrammeService courseProgrammeService;
     private final CourseService courseService;
     private final ProgrammeRepo programmeRepo;
     private final UserRepo userRepo;
     private final JwtService jwtService;
-
     private final StudentRepo studentRepo;
-    private final StudentHoldHistoryRepo studentHoldHistoryRepo;
     private final StudentHoldService studentHoldService;
 
     private final HoldServiceRestrictionRepo restrictionRepo;
@@ -299,7 +294,6 @@ public class AdminApiController {
     @GetMapping("/holds/{studentId}")
     public ResponseEntity<StudentHoldDto> getStudentHolds(@PathVariable Long studentId) {
         return ResponseEntity.ok(studentHoldService.getStudentHolds(studentId));
-
     }
 
     @Operation(
@@ -321,6 +315,7 @@ public class AdminApiController {
         String actionBy = authentication.getName();
         return studentHoldService.placeHold(studentId, holdType, actionBy);
     }
+
 
     @Operation(
             summary = "Remove student hold",
@@ -363,22 +358,7 @@ public class AdminApiController {
     }
 
     @Operation(
-            summary = "Get students for hold history filter",
-            description = "Returns student list for hold history filtering purposes."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved students for filter"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @GetMapping("/holds/history/filter")
-    public ResponseEntity<List<StudentHoldDto>> getStudentsForFilter() {
-        return ResponseEntity.ok(studentHoldService.getStudentsForFilter());
-    }
-
-    @Operation(
-            summary = "Get hold history by student",
+            summary = "Get (Filter) hold history by student",
             description = "Returns hold history for a specific student."
     )
     @ApiResponses({

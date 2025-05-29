@@ -1,74 +1,104 @@
 
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Student Programme Audit</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" th:href="@{/styles/audit.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <link rel="stylesheet" th:href="@{/styles/audit.css}">
+    <link rel="stylesheet" th:href="@{/styles/navbar.css}">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <!-- Mermaid -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        /* Additional inline styles specific to this page */
+        .prereq-btn {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<h2 id="studentHeader">Programme Audit</h2>
-<div id="studentInfo" class="student-info"></div>
+<div th:if="${pageOpen}" class="container">
+    <div class="card">
+        <div class="card-body">
+            <h2 id="studentHeader">
+                <i class="fas fa-clipboard-list me-2 text-primary"></i>
+                Programme Audit
+            </h2>
+            <div id="studentInfo" class="student-info"></div>
 
-<!-- Filter Buttons -->
-<div style="margin-top: 20px;">
-    <strong>Filter:</strong>
-    <button onclick="setFilter('all')">All</button>
-    <button onclick="setFilter('enrolled')">Enrolled</button>
-    <button onclick="setFilter('completed')">Completed</button>
-    <button onclick="setFilter('notTaken')">Not Taken</button>
-</div>
-
-<!-- Table -->
-<table id="auditTable" style="display:none;">
-    <thead><tr></tr></thead>
-    <tbody id="courseTableBody"></tbody>
-</table>
-
-<!-- Pie Chart -->
-<div style="width: 100%; max-width: 250px; margin: 30px auto;">
-    <canvas id="auditChart"></canvas>
-</div>
-
-<!-- Legend -->
-<div id="legend" style="margin-top: 15px;">
-    <p>
-        <span style="margin-right: 20px;">Ⓡ = Currently Enrolled</span>
-        <span style="margin-right: 20px;">&#x2713; = Completed</span>
-    </p>
-    <p>
-        <strong>Completed:</strong> <span id="completedCount">0</span> |
-        <strong>Remaining:</strong> <span id="remainingCount">0</span> |
-        <strong>Total:</strong> <span id="totalCount">0</span>
-    </p>
-</div>
-
-<!-- Mermaid Modal -->
-<div class="modal fade" id="mermaidModal" tabindex="-1" aria-labelledby="mermaidModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mermaidModalLabel">Prerequisite Diagram</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <!-- Filter Buttons -->
+            <div class="mt-4">
+                <strong>Filter:</strong>
+                <div class="filter-buttons">
+                    <button onclick="setFilter('all')" class="btn btn-filter active" data-filter="all">
+                        <i class="fas fa-list me-1"></i> All
+                    </button>
+                    <button onclick="setFilter('enrolled')" class="btn btn-filter" data-filter="enrolled">
+                        <i class="fas fa-book-open me-1"></i> Enrolled
+                    </button>
+                    <button onclick="setFilter('completed')" class="btn btn-filter" data-filter="completed">
+                        <i class="fas fa-check-circle me-1"></i> Completed
+                    </button>
+                    <button onclick="setFilter('notTaken')" class="btn btn-filter" data-filter="notTaken">
+                        <i class="fas fa-question-circle me-1"></i> Not Taken
+                    </button>
+                </div>
             </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <div id="mermaidRenderContainer" style="overflow-x: auto; padding: 10px;"></div>
-                <div id="noPrereqsMessage" style="display: none; font-style: italic; padding: 10px;"></div>
+
+            <!-- Table -->
+            <table id="auditTable" class="table" style="display:none;">
+                <thead><tr></tr></thead>
+                <tbody id="courseTableBody"></tbody>
+            </table>
+
+            <!-- Pie Chart -->
+            <div class="text-center">
+                <canvas id="auditChart"></canvas>
+            </div>
+
+            <!-- Legend -->
+            <div id="legend">
+                <p>
+                    <span class="enrolled">Ⓡ</span> = Currently Enrolled &nbsp;&nbsp;
+                    <span class="completed">✓</span> = Completed
+                </p>
+                <p>
+                    <strong>Completed:</strong> <span id="completedCount">0</span> |
+                    <strong>Remaining:</strong> <span id="remainingCount">0</span> |
+                    <strong>Total:</strong> <span id="totalCount">0</span>
+                </p>
+            </div>
+
+            <!-- Mermaid Modal -->
+            <div class="modal fade" id="mermaidModal" tabindex="-1" aria-labelledby="mermaidModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="mermaidModalLabel">Prerequisite Diagram</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                            <div id="mermaidRenderContainer" style="overflow-x: auto; padding: 10px;"></div>
+                            <div id="noPrereqsMessage" style="display: none; font-style: italic; padding: 10px;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<div class="access-denied-overlay" th:if="${!pageOpen}"></div>
 
 <!-- Inject audit data -->
 <script th:inline="javascript">
@@ -82,7 +112,9 @@
     let currentFilter = 'all';
     let chartInstance = null;
 
+
     document.addEventListener("DOMContentLoaded", function () {
+
         if (rawData && rawData.studentId) {
             renderAuditTable(rawData);
             const total = rawData.programmeCourses.length;
@@ -93,83 +125,93 @@
         }
     });
 
+    // SetFilter buttons
     function setFilter(filter) {
         currentFilter = filter;
+
+        // Update button states
+        document.querySelectorAll('.btn-filter').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-filter') === filter) {
+                btn.classList.add('active');
+            }
+        });
+
         if (rawData) renderAuditTable(rawData);
     }
 
-    function renderAuditTable(data) {
-        document.getElementById("studentHeader").innerText = `Programme Audit for ${data.studentName}`;
-        document.getElementById("studentInfo").innerHTML = `
-            <p><strong>Student ID:</strong> ${data.studentId}</p>
-            <p><strong>Programme:</strong> ${data.programmeName || "N/A"}</p>
-            <p><strong>Status:</strong> ${data.status}</p>
-        `;
+function renderAuditTable(data) {
+    document.getElementById("studentHeader").innerText = `Programme Audit for ${data.studentName}`;
+    document.getElementById("studentInfo").innerHTML = `
+        <p><strong>Student ID:</strong> ${data.studentId}</p>
+        <p><strong>Programme:</strong> ${data.programmeName || "N/A"}</p>
+        <p><strong>Status:</strong> ${data.status}</p>
+    `;
 
-        const levels = [100, 200, 300, 400];
-        const grouped = {};
-        const levelStats = {};
-        let totalCourses = 0;
-        let totalCompleted = 0;
+    const levels = [100, 200, 300, 400];
+    const grouped = {};
+    const levelStats = {};
+    let totalCourses = 0;
+    let totalCompleted = 0;
 
+    levels.forEach(level => {
+        grouped[level] = [];
+        levelStats[level] = { total: 0, completed: 0 };
+    });
+
+    data.programmeCourses.forEach(course => {
+        const level = course.level || 100;
+        const isEnrolled = course.enrolled;
+        const isCompleted = course.completed;
+
+        if (currentFilter === 'enrolled' && !isEnrolled) return;
+        if (currentFilter === 'completed' && !isCompleted) return;
+        if (currentFilter === 'notTaken' && (isEnrolled || isCompleted)) return;
+
+        let status = '';
+        if (isEnrolled) status += '<span class="enrolled">Ⓡ</span>';
+        if (isCompleted) status += '<span class="completed">&#x2713;</span>';
+
+        grouped[level].push(`
+            <div class="course-item">
+                <div>${course.courseCode} ${status}</div>
+                <button class="btn btn-sm btn-outline-primary mt-1"
+                        onclick="viewPrereqDiagram(${course.id}, '${course.courseCode}')">
+                    View Prerequisites
+                </button>
+            </div>
+        `);
+
+        levelStats[level].total += 1;
+        if (isCompleted) levelStats[level].completed += 1;
+
+        totalCourses += 1;
+        if (isCompleted) totalCompleted += 1;
+    });
+
+    const thead = document.querySelector("#auditTable thead tr");
+    thead.innerHTML = levels.map(level => {
+        const stat = levelStats[level];
+        return `<th>Level ${level}<br><span style="font-size: 12px;">${stat.completed}/${stat.total}</span></th>`;
+    }).join('');
+
+    const tbody = document.getElementById("courseTableBody");
+    tbody.innerHTML = '';
+    const maxRows = Math.max(...Object.values(grouped).map(list => list.length));
+    for (let i = 0; i < maxRows; i++) {
+        let row = '<tr>';
         levels.forEach(level => {
-            grouped[level] = [];
-            levelStats[level] = { total: 0, completed: 0 };
+            const course = grouped[level][i] || '';
+            row += `<td>${course}</td>`;
         });
+        row += '</tr>';
+        tbody.innerHTML += row;
+    }
 
-        data.programmeCourses.forEach(course => {
-            const level = course.level || 100;
-            const isEnrolled = course.enrolled;
-            const isCompleted = course.completed;
-
-            if (currentFilter === 'enrolled' && !isEnrolled) return;
-            if (currentFilter === 'completed' && !isCompleted) return;
-            if (currentFilter === 'notTaken' && (isEnrolled || isCompleted)) return;
-
-            let status = '';
-            if (isEnrolled) status += '<span class="enrolled">Ⓡ</span>';
-            if (isCompleted) status += '<span class="completed">&#x2713;</span>';
-
-            grouped[level].push(`
-                <div>
-                    <div>${course.courseCode} ${status}</div>
-                    <button class="btn btn-sm btn-outline-primary mt-1"
-                            onclick="viewPrereqDiagram(${course.id}, '${course.courseCode}')">
-                        View Prerequisite Diagram
-                    </button>
-                </div>
-            `);
-
-            levelStats[level].total += 1;
-            if (isCompleted) levelStats[level].completed += 1;
-
-            totalCourses += 1;
-            if (isCompleted) totalCompleted += 1;
-        });
-
-        const thead = document.querySelector("#auditTable thead tr");
-        thead.innerHTML = levels.map(level => {
-            const stat = levelStats[level];
-            return `<th>Level ${level}<br><span style="font-size: 12px;">${stat.completed}/${stat.total}</span></th>`;
-        }).join('');
-
-        const tbody = document.getElementById("courseTableBody");
-        tbody.innerHTML = '';
-        const maxRows = Math.max(...Object.values(grouped).map(list => list.length));
-        for (let i = 0; i < maxRows; i++) {
-            let row = '<tr>';
-            levels.forEach(level => {
-                const course = grouped[level][i] || '';
-                row += `<td>${course}</td>`;
-            });
-            row += '</tr>';
-            tbody.innerHTML += row;
-        }
-
-        document.getElementById("auditTable").style.display = "table";
-        document.getElementById("completedCount").innerText = totalCompleted;
-        document.getElementById("remainingCount").innerText = totalCourses - totalCompleted;
-        document.getElementById("totalCount").innerText = totalCourses;
+    document.getElementById("auditTable").style.display = "table";
+    document.getElementById("completedCount").innerText = totalCompleted;
+    document.getElementById("remainingCount").innerText = totalCourses - totalCompleted;
+    document.getElementById("totalCount").innerText = totalCourses;
     }
 
     function renderChart(completed, remaining) {
@@ -196,7 +238,7 @@
         });
     }
 
-    function viewPrereqDiagram(courseId, courseCode) {
+ function viewPrereqDiagram(courseId, courseCode) {
         document.getElementById("mermaidModalLabel").innerText = `Prerequisite Diagram for ${courseCode}`;
         document.getElementById("mermaidRenderContainer").innerHTML = 'Loading...';
         document.getElementById("noPrereqsMessage").style.display = "none";

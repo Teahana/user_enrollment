@@ -35,10 +35,11 @@ public class Student extends User {
         this.phoneNumber = phoneNumber;
         this.getRoles().add("ROLE_STUDENT");
     }
-    @Override
+
+    /*@Override
     public boolean isEnabled() {
         return onHoldStatusList.stream().noneMatch(OnHoldStatus::isOnHold);
-    }
+    }*/
 
     public Optional<OnHoldStatus> getActiveHold() {
         return onHoldStatusList.stream()

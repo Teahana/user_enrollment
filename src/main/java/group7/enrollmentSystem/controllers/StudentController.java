@@ -1,9 +1,10 @@
 package group7.enrollmentSystem.controllers;
 
 import com.itextpdf.text.DocumentException;
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
-import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
-import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
+import group7.enrollmentSystem.dtos.classDtos.*;
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.*;
@@ -37,6 +38,7 @@ public class StudentController {
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
     private final StudentService studentService;
     private final StudentProgrammeAuditService auditService;
+    private final StudentHoldService studentHoldService;
 
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
@@ -45,8 +47,20 @@ public class StudentController {
 
         if (!state.isOpen()) {
             model.addAttribute("pageOpen", false);
+            model.addAttribute("restrictionType", "ENROLLMENT_CLOSED");
             model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
-            return "enrollment";
+            return "accessDenied";
+        }
+
+        boolean canAccess = checkAccess(principal,
+                StudentHoldService.HoldRestrictionType.COURSE_ENROLLMENT);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(principal.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
         }
 
         String email = principal.getName();
@@ -109,18 +123,41 @@ public class StudentController {
 
     }
 
-
     @GetMapping("/completedCourses")
     public String viewCompletedCourses(Model model, Principal principal) {
+        boolean canAccess = checkAccess(principal,
+                StudentHoldService.HoldRestrictionType.VIEW_COMPLETED_COURSES);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(principal.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
+        }
+
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+
         // Fetch completed enrollments
         List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollmentsWithHighestGrade(student.getId());
         model.addAttribute("completedEnrollments", completedEnrollments);
         return "completedCourses";
     }
+
     @GetMapping("/audit")
     public String loadStudentAuditPage(Model model, Authentication authentication) {
+        boolean canAccess = checkAccess(authentication,
+                StudentHoldService.HoldRestrictionType.STUDENT_AUDIT);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
+        }
+
         String email = authentication.getName();
         User user = userRepo.findByEmail(email).orElse(null);
 
@@ -141,26 +178,22 @@ public class StudentController {
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 
-
-    /** * Load the student forms page.
-     * This page will list all available forms for the student to fill out.
-     *
-     * @param model The model to add attributes to.
-     * @param principal The authenticated user's principal.
-     * @return The name of the view to render.
-     */
-
-    @GetMapping("/compassionate/forms")
-    public String loadCompassionateFormsPage(Model model, Principal principal) {
-        //TODO: Fetch any necessary data for compassionate forms if needed
-        return "forms/compassionateForm"; // this maps to compassionateForms.html in templates folder
+    private boolean checkAccess(Principal principal, StudentHoldService.HoldRestrictionType restrictionType) {
+        try {
+            studentHoldService.checkAccess(principal.getName(), restrictionType);
+            return true;
+        } catch (CustomExceptions.StudentOnHoldException e) {
+            return false;
+        }
     }
-    @GetMapping("/view/forms")
-    public String loadViewForms(Model model, Principal principal) {
-        String email = principal.getName();
-        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
-        //TODO: Fetch forms submitted by the student
-        return "studentForms"; // this maps to viewForms.html in templates folder
+    @GetMapping("/viewHolds")
+    public String viewHolds(Authentication authentication, Model model) {
+        Student student = studentRepo.findByEmail(authentication.getName())
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(authentication.getName()));
+
+        StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+        model.addAttribute("holdStatus", holdStatus);
+        return "viewHolds";
     }
 
 }

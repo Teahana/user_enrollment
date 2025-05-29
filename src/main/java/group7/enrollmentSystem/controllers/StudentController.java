@@ -3,8 +3,6 @@ package group7.enrollmentSystem.controllers;
 import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
-import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
-import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
@@ -22,10 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/student")
@@ -132,6 +127,32 @@ public class StudentController {
         headers.setContentDispositionFormData("attachment", "invoice.pdf");
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
+
+
+    /** * Load the student forms page.
+     * This page will list all available forms for the student to fill out.
+     *
+     * @param model The model to add attributes to.
+     * @param principal The authenticated user's principal.
+     * @return The name of the view to render.
+     */
+    @GetMapping("/graduation/forms")
+    public String loadGraduationFormsPage(Model model, Principal principal) {
+        //TODO: Fetch any necessary data for graduation forms if needed
+       return "forms/graduationForm"; // this maps to graduationForms.html in templates folder
+    }
+    @GetMapping("/compassionate/forms")
+    public String loadCompassionateFormsPage(Model model, Principal principal) {
+        //TODO: Fetch any necessary data for compassionate forms if needed
+        return "forms/compassionateForm"; // this maps to compassionateForms.html in templates folder
+    }
+    @GetMapping("/view/forms")
+    public String loadViewForms(Model model, Principal principal) {
+        String email = principal.getName();
+        Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+        //TODO: Fetch forms submitted by the student
+        return "studentForms"; // this maps to viewForms.html in templates folder
     }
 
 }

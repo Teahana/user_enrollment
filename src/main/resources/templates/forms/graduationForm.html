@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graduation Form</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" th:href="@{/styles/completion_form.css}">
+</head>
+<body>
+
+<div class="form-wrapper">
+  <h1>Application for Completion of Programme</h1>
+  <form>
+    <fieldset>
+      <legend>Section A: Personal Details</legend>
+      <label>Student ID: <input type="text" name="student_id" required></label>
+      <label>First Name: <input type="text" name="first_name" required></label>
+      <label>Middle Name: <input type="text" name="middle_name"></label>
+      <label>Surname: <input type="text" name="surname" required></label>
+      <label>Date of Birth: <input type="date" name="dob" required></label>
+      <label>Email: <input type="email" name="email" required></label>
+      <label>Telephone: <input type="tel" name="telephone"></label>
+      <label>Postal Address: <textarea name="postal_address" required></textarea></label>
+      <label>Programme you are completing: <input type="text" name="programme" required></label>
+      <label>Major 1: <input type="text" name="major1"></label>
+      <label>Major 2: <input type="text" name="major2"></label>
+      <label>Minor: <input type="text" name="minor"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Section B: Graduation Ceremony</legend>
+      <p>Please tick <strong>only one</strong> ceremony:</p>
+      <label><input type="radio" name="ceremony" value="Laucala_March"> Laucala Campus - March / April</label>
+      <label><input type="radio" name="ceremony" value="Laucala_Sept"> Laucala Campus - September / October</label>
+      <label><input type="radio" name="ceremony" value="Emalus"> Emalus Campus - April / May</label>
+      <label><input type="radio" name="ceremony" value="Samoa"> Samoa Campus - April / May</label>
+      <label><input type="radio" name="ceremony" value="Solomon"> Solomon Campus - September / October</label>
+      <label><input type="radio" name="ceremony" value="Tonga"> Tonga Campus - October / November</label>
+      <label><input type="radio" name="ceremony" value="Foundation"> Foundation</label>
+      <label>Other Campus Ceremony: <input type="text" name="other_campus"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Section C: Graduation Attendance</legend>
+      <label><input type="radio" name="attendance" value="yes"> I will attend the graduation ceremony</label>
+      <label><input type="radio" name="attendance" value="no"> I will NOT attend the graduation ceremony</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Section D: Declaration</legend>
+      <p>
+        I certify that the particulars in this form are correct, I have read the notes at the back of this form,
+        and I will abide by the rules set out in the Statutes, Ordinances, Regulations and the Charter
+        of the University of the South Pacific.
+      </p>
+      <label>Student Signature: <input type="text" name="signature" required></label>
+      <label>Date: <input type="date" name="signature_date" required></label>
+    </fieldset>
+
+    <button type="submit">Submit Form</button>
+  </form>
+</div>
+
+
+
+</body>
+</html>

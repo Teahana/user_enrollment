@@ -149,11 +149,7 @@ public class StudentController {
      * @param principal The authenticated user's principal.
      * @return The name of the view to render.
      */
-    @GetMapping("/graduation/forms")
-    public String loadGraduationFormsPage(Model model, Principal principal) {
-        //TODO: Fetch any necessary data for graduation forms if needed
-       return "forms/graduationForm"; // this maps to graduationForms.html in templates folder
-    }
+
     @GetMapping("/compassionate/forms")
     public String loadCompassionateFormsPage(Model model, Principal principal) {
         //TODO: Fetch any necessary data for compassionate forms if needed

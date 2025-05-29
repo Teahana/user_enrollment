@@ -7,6 +7,7 @@ import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
+import group7.enrollmentSystem.helpers.GradeService;
 import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
@@ -40,6 +41,8 @@ public class StudentService {
     private final StudentProgrammeService studentProgrammeService;
     private final CourseEnrollmentService courseEnrollmentService;
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
+    private final GradeService gradeService;
+    private final Random random = new Random();
 
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
         Student student = studentRepo.findByEmail(email)
@@ -70,7 +73,8 @@ public class StudentService {
                         course.getId(),
                         course.getCourseCode(),
                         course.getTitle(),
-                        course.getCost()
+                        course.getCost(),
+                        false
                 ));
             }
         }
@@ -206,7 +210,7 @@ public class StudentService {
 
         return result;
     }
-
+    //toDo: Check this for sem1 and sem2 validation when awake.
     public void enrollStudent(EnrollCourseRequest request) {
         Optional<Student> optionalStudent = studentRepo.findById(request.getUserId());
         if(!optionalStudent.isPresent()) {
@@ -224,10 +228,9 @@ public class StudentService {
         if(currentlyApplied + request.getSelectedCourses().size() > 4){
             throw new RuntimeException("You have reached the maximum number of courses you can apply for (4).");
         }
-        List<String> inEligibleCourseCodes = new ArrayList<>();
-        boolean isValid = validateEnrollmentRequest(student,programme,request.getSelectedCourses(),inEligibleCourseCodes);
+        Map<String, Object> response = validateEnrollmentRequest(student,programme,request.getSelectedCourses());
 
-        if(isValid) {
+        if((boolean)response.get("isEligible")) {
             int semester = enrollmentStateRepo.isSemesterOne() ? 1 : 2;
             for (String courseCode : request.getSelectedCourses()) {
                 Course course = courseRepo.findByCourseCode(courseCode)
@@ -239,16 +242,16 @@ public class StudentService {
                 enrollment.setDateEnrolled(LocalDate.now());
                 enrollment.setProgramme(programme);
                 enrollment.setSemesterEnrolled(semester);
+                enrollment.setPaid(false);
                 courseEnrollmentRepo.save(enrollment);
             }
         } else {
-            String inEligibleCourseCode = inEligibleCourseCodes.getFirst();
-            throw new RuntimeException("You are not eligible to enroll in " + inEligibleCourseCode + ". Please check the prerequisites.");
+            throw new RuntimeException((String)response.get("message"));
         }
-
     }
 
-    private boolean validateEnrollmentRequest(Student student,Programme programme, List<String> selectedCourses, List<String> inEligibleCourseCodes) {
+    private Map<String, Object> validateEnrollmentRequest(Student student,Programme programme, List<String> selectedCourses) {
+        Map<String, Object> response = new HashMap<>();
         // Retrieve courses by course codes.
         List<Course> courses = courseRepo.findByCourseCodeIn(selectedCourses);
 
@@ -262,15 +265,33 @@ public class StudentService {
 
         // Get the student's completed courses.
         List<Long> completedCourseIds = courseEnrollmentRepo.getCompletedCourseIdsByStudent(student);
-
+        // Check if course is offered in current sem
+        for (Course course : courses) {
+            if(enrollmentStateRepo.isSemesterOne()) {
+                if(!course.isOfferedSem1()){
+                    response.put("isEligible", false);
+                    response.put("message","You are not eligible to enroll in " + course.getCourseCode() + ". It is not offered in Semester 1.");
+                    return response;
+                }
+            }
+            else{
+                if(!course.isOfferedSem2()){
+                    response.put("isEligible", false);
+                    response.put("message","You are not eligible to enroll in " + course.getCourseCode() + ". It is not offered in Semester 2.");
+                    return response;
+                }
+            }
+        }
         // Check prerequisites for each selected course.
         for (Course course : courses) {
             if (!isEligibleForCourse(course.getId(), completedCourseIds, programme, courseIdsForProgramme)) {
-                inEligibleCourseCodes.add(course.getCourseCode());
-                return false;
+                response.put("isEligible", false);
+                response.put("message","You are not eligible to enroll in " + course.getCourseCode() + ". Please check the prerequisites.");
+                return response;
             }
         }
-        return true;
+        response.put("isEligible", true);
+        return response;
     }
 
     public Student getStudentByEmail(String email) {
@@ -287,7 +308,8 @@ public class StudentService {
                         ce.getCourse().getId(),
                         ce.getCourse().getCourseCode(),
                         ce.getCourse().getTitle(),
-                        ce.getCourse().getCost()))
+                        ce.getCourse().getCost(),
+                        ce.isPaid()))
                 .collect(Collectors.toList());
 
         double totalDue = enrolledCourses.stream()
@@ -319,7 +341,8 @@ public class StudentService {
                         ce.getCourse().getId(),
                         ce.getCourse().getCourseCode(),
                         ce.getCourse().getTitle(),
-                        ce.getCourse().getCost()))
+                        ce.getCourse().getCost(),
+                        ce.isPaid()))
                 .collect(Collectors.toList());
 
     }
@@ -353,6 +376,10 @@ public class StudentService {
         }
         for (CourseEnrollment enrollment : courseEnrollments) {
             if (selectedCourses.contains(enrollment.getCourse().getCourseCode())) {
+                int passMark = generatePassMark();
+                String grade = gradeService.getGrade(passMark);
+                enrollment.setGrade(grade);
+                enrollment.setMark(passMark);
                 enrollment.setCompleted(true);
                 enrollment.setCurrentlyTaking(false);
                 enrollment.setCancelled(false);
@@ -360,6 +387,10 @@ public class StudentService {
                 courseEnrollmentRepo.save(enrollment);
             }
         }
+    }
+    private int generatePassMark(){
+        int lowestPassingMark = gradeService.getLowestPassingMark();
+        return this.random.nextInt(lowestPassingMark,101);//101 because the upperbound is exclusive
     }
     public void failEnrolledCourses(long userId, List<String> selectedCourses) {
         Student student = studentRepo.findById(userId)
@@ -417,6 +448,33 @@ public class StudentService {
         }
 
         return new UrlResource(filePath.toUri());
+    }
+
+    public void payCourse(Long courseId, String studentEmail) {
+        Course c = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student s = studentRepo.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found with email: " + studentEmail));
+        CourseEnrollment ce = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(s,c);
+        ce.setPaid(true);
+        courseEnrollmentRepo.save(ce);
+    }
+
+    public void completeCourse(Long courseId, String name) {
+        Course c = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student s = studentRepo.findByEmail(name)
+                .orElseThrow(() -> new RuntimeException("Student not found with email: " + name));
+        CourseEnrollment ce = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(s,c);
+        int mark = generatePassMark();
+        String grade = gradeService.getGrade(mark);
+        ce.setCompleted(true);
+        ce.setFailed(false);
+        ce.setCurrentlyTaking(false);
+        ce.setCancelled(false);
+        ce.setGrade(grade);
+        ce.setMark(mark);
+        courseEnrollmentRepo.save(ce);
     }
 }
 

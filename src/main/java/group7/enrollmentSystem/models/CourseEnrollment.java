@@ -21,6 +21,9 @@ public class CourseEnrollment {
     private boolean completed;
     private boolean failed;
     private boolean cancelled;
+    private int mark;
+    private String grade;
+    private boolean paid;
     private LocalDate dateEnrolled;
     private boolean currentlyTaking;
     private int semesterEnrolled;

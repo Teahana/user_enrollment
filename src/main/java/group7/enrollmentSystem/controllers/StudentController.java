@@ -66,6 +66,18 @@ public class StudentController {
 
         return "enrollment";
     }
+    @PostMapping("/payCourse/{id}")
+    public String payCourse(@PathVariable(value = "id") Long courseId, RedirectAttributes redirectAttributes, Principal principal) {
+        studentService.payCourse(courseId, principal.getName());
+        redirectAttributes.addFlashAttribute("successMessage", "Payment successful!");
+        return "redirect:/student/enrollment";
+    }
+    @PostMapping("/completeCourse/{id}")
+    public String completeCourse(@PathVariable(value = "id") Long courseId, Model model, Principal principal) {
+        studentService.completeCourse(courseId, principal.getName());
+        model.addAttribute("successMessage", "Course completed successfully!");
+        return "redirect:/student/enrollment";
+    }
     @PostMapping("/cancelEnrollment/{id}")
     public String cancelEnrollment(@PathVariable Long id, Principal principal, RedirectAttributes redirectAttributes) {
         try {
@@ -103,7 +115,7 @@ public class StudentController {
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
         // Fetch completed enrollments
-        List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollments(student.getId());
+        List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollmentsWithHighestGrade(student.getId());
         model.addAttribute("completedEnrollments", completedEnrollments);
         return "completedCourses";
     }

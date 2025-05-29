@@ -8,11 +8,13 @@ public class CourseEnrollmentDto {
     private String courseCode;
     private String title;
     private double cost;
+    private boolean paid;
 
-    public CourseEnrollmentDto(Long courseId, String courseCode, String title, double cost) {
+    public CourseEnrollmentDto(Long courseId, String courseCode, String title, double cost, boolean paid) {
         this.courseId = courseId;
         this.courseCode = courseCode;
         this.title = title;
         this.cost = cost;
+        this.paid = paid;
     }
 }

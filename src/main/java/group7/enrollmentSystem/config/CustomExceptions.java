@@ -9,6 +9,12 @@ public class CustomExceptions {
     public static class StudentOnHoldException extends DisabledException {
         private final OnHoldTypes holdType;
 
+        public static class ServiceRestrictedException extends RuntimeException {
+            public ServiceRestrictedException(String message) {
+                super(message);
+            }
+        }
+
         public StudentOnHoldException(OnHoldTypes holdType) {
             super(getHoldMessage(holdType));
             this.holdType = holdType;
@@ -17,6 +23,7 @@ public class CustomExceptions {
         public OnHoldTypes getHoldType() {
             return holdType;
         }
+
 
         private static String getHoldMessage(OnHoldTypes holdType) {
             return switch (holdType) {

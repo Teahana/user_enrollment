@@ -2,6 +2,7 @@ package group7.enrollmentSystem.dtos.classDtos;
 
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class StudentHoldDto {
@@ -11,17 +12,17 @@ public class StudentHoldDto {
     private String lastName;
     private String studentNumber;
     private boolean onHold;
-    private OnHoldTypes holdType;
+    private List<OnHoldTypes> activeHolds;
 
     public StudentHoldDto(Long studentId, String email, String firstName,
                           String lastName, String studentNumber,
-                          boolean onHold, OnHoldTypes holdType) {
+                          boolean onHold, List<OnHoldTypes> activeHolds) {
         this.studentId = studentId;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.studentNumber = studentNumber;
         this.onHold = onHold;
-        this.holdType = holdType;
+        this.activeHolds = activeHolds;
     }
 }

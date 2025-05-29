@@ -1,5 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.StudentRepo;
@@ -27,7 +28,16 @@ public class MainController {
     private final UserService userService;
 
     @GetMapping("/home")
-    public String home() {
+    public String home(Authentication authentication, Model model) {
+        Student student = studentRepo.findByEmail(authentication.getName())
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(authentication.getName()));
+
+        // Add hold message if exists
+        student.getActiveHold().ifPresent(hold -> {
+            model.addAttribute("holdMessage", "Your Account is on Hold.");
+        });
+
+        model.addAttribute("user", student);
         return "home";
     }
 

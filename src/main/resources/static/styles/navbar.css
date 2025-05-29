@@ -1,62 +1,89 @@
-   /* Navbar container */
-    .custom-navbar {
-        background-color: #87CEEB; /* Light blue */
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        padding: 0.5rem 1rem; /* Add padding */
-    }
+/* Navbar container */
+.custom-navbar {
+    background-color: #87CEEB; /* Light blue */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    padding: 0.5rem 1rem; /* Add padding */
+    font-size: 1.1rem; /* Base font size for navbar */
+}
 
-    /* Navbar brand (logo and text) */
-    .custom-brand {
-        color: #ffffff; /* White text */
-        font-weight: bold; /* Bold text */
-        font-size: 1.5rem; /* Larger font size */
-        display: flex;
-        align-items: center; /* Center logo and text vertically */
-    }
+/* Navbar brand (logo and text) */
+.custom-brand {
+    color: #ffffff; /* White text */
+    font-weight: bold; /* Bold text */
+    font-size: 1.5rem; /* Larger font size */
+    display: flex;
+    align-items: center; /* Center logo and text vertically */
+}
 
-    .custom-brand img {
-        margin-right: 10px; /* Space between logo and text */
-    }
+.custom-brand img {
+    margin-right: 10px; /* Space between logo and text */
+}
 
-    /* Navbar links */
-    .custom-link {
-        color: #ffffff; /* White text */
-        font-weight: 500; /* Medium font weight */
-        font-size: 1.1rem; /* Larger font size for nav links */
-        padding: 0.75rem 1.25rem; /* Increase padding for bigger click area */
-        transition: color 0.3s ease, background-color 0.3s ease; /* Smooth transitions */
-    }
+/* Navbar links - BIGGER TEXT and better spacing */
+.custom-link {
+    color: #ffffff; /* White text */
+    font-weight: 600; /* Semi-bold */
+    font-size: 1.2rem; /* Larger font size for nav links */
+    padding: 1rem 1.5rem; /* Increase padding for bigger click area */
+    margin: 0 0.25rem; /* Space between tabs */
+    transition: all 0.3s ease; /* Smooth transitions */
+    border-radius: 6px; /* Rounded corners */
+}
 
-    .custom-link:hover {
-        color: #0056b3; /* Darker blue on hover */
-        background-color: rgba(255, 255, 255, 0.2); /* Slight white background on hover */
-    }
+.custom-link:hover {
+    color: #0056b3; /* Darker blue on hover */
+    background-color: rgba(255, 255, 255, 0.3); /* Slight white background on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+}
 
-    /* Active link */
+/* Active link - MORE PROMINENT STYLING */
+.custom-link.active {
+    color: #ffffff !important; /* White text */
+    background-color: #000000 !important; /* Black background for active tab */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    font-weight: 700; /* Bold for active tab */
+}
+
+/* Make active tab stand out even more on mobile */
+@media (max-width: 992px) {
     .custom-link.active {
-        color: #ffffff; /* White text */
-        background-color: rgba(255, 255, 255, 0.3); /* Slightly darker background for active link */
-        border-radius: 4px; /* Rounded corners */
+        background-color: #333333 !important; /* Slightly lighter black for mobile */
     }
+}
 
-    /* Navbar toggler (for mobile) */
-    .custom-toggler {
-        border-color: rgba(255, 255, 255, 0.5); /* Light border color */
-    }
+/* Navbar toggler (for mobile) */
+.custom-toggler {
+    border-color: rgba(255, 255, 255, 0.5); /* Light border color */
+}
 
-    .custom-toggler .navbar-toggler-icon {
-        background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255, 255, 255, 0.5)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E"); /* White toggler icon */
-    }
+.custom-toggler .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255, 255, 255, 0.5)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E"); /* White toggler icon */
+}
 
-    /* Logout button */
-    .custom-logout {
-        color: #ffffff; /* White text */
-        font-size: 1.1rem; /* Larger font size for logout button */
-        padding: 0.75rem 1.25rem; /* Increase padding for bigger click area */
-        text-decoration: none; /* Remove underline */
-    }
+/* Logout button - match other tabs */
+.custom-logout {
+    color: #ffffff; /* White text */
+    font-size: 1.2rem; /* Match nav link size */
+    font-weight: 600; /* Semi-bold */
+    padding: 1rem 1.5rem; /* Match nav link padding */
+    text-decoration: none; /* Remove underline */
+    border-radius: 6px; /* Match other tabs */
+    transition: all 0.3s ease; /* Match transition */
+    background: none;
+    border: none;
+    cursor: pointer;
+}
 
-    .custom-logout:hover {
-        color: #0056b3; /* Darker blue on hover */
-        background-color: rgba(255, 255, 255, 0.2); /* Slight white background on hover */
+.custom-logout:hover {
+    color: #0056b3; /* Darker blue on hover */
+    background-color: rgba(255, 255, 255, 0.3); /* Slight white background on hover */
+    transform: translateY(-2px); /* Match hover effect */
+}
+
+/* Mobile adjustments */
+@media (max-width: 992px) {
+    .custom-link, .custom-logout {
+        font-size: 1.1rem; /* Slightly smaller on mobile */
+        padding: 0.8rem 1rem; /* Adjust padding */
     }
+}

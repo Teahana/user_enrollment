@@ -1,6 +1,6 @@
 package group7.enrollmentSystem.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.LoginResponse;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.interfaceDtos.CourseIdAndCode;
@@ -12,11 +12,8 @@ import group7.enrollmentSystem.dtos.serverKtDtos.PrerequisitesDto;
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
 import group7.enrollmentSystem.helpers.JwtService;
-import group7.enrollmentSystem.models.Course;
-import group7.enrollmentSystem.models.User;
-import group7.enrollmentSystem.repos.CourseRepo;
-import group7.enrollmentSystem.repos.ProgrammeRepo;
-import group7.enrollmentSystem.repos.UserRepo;
+import group7.enrollmentSystem.models.*;
+import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.StudentHoldService;
@@ -26,6 +23,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -34,20 +32,23 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminApiController {
 
-    //private final CoursePrerequisiteRepo coursePrerequisiteRepo;
     private final CourseRepo courseRepo;
     private final CourseProgrammeService courseProgrammeService;
     private final CourseService courseService;
     private final ProgrammeRepo programmeRepo;
     private final UserRepo userRepo;
     private final JwtService jwtService;
+    private final StudentRepo studentRepo;
     private final StudentHoldService studentHoldService;
+
+    private final HoldServiceRestrictionRepo restrictionRepo;
 
     @Operation(
             summary = "Token-based admin login",
@@ -282,7 +283,17 @@ public class AdminApiController {
     })
     @GetMapping("/holds")
     public ResponseEntity<List<StudentHoldDto>> getAllStudentHolds() {
-        return ResponseEntity.ok(studentHoldService.getAllStudentsWithHoldStatus());
+        try {
+            List<StudentHoldDto> holds = studentHoldService.getAllStudentsWithHoldStatus();
+            return ResponseEntity.ok(holds);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/holds/{studentId}")
+    public ResponseEntity<StudentHoldDto> getStudentHolds(@PathVariable Long studentId) {
+        return ResponseEntity.ok(studentHoldService.getStudentHolds(studentId));
     }
 
     @Operation(
@@ -302,9 +313,9 @@ public class AdminApiController {
         Long studentId = Long.parseLong(request.get("studentId"));
         OnHoldTypes holdType = OnHoldTypes.valueOf(request.get("holdType"));
         String actionBy = authentication.getName();
-        studentHoldService.placeStudentOnHold(studentId, holdType, actionBy);
-        return ResponseEntity.ok(new MessageDto("Hold Placed successfully"));
+        return studentHoldService.placeHold(studentId, holdType, actionBy);
     }
+
 
     @Operation(
             summary = "Remove student hold",
@@ -318,12 +329,17 @@ public class AdminApiController {
             @ApiResponse(responseCode = "404", description = "Student not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @DeleteMapping("/holds/removeHold")
-    public ResponseEntity<MessageDto> removeHold(@RequestBody Map<String, Long> request, Authentication authentication) {
+    @PostMapping("/holds/removeHold")
+    public ResponseEntity<MessageDto> removeHold(@RequestBody Map<String, String> request, Authentication authentication) {
+        Long studentId = Long.parseLong(request.get("studentId"));
+        OnHoldTypes holdType = OnHoldTypes.valueOf(request.get("holdType"));
         String actionBy = authentication.getName();
-        studentHoldService.removeHoldFromStudent(request.get("studentId"), actionBy);
-        return ResponseEntity.ok(new MessageDto("Hold Removed successfully"));
+        return studentHoldService.removeHold(studentId, holdType, actionBy);
+    }
 
+    @GetMapping("/holds/types")
+    public ResponseEntity<List<OnHoldTypes>> getHoldTypes() {
+        return studentHoldService.getHoldTypes();
     }
 
     @Operation(
@@ -342,22 +358,7 @@ public class AdminApiController {
     }
 
     @Operation(
-            summary = "Get students for hold history filter",
-            description = "Returns student list for hold history filtering purposes."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved students for filter"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - User doesn't have admin permissions"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @GetMapping("/holds/history/filter")
-    public ResponseEntity<List<StudentHoldDto>> getStudentsForFilter() {
-        return ResponseEntity.ok(studentHoldService.getStudentsForFilter());
-    }
-
-    @Operation(
-            summary = "Get hold history by student",
+            summary = "Get (Filter) hold history by student",
             description = "Returns hold history for a specific student."
     )
     @ApiResponses({
@@ -371,5 +372,58 @@ public class AdminApiController {
     @GetMapping("/holds/history/{studentId}")
     public ResponseEntity<List<StudentHoldHistoryDto>> getHoldHistoryByStudent(@PathVariable Long studentId) {
         return ResponseEntity.ok(studentHoldService.getHoldHistoryByStudent(studentId));
+    }
+
+    @Operation(summary = "Get all hold restrictions", description = "Retrieves all hold service restrictions")
+    @GetMapping("/hold-restrictions")
+    public ResponseEntity<List<HoldRestrictionDto>> getAllHoldRestrictions() {
+        List<HoldRestrictionDto> restrictions = restrictionRepo.findAll().stream()
+                .map(studentHoldService::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(restrictions);
+    }
+
+    @Operation(summary = "Get hold restriction by type", description = "Retrieves service restrictions for a specific hold type")
+    @GetMapping("/hold-restrictions/{holdType}")
+    public ResponseEntity<HoldRestrictionDto> getHoldRestriction(@PathVariable OnHoldTypes holdType) {
+        HoldServiceRestriction restriction = restrictionRepo.findByHoldType(holdType);
+        if (restriction == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(studentHoldService.convertToDto(restriction));
+    }
+
+    @Operation(summary = "Update hold restriction", description = "Updates service restrictions for a hold type")
+    @PutMapping("/hold-restrictions/{holdType}")
+    public ResponseEntity<HoldRestrictionDto> updateHoldRestriction(
+            @PathVariable OnHoldTypes holdType,
+            @RequestBody HoldRestrictionDto dto) {
+
+        HoldServiceRestriction restriction = restrictionRepo.findByHoldType(holdType);
+        if (restriction == null) {
+            restriction = new HoldServiceRestriction();
+            restriction.setHoldType(holdType);
+        }
+
+        restriction.setBlockCourseEnrollment(dto.isBlockCourseEnrollment());
+        restriction.setBlockViewCompletedCourses(dto.isBlockViewCompletedCourses());
+        restriction.setBlockStudentAudit(dto.isBlockStudentAudit());
+        restriction.setBlockGenerateTranscript(dto.isBlockGenerateTranscript());
+        restriction.setBlockGraduationApplication(dto.isBlockGraduationApplication());
+
+        restriction = restrictionRepo.save(restriction);
+        return ResponseEntity.ok(studentHoldService.convertToDto(restriction));
+    }
+
+    @Operation(summary = "Check service access for student")
+    @GetMapping("/check-service-access/{studentId}")
+    public ResponseEntity<Map<String, Boolean>> checkServiceAccess(
+            @PathVariable Long studentId,
+            @RequestParam StudentHoldService.HoldRestrictionType service) {
+        Student student = studentRepo.findById(studentId)
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException("Student not found"));
+
+        boolean hasAccess = !studentHoldService.hasRestriction(student.getEmail(), service);
+        return ResponseEntity.ok(Map.of("hasAccess", hasAccess));
     }
 }

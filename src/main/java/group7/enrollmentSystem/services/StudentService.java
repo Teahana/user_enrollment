@@ -410,6 +410,10 @@ public class StudentService {
         int lowestPassingMark = gradeService.getLowestPassingMark();
         return this.random.nextInt(lowestPassingMark,101);//101 because the upperbound is exclusive
     }
+    private int generateFailMark(){
+        int lowestPassingMark = gradeService.getLowestPassingMark();
+        return this.random.nextInt(0,lowestPassingMark+1);//101 because the upperbound is exclusive
+    }
     public void failEnrolledCourses(long userId, List<String> selectedCourses) {
         Student student = studentRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
@@ -488,6 +492,22 @@ public class StudentService {
         String grade = gradeService.getGrade(mark);
         ce.setCompleted(true);
         ce.setFailed(false);
+        ce.setCurrentlyTaking(false);
+        ce.setCancelled(false);
+        ce.setGrade(grade);
+        ce.setMark(mark);
+        courseEnrollmentRepo.save(ce);
+    }
+    public void failCourse(Long courseId, String name) {
+        Course c = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student s = studentRepo.findByEmail(name)
+                .orElseThrow(() -> new RuntimeException("Student not found with email: " + name));
+        CourseEnrollment ce = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(s,c);
+        int mark = generateFailMark();
+        String grade = gradeService.getGrade(mark);
+        ce.setCompleted(true);
+        ce.setFailed(true);
         ce.setCurrentlyTaking(false);
         ce.setCancelled(false);
         ce.setGrade(grade);

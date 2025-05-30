@@ -92,6 +92,12 @@ public class StudentController {
         model.addAttribute("successMessage", "Course completed successfully!");
         return "redirect:/student/enrollment";
     }
+    @PostMapping("/failCourse/{id}")
+    public String failCourse(@PathVariable(value = "id") Long courseId, Model model, Principal principal) {
+        studentService.failCourse(courseId, principal.getName());
+        model.addAttribute("successMessage", "Course Failed successfully!");
+        return "redirect:/student/enrollment";
+    }
     @PostMapping("/cancelEnrollment/{id}")
     public String cancelEnrollment(@PathVariable Long id, Principal principal, RedirectAttributes redirectAttributes) {
         try {

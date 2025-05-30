@@ -41,6 +41,9 @@
                     <form th:action="@{/student/completeCourse/{id}(id=${enrollment.courseId})}" method="post" style="display:inline;">
                         <button type="submit" class="btn btn-primary btn-sm">Complete</button>
                     </form>
+                     <form th:action="@{/student/failCourse/{id}(id=${enrollment.courseId})}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-primary btn-sm">Fail</button>
+                    </form>
                  </span>
             </td>
 

@@ -45,12 +45,12 @@ public class StudentController {
         EnrollmentState state = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
-        if (!state.isOpen()) {
-            model.addAttribute("pageOpen", false);
-            model.addAttribute("restrictionType", "ENROLLMENT_CLOSED");
-            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
-            return "accessDenied";
-        }
+//        if (!state.isOpen()) {
+//            model.addAttribute("pageOpen", false);
+//            model.addAttribute("restrictionType", "ENROLLMENT_CLOSED");
+//            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
+//            return "accessDenied";
+//        }
 
         boolean canAccess = checkAccess(principal,
                 StudentHoldService.HoldRestrictionType.COURSE_ENROLLMENT);
@@ -111,6 +111,7 @@ public class StudentController {
         try{
             Student student = studentRepo.findByEmail(principal.getName())
                     .orElseThrow(() -> new RuntimeException("Student not found"));
+
             EnrollCourseRequest request = new EnrollCourseRequest(selectedCourseCodes, student.getId());
             studentService.enrollStudent(request);
             redirectAttributes.addFlashAttribute("successMessage", "Courses enrolled successfully!");
@@ -144,7 +145,12 @@ public class StudentController {
         model.addAttribute("completedEnrollments", completedEnrollments);
         return "completedCourses";
     }
-
+    @GetMapping("/requestGradeChange/{enrollmentId}")
+    public String requestGradeChange(@PathVariable Long enrollmentId, Principal principal, RedirectAttributes redirectAttributes) {
+        studentService.requestGradeChange(enrollmentId, principal.getName());
+        redirectAttributes.addFlashAttribute("success", "Grades requested successfully!");
+        return "redirect:/student/completedCourses";
+    }
     @GetMapping("/audit")
     public String loadStudentAuditPage(Model model, Authentication authentication) {
         boolean canAccess = checkAccess(authentication,

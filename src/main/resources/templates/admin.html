@@ -38,14 +38,16 @@
 
     <!-- Button Section -->
     <div class="button-section">
-        <!-- Buttons to Navigate to Programmes and Courses (Left Side) -->
-        <div class="button-group">
+        <!-- Buttons to Navigate to Programmes, Courses, and Grade Change Requests (Left Side) -->
+        <div class="button-group d-flex flex-column gap-2">
             <a class="btn btn-primary" th:href="@{/admin/programmes}">Edit Programmes</a>
             <a class="btn btn-secondary" th:href="@{/admin/courses}">Edit Courses</a>
+            <a class="btn btn-warning" th:href="@{/admin/gradeChangeRequests}">View Grade Change Requests</a>
             <form th:action="@{/logout}" method="post">
                 <button type="submit" class="btn btn-danger">Logout</button>
             </form>
         </div>
+
 
         <!-- Toggle Enrollment and Switch Semester Buttons (Right Side) -->
         <div class="enrollment-button-container">

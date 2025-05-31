@@ -2,11 +2,9 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.serverKtDtos.ProgrammesAndCoursesDto;
-import group7.enrollmentSystem.models.Course;
-import group7.enrollmentSystem.models.EnrollmentState;
-import group7.enrollmentSystem.models.Programme;
-import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
+import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.ProgrammeService;
@@ -35,6 +33,7 @@ public class AdminController {
     private final ProgrammeService programmeService;
     private final UserRepo userRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
+    private final CourseEnrollmentService courseEnrollmentService;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
@@ -238,5 +237,13 @@ public class AdminController {
 
         return "redirect:/admin/dashboard";
     }
+    @GetMapping("/gradeChangeRequests")
+    public String gradeChangeRequests(Model model) {
+        List<CourseEnrollment> ces = courseEnrollmentService.getAllGradeChangeRequests();
+        model.addAttribute("requests", ces);
+        return "gradeChangeRequests";
+    }
+
+
 
 }

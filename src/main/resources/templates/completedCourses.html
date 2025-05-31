@@ -39,6 +39,7 @@
             <th>Title</th>
             <th>Description</th>
             <th>Grade</th>
+            <th>Action</th>
           </tr>
           </thead>
           <tbody>
@@ -48,6 +49,16 @@
             <td th:text="${enrollment.course.description}"></td>
             <td>
               <span class="badge bg-primary" th:text="${enrollment.grade}"></span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-warning ms-2"
+                      th:if="!${enrollment.requestGradeChange}"
+                      th:onclick="'window.location.href=\'/student/requestGradeChange/' + ${enrollment.id} + '\' '">
+                Request Change
+              </button>
+              <span th:if="${enrollment.requestGradeChange}" class="text-muted">
+                Request already sent
+              </span>
             </td>
           </tr>
           </tbody>

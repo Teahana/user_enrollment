@@ -131,9 +131,9 @@ public class DataInitializer implements CommandLineRunner {
     //  2) Admin User
     // --------------------------------------------------------------
     private void initializeAdminUser() {
-        String adminEmail = "admin@gmail.com";
-        String adminFirstName = "Adrian";
-        String adminLastName = "Alamu";
+        String adminEmail = "adriandougjonajitino@gmail.com";
+        String adminFirstName = "Admin";
+        String adminLastName = "Boss";
         String password = "12345";
 
         if (userRepo.findByEmail(adminEmail).isPresent()) {

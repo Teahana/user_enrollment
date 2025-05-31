@@ -4,6 +4,8 @@
     <title>Enrollment</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" th:href="@{/styles/enrollment.css}">
+    <link rel="stylesheet" th:href="@{/styles/navbar.css}">
+
 </head>
 <body>
 <div th:replace="~{fragments/navbar :: navbar}"></div>
@@ -38,6 +40,9 @@
                 <span th:if="${enrollment.paid}">
                     <form th:action="@{/student/completeCourse/{id}(id=${enrollment.courseId})}" method="post" style="display:inline;">
                         <button type="submit" class="btn btn-primary btn-sm">Complete</button>
+                    </form>
+                     <form th:action="@{/student/failCourse/{id}(id=${enrollment.courseId})}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-primary btn-sm">Fail</button>
                     </form>
                  </span>
             </td>
@@ -85,11 +90,8 @@
     </div>
 </div>
 
-<div th:unless="${pageOpen}" class="d-flex justify-content-center align-items-center vh-100">
-    <div class="text-center">
-        <h2 class="error-heading">We Are Very Sorry</h2>
-        <h2 th:utext="${message}"></h2>
-    </div>
+<div class="access-denied-overlay" th:if="${!pageOpen}">
 </div>
+
 </body>
 </html>

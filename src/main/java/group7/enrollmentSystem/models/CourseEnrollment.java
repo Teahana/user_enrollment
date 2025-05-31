@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Data
@@ -27,6 +29,9 @@ public class CourseEnrollment {
     private LocalDate dateEnrolled;
     private boolean currentlyTaking;
     private int semesterEnrolled;
+    private boolean requestGradeChange;
+    private LocalDate requestGradeChangeDate;
+    private LocalTime requestGradeChangeTime;
     @ManyToOne
     @JoinColumn(name = "programme_id")
     private Programme programme;

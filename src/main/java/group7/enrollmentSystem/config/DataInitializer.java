@@ -131,9 +131,9 @@ public class DataInitializer implements CommandLineRunner {
     //  2) Admin User
     // --------------------------------------------------------------
     private void initializeAdminUser() {
-        String adminEmail = "admin@gmail.com";
-        String adminFirstName = "Adrian";
-        String adminLastName = "Alamu";
+        String adminEmail = "adriandougjonajitino@gmail.com";
+        String adminFirstName = "Admin";
+        String adminLastName = "Boss";
         String password = "12345";
 
         if (userRepo.findByEmail(adminEmail).isPresent()) {
@@ -865,6 +865,7 @@ public class DataInitializer implements CommandLineRunner {
         studentProgrammeService.saveStudentProgramme(students.get(2).getId(), programmes.get(0).getId(), true); // BSE
         studentProgrammeService.saveStudentProgramme(students.get(3).getId(), programmes.get(1).getId(), true); // BNS
         studentProgrammeService.saveStudentProgramme(students.get(4).getId(), programmes.get(1).getId(), true); // BNS
+        studentProgrammeService.saveStudentProgramme(students.get(5).getId(), programmes.get(2).getId(), true); // BNS
 
         System.out.println("Linked students to (BSE/BNS) programmes successfully.");
     }

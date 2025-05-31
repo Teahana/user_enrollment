@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final CustomAtuhenticationProvider customAtuhenticationProvider;
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RoleBasedSuccessHandler roleBasedSuccessHandler;
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
@@ -51,16 +52,17 @@ public class SecurityConfig {
                             }
                         })
 
-                        .successHandler((request, response, authentication) -> {
-                            String redirectUrl = "/home";
-                            boolean isAdmin = authentication.getAuthorities().stream()
-                                    .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
-                            boolean isStudent = authentication.getAuthorities().stream()
-                                    .anyMatch(s -> s.getAuthority().equals("ROLE_STUDENT"));
-                            if (isAdmin) redirectUrl = "/admin/dashboard";
-                            else if (isStudent) redirectUrl = "/home";
-                            response.sendRedirect(redirectUrl);
-                        })
+//                        .successHandler((request, response, authentication) -> {
+//                            String redirectUrl = "/home";
+//                            boolean isAdmin = authentication.getAuthorities().stream()
+//                                    .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+//                            boolean isStudent = authentication.getAuthorities().stream()
+//                                    .anyMatch(s -> s.getAuthority().equals("ROLE_STUDENT"));
+//                            if (isAdmin) redirectUrl = "/admin/dashboard";
+//                            else if (isStudent) redirectUrl = "/home";
+//                            response.sendRedirect(redirectUrl);
+//                        })
+                        .successHandler(roleBasedSuccessHandler)
                         .permitAll()
                 )
 

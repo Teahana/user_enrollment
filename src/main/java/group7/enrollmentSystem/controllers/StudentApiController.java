@@ -5,10 +5,13 @@ import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.*;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
+import group7.enrollmentSystem.dtos.classDtos.StudentHoldViewDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.CancelCourseRequest;
 import group7.enrollmentSystem.dtos.serverKtDtos.EmailDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.UserIdDto;
+import group7.enrollmentSystem.enums.OnHoldTypes;
+
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.helpers.ProgrammeAuditPdfGeneratorService;
 import group7.enrollmentSystem.models.*;
@@ -37,6 +40,7 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/student")
@@ -51,6 +55,8 @@ public class StudentApiController {
     private final UserRepo userRepo;
     private final ProgrammeAuditPdfGeneratorService programmeAuditPdfGeneratorService;
     private final StudentRepo studentRepo;
+    private final StudentHoldService studentHoldService;
+
 
     /**
      * Authenticates the user using a token and returns a new session token if valid.
@@ -390,4 +396,57 @@ public class StudentApiController {
                 .body(fileResource);
     }
 
+
+    @Operation(summary = "Get student hold status",
+            description = "Returns the current hold status and service restrictions for the student")
+    @GetMapping("/hold-status")
+    public ResponseEntity<List<OnHoldTypes>> getHoldStatus(Authentication authentication) {
+        Student student = studentRepo.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<OnHoldTypes> activeHolds = student.getOnHoldStatusList().stream()
+                .filter(OnHoldStatus::isOnHold)
+                .map(OnHoldStatus::getOnHoldType)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(activeHolds);
+    }
+
+    @Operation(summary = "Check service access",
+            description = "Checks if a specific service is accessible for the student")
+    @GetMapping("/check-service-access")
+    public ResponseEntity<Map<String, Boolean>> checkServiceAccess(
+            @RequestParam String serviceName,
+            Authentication authentication) {
+        StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+
+        boolean isAccessible = switch (serviceName.toLowerCase()) {
+            case "registration" -> holdStatus.isCanRegisterCourses();
+            case "completedcourses" -> holdStatus.isCanViewCompletedCourses();
+            case "audit" -> holdStatus.isCanViewStudentAudit();
+            case "transcript" -> holdStatus.isCanGenerateTranscript();
+            case "graduation" -> holdStatus.isCanApplyForGraduation();
+            default -> true;
+        };
+
+        return ResponseEntity.ok(Map.of("accessible", isAccessible));
+    }
+
+    @Operation(summary = "Check page access",
+            description = "Checks if a specific page is accessible for the student")
+    @GetMapping("/check-page-access")
+    public ResponseEntity<Map<String, Boolean>> checkPageAccess(
+            @RequestParam String pageName,
+            Authentication authentication) {
+        StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+
+        boolean isAccessible = switch (pageName.toLowerCase()) {
+            case "audit" -> holdStatus.isCanViewStudentAudit();
+            case "enrollment" -> holdStatus.isCanRegisterCourses();
+            case "completedcourses" -> holdStatus.isCanViewCompletedCourses();
+            default -> true;
+        };
+
+        return ResponseEntity.ok(Map.of("accessible", isAccessible));
+    }
 }

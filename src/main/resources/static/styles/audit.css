@@ -1,63 +1,192 @@
 body {
-    font-family: 'Segoe UI', sans-serif;
-    padding: 20px;
-    background: #f9f9f9;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e6f7ff;
+    color: #333;
+    min-height: 100vh;
 }
 
-h2 {
-    margin-bottom: 10px;
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
 }
 
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 20px;
-    background-color: white;
+/* Simplified card styling */
+.card {
+    border: none;
     border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    background-color: white;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-th, td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-}
-
-th {
-    background-color: #e8e8e8;
+/* Header styling */
+h2#studentHeader {
+    color: #0056b3;
     font-weight: 600;
-    font-size: 14px;
-}
-
-tr:hover td {
-    background-color: #f4f4f4;
-}
-
-td span.enrolled {
-    font-weight: bold;
-}
-
-td span.completed {
-    font-weight: bold;
-}
-
-#legend {
-    margin-top: 20px;
-    font-size: 14px;
-}
-
-#legend span {
-    margin-right: 20px;
+    border-bottom: 2px solid #1a73e8;
+    padding-bottom: 10px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
 }
 
 .student-info p {
-    margin: 5px 0;
+    margin: 0.5rem 0;
+    font-weight: 500;
 }
+
 /* Vertical divider between columns */
 td:not(:last-child),
 th:not(:last-child) {
     border-right: 1px solid #ddd;
 }
 
+/* Button styling */
+.btn {
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    border-radius: 6px;
+    min-width: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background-color: #1a73e8;
+    border: none;
+    color: white;
+}
+
+.btn-outline-primary {
+    border: 1px solid #1a73e8;
+    color: #1a73e8;
+    background: white;
+}
+
+/* Filter buttons container */
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.btn-filter {
+    border: 1px solid #1a73e8;
+    color: #1a73e8;
+    background: white;
+}
+
+.btn-filter.active {
+    background-color: #1a73e8;
+    color: white;
+    border-color: #1a73e8;
+}
+
+.btn-filter:hover:not(.active) {
+    background-color: #e8f0fe;
+}
+
+/* Table styling */
+#auditTable {
+    width: 100%;
+    margin-top: 1rem;
+    background-color: white;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+#auditTable th {
+    background-color: #1a73e8;
+    color: white;
+    font-weight: 600;
+    padding: 0.8rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#auditTable td {
+    padding: 0.8rem;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Simplified course item styling */
+.course-item {
+    padding: 0.5rem 0;
+}
+
+/* Status indicators */
+.enrolled {
+    font-weight: bold;
+    color: #1a73e8;
+    margin-right: 0.25rem;
+}
+
+.completed {
+    font-weight: bold;
+    color: #34a853;
+    margin-left: 0.25rem;
+}
+
+/* Legend styling */
+#legend {
+    font-size: 0.9rem;
+    margin-top: 1.5rem;
+    text-align: center;
+    padding: 0.8rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+#legend p {
+    margin: 0.4rem 0;
+}
+
+/* Chart container */
+#auditChart {
+    margin: 1.5rem auto;
+    max-width: 400px;
+}
+
+/* Modal styling */
+.modal-content {
+    border-radius: 8px;
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: #0056b3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    #auditTable th,
+    #auditTable td {
+        padding: 0.6rem 0.4rem;
+        font-size: 0.85rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-buttons {
+        flex-direction: column;
+    }
+}

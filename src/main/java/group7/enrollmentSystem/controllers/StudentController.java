@@ -1,11 +1,10 @@
 package group7.enrollmentSystem.controllers;
 
 import com.itextpdf.text.DocumentException;
+import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
-import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
-import group7.enrollmentSystem.dtos.classDtos.EnrollmentPageData;
-import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
-import group7.enrollmentSystem.dtos.classDtos.StudentFullAuditDto;
+import group7.enrollmentSystem.dtos.classDtos.*;
+import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.*;
@@ -22,10 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/student")
@@ -42,16 +38,29 @@ public class StudentController {
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
     private final StudentService studentService;
     private final StudentProgrammeAuditService auditService;
+    private final StudentHoldService studentHoldService;
 
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
         EnrollmentState state = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
-        if (!state.isOpen()) {
-            model.addAttribute("pageOpen", false);
-            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
-            return "enrollment";
+//        if (!state.isOpen()) {
+//            model.addAttribute("pageOpen", false);
+//            model.addAttribute("restrictionType", "ENROLLMENT_CLOSED");
+//            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
+//            return "accessDenied";
+//        }
+
+        boolean canAccess = checkAccess(principal,
+                StudentHoldService.HoldRestrictionType.COURSE_ENROLLMENT);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(principal.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
         }
 
         String email = principal.getName();
@@ -83,6 +92,12 @@ public class StudentController {
         model.addAttribute("successMessage", "Course completed successfully!");
         return "redirect:/student/enrollment";
     }
+    @PostMapping("/failCourse/{id}")
+    public String failCourse(@PathVariable(value = "id") Long courseId, Model model, Principal principal) {
+        studentService.failCourse(courseId, principal.getName());
+        model.addAttribute("successMessage", "Course Failed successfully!");
+        return "redirect:/student/enrollment";
+    }
     @PostMapping("/cancelEnrollment/{id}")
     public String cancelEnrollment(@PathVariable Long id, Principal principal, RedirectAttributes redirectAttributes) {
         try {
@@ -102,6 +117,7 @@ public class StudentController {
         try{
             Student student = studentRepo.findByEmail(principal.getName())
                     .orElseThrow(() -> new RuntimeException("Student not found"));
+
             EnrollCourseRequest request = new EnrollCourseRequest(selectedCourseCodes, student.getId());
             studentService.enrollStudent(request);
             redirectAttributes.addFlashAttribute("successMessage", "Courses enrolled successfully!");
@@ -114,18 +130,46 @@ public class StudentController {
 
     }
 
-
     @GetMapping("/completedCourses")
     public String viewCompletedCourses(Model model, Principal principal) {
+        boolean canAccess = checkAccess(principal,
+                StudentHoldService.HoldRestrictionType.VIEW_COMPLETED_COURSES);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(principal.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
+        }
+
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
+
         // Fetch completed enrollments
         List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollmentsWithHighestGrade(student.getId());
         model.addAttribute("completedEnrollments", completedEnrollments);
         return "completedCourses";
     }
+    @GetMapping("/requestGradeChange/{enrollmentId}")
+    public String requestGradeChange(@PathVariable Long enrollmentId, Principal principal, RedirectAttributes redirectAttributes) {
+        studentService.requestGradeChange(enrollmentId, principal.getName());
+        redirectAttributes.addFlashAttribute("success", "Grades requested successfully!");
+        return "redirect:/student/completedCourses";
+    }
     @GetMapping("/audit")
     public String loadStudentAuditPage(Model model, Authentication authentication) {
+        boolean canAccess = checkAccess(authentication,
+                StudentHoldService.HoldRestrictionType.STUDENT_AUDIT);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
+        }
+
         String email = authentication.getName();
         User user = userRepo.findByEmail(email).orElse(null);
 
@@ -144,6 +188,24 @@ public class StudentController {
         headers.setContentDispositionFormData("attachment", "invoice.pdf");
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
+
+    private boolean checkAccess(Principal principal, StudentHoldService.HoldRestrictionType restrictionType) {
+        try {
+            studentHoldService.checkAccess(principal.getName(), restrictionType);
+            return true;
+        } catch (CustomExceptions.StudentOnHoldException e) {
+            return false;
+        }
+    }
+    @GetMapping("/viewHolds")
+    public String viewHolds(Authentication authentication, Model model) {
+        Student student = studentRepo.findByEmail(authentication.getName())
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(authentication.getName()));
+
+        StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+        model.addAttribute("holdStatus", holdStatus);
+        return "viewHolds";
     }
 
 }

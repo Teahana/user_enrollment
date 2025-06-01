@@ -3,7 +3,6 @@ package group7.enrollmentSystem.services;
 import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
-import group7.enrollmentSystem.dtos.classDtos.CompletedCoursesDTO;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
 import group7.enrollmentSystem.dtos.classDtos.CoursesTranscriptDTO;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
@@ -27,7 +26,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -586,7 +584,7 @@ public class StudentService {
                         () -> { throw new RuntimeException("No current programme found for the student"); }
                 );
 
-        dto.setTranscriptRows(rows);
+        dto.setCompletedCourses(rows);
         dto.setGpa(gpa);
 
         return coursesTranscriptPdfGeneratorService.generateTranscriptPdf(dto);

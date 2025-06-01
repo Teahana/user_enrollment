@@ -10,6 +10,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +26,40 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class EmailLoggingAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailLoggingAspect.class);
+    private static final String LOG_DIRECTORY = "logs";
+    private static final String LOG_FILE = LOG_DIRECTORY + "/email-logs-" +
+            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")) + ".log";
+    private static PrintWriter logFileWriter;
+
+    static {
+        initializeLogFile();
+    }
+
+    private static void initializeLogFile() {
+        try {
+            // Create logs directory if it doesn't exist
+            Files.createDirectories(Paths.get(LOG_DIRECTORY));
+
+            // Initialize log file writer
+            logFileWriter = new PrintWriter(new FileWriter(LOG_FILE, true));
+
+            // Register shutdown hook to properly close the writer
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if (logFileWriter != null) {
+                    logToFile("Application shutting down - closing log file");
+                    logFileWriter.close();
+                }
+            }));
+
+            logToFile("========== Application Started ==========");
+            logToFile("Logging initialized at: " + LocalDateTime.now());
+            logger.info("Log file initialized at: {}", LOG_FILE);
+        } catch (IOException e) {
+            logger.error("Failed to initialize log file writer", e);
+            throw new RuntimeException("Failed to initialize log file writer", e);
+        }
+    }
+
     private final Map<String, EmailStatistics> emailStatistics = new ConcurrentHashMap<>();
     private final AtomicInteger totalEmailsProcessed = new AtomicInteger(0);
     private final AtomicInteger failedEmails = new AtomicInteger(0);
@@ -43,13 +84,12 @@ public class EmailLoggingAspect {
     @Pointcut("emailNotificationMethods() && asyncMethods()")
     public void asyncEmailNotifications() {}
 
-    // Log before email is sent
     @Before("emailNotificationMethods()")
     public void logBeforeEmail(JoinPoint joinPoint) {
         if (shouldSample()) {
             String methodName = joinPoint.getSignature().getName();
             Object[] args = joinPoint.getArgs();
-            String recipient = (String) args[0]; // First argument is always email
+            String recipient = (String) args[0];
 
             Map<String, Object> context = new HashMap<>();
             context.put("method", methodName);
@@ -63,55 +103,49 @@ public class EmailLoggingAspect {
                 context.put("templateDataKeys", model.keySet());
             }
 
-            logger.info("Preparing to send email with context: {}", context);
+            String logMessage = String.format("[%s] Preparing to send email - %s",
+                    LocalDateTime.now(), context);
+            logger.info(logMessage);
+            logToFile(logMessage);
             updateStatistics(methodName, "initiated");
         }
     }
 
-    // Log after successful email
     @AfterReturning(pointcut = "emailNotificationMethods()", returning = "result")
     public void logAfterEmailSuccess(JoinPoint joinPoint, Object result) {
         String methodName = joinPoint.getSignature().getName();
         Object[] args = joinPoint.getArgs();
         String templateName = getTemplateNameFromArgs(args);
 
-        Map<String, Object> successContext = new HashMap<>();
-        successContext.put("method", methodName);
-        successContext.put("template", templateName);
-        successContext.put("status", "success");
+        String logMessage = String.format("[%s] Email dispatch completed - method: %s, template: %s, status: success",
+                LocalDateTime.now(), methodName, templateName);
 
-        logger.info("Email dispatch completed: {}", successContext);
+        logger.info(logMessage);
+        logToFile(logMessage);
         totalEmailsProcessed.incrementAndGet();
         updateStatistics(methodName, "success");
     }
 
-    // email failure logging
     @AfterThrowing(pointcut = "emailNotificationMethods()", throwing = "ex")
     public void logAfterEmailFailure(JoinPoint joinPoint, Exception ex) {
         String methodName = joinPoint.getSignature().getName();
         Object[] args = joinPoint.getArgs();
         String recipient = args.length > 0 ? (String) args[0] : "unknown";
 
-        Map<String, Object> failureContext = new HashMap<>();
-        failureContext.put("method", methodName);
-        failureContext.put("recipient", maskEmail(recipient));
-        failureContext.put("exception", ex.getClass().getSimpleName());
-        failureContext.put("rootCause", getRootCause(ex).getMessage());
-        failureContext.put("stackTrace", Arrays.stream(ex.getStackTrace())
-                .limit(3)
-                .map(StackTraceElement::toString)
-                .toArray());
+        String logMessage = String.format("[%s] Email dispatch failed - method: %s, recipient: %s, error: %s",
+                LocalDateTime.now(), methodName, maskEmail(recipient), ex.getMessage());
 
-        logger.error("Email dispatch failed with context: {}", failureContext, ex);
+        logger.error(logMessage, ex);
+        logToFile(logMessage + "\nStack Trace: " + getStackTrace(ex, 3));
         failedEmails.incrementAndGet();
         updateStatistics(methodName, "failed");
     }
 
-    // execution time tracking
     @Around("emailNotificationMethods()")
     public Object trackEmailExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
         String methodName = joinPoint.getSignature().getName();
         StopWatch stopWatch = new StopWatch(methodName);
+        String startTime = LocalDateTime.now().toString();
 
         try {
             stopWatch.start();
@@ -119,80 +153,109 @@ public class EmailLoggingAspect {
             stopWatch.stop();
 
             long executionTime = stopWatch.getTotalTimeMillis();
+            String logMessage = String.format("[%s] Email executed in %d ms - method: %s",
+                    LocalDateTime.now(), executionTime, methodName);
+
             if (executionTime > executionTimeThreshold) {
-                logger.warn("Email notification took {} ms (exceeded threshold of {} ms) for method {}",
-                        executionTime, executionTimeThreshold, methodName);
+                logMessage += String.format(" (EXCEEDED THRESHOLD OF %d ms)", executionTimeThreshold);
+                logger.warn(logMessage);
+            } else {
+                logger.debug(logMessage);
             }
 
-            logger.debug("Email notification executed in {} ms", executionTime);
+            logToFile(logMessage);
             return result;
         } catch (Exception e) {
             if (stopWatch.isRunning()) {
                 stopWatch.stop();
             }
-            logger.error("Email notification failed after {} ms", stopWatch.getTotalTimeMillis());
+            String errorMessage = String.format("[%s] Email failed after %d ms - method: %s, error: %s",
+                    LocalDateTime.now(), stopWatch.getTotalTimeMillis(), methodName, e.getMessage());
+
+            logger.error(errorMessage);
+            logToFile(errorMessage);
             throw e;
         }
     }
 
-    // Monitor async email operations (without correlation ID)
     @Around("asyncEmailNotifications()")
     public Object monitorAsyncEmails(ProceedingJoinPoint joinPoint) throws Throwable {
         String methodName = joinPoint.getSignature().getName();
+        String startTime = LocalDateTime.now().toString();
 
-        logger.info("Starting async email operation [{}]", methodName);
+        String startMessage = String.format("[%s] Starting async email operation: %s",
+                startTime, methodName);
+        logger.info(startMessage);
+        logToFile(startMessage);
 
         try {
             Object result = joinPoint.proceed();
-            logger.info("Async email operation [{}] submitted successfully", methodName);
+            String successMessage = String.format("[%s] Async email completed: %s",
+                    LocalDateTime.now(), methodName);
+
+            logger.info(successMessage);
+            logToFile(successMessage);
             return result;
         } catch (Exception e) {
-            logger.error("Async email operation [{}] failed during submission", methodName, e);
+            String errorMessage = String.format("[%s] Async email failed: %s, error: %s",
+                    LocalDateTime.now(), methodName, e.getMessage());
+
+            logger.error(errorMessage, e);
+            logToFile(errorMessage + "\nStack Trace: " + getStackTrace(e, 3));
             throw e;
         }
     }
 
-    // Scheduled method to report email statistics
-    @Scheduled(fixedRateString = "${email.monitoring.report.interval:60000}")
+    @Scheduled(fixedRateString = "${email.monitoring.report.interval:1800000}")
     public void reportEmailStatistics() {
         if (!emailStatistics.isEmpty()) {
-            Map<String, Object> report = new LinkedHashMap<>();
-            report.put("totalEmailsProcessed", totalEmailsProcessed.get());
-            report.put("failedEmails", failedEmails.get());
-            report.put("successRate", calculateSuccessRate());
+            StringBuilder report = new StringBuilder();
+            report.append(String.format("[%s] Email Statistics Report\n", LocalDateTime.now()));
+            report.append(String.format("Total Emails Processed: %d\n", totalEmailsProcessed.get()));
+            report.append(String.format("Failed Emails: %d\n", failedEmails.get()));
+            report.append(String.format("Success Rate: %.2f%%\n", calculateSuccessRate()));
 
-            Map<String, Object> methodStats = new HashMap<>();
+            report.append("Method Statistics:\n");
             emailStatistics.forEach((method, stats) -> {
-                methodStats.put(method, stats.getSummary());
+                report.append(String.format("  %s - %s\n", method, stats.getSummary()));
             });
-            report.put("methodStatistics", methodStats);
 
-            logger.info("Email Statistics Report:\n{}", formatReport(report));
+            String reportMessage = report.toString();
+            logger.info(reportMessage);
+            logToFile(reportMessage);
         }
     }
 
-    // Helper methods
-    //----------------------------------//
+    // Helper Methods
+    private static synchronized void logToFile(String message) {
+        try {
+            if (logFileWriter != null) {
+                logFileWriter.println(message);
+                logFileWriter.flush();
+            }
+        } catch (Exception e) {
+            logger.error("Failed to write to log file", e);
+        }
+    }
+
     private String getTemplateNameFromArgs(Object[] args) {
-        if (args.length > 2 && args[2] instanceof String) {
-            return (String) args[2];
-        }
-        return "unknown";
+        return args.length > 2 && args[2] instanceof String ? (String) args[2] : "unknown";
     }
 
-    private Throwable getRootCause(Throwable throwable) {
-        Throwable rootCause = throwable;
-        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
-            rootCause = rootCause.getCause();
+    private String getStackTrace(Exception ex, int depth) {
+        StringBuilder sb = new StringBuilder();
+        StackTraceElement[] stackTrace = ex.getStackTrace();
+        for (int i = 0; i < Math.min(depth, stackTrace.length); i++) {
+            sb.append("\n\tat ").append(stackTrace[i]);
         }
-        return rootCause;
+        return sb.toString();
     }
 
     private String maskEmail(String email) {
         if (email == null || email.length() < 5) return "*****";
         int atIndex = email.indexOf('@');
-        if (atIndex < 3) return "*****" + email.substring(atIndex);
-        return email.substring(0, 2) + "*****" + email.substring(atIndex);
+        return atIndex < 3 ? "*****" + email.substring(atIndex)
+                : email.substring(0, 2) + "*****" + email.substring(atIndex);
     }
 
     private boolean shouldSample() {
@@ -204,18 +267,11 @@ public class EmailLoggingAspect {
         return total > 0 ? (total - failedEmails.get()) * 100.0 / total : 100.0;
     }
 
-    private String formatReport(Map<String, Object> report) {
-        StringBuilder sb = new StringBuilder();
-        report.forEach((key, value) -> sb.append(String.format("%-25s: %s%n", key, value)));
-        return sb.toString();
-    }
-
     private void updateStatistics(String methodName, String status) {
         emailStatistics.computeIfAbsent(methodName, k -> new EmailStatistics())
                 .update(status);
     }
 
-    // Nested class for statistics tracking
     private static class EmailStatistics {
         private final AtomicInteger initiated = new AtomicInteger();
         private final AtomicInteger success = new AtomicInteger();

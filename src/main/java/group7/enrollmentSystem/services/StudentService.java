@@ -48,6 +48,8 @@ public class StudentService {
     private final StudentHoldService studentHoldService;
     private final EmailService emailService;
 
+    private final CoursesTranscriptPdfGeneratorService coursesTranscriptPdfGeneratorService;
+
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
         Student student = studentRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found with email: " + email));
@@ -541,16 +543,13 @@ public class StudentService {
         emailService.notifyAdminGradeChangeRequest("adriandougjonajitino@gmail.com",adminModel);
     }
 
-    @Autowired
-    private CoursesTranscriptPdfGeneratorService coursesTranscriptPdfGeneratorService;
-
     public byte[] generateCoursesTranscriptPdfForStudent(String email) throws DocumentException, IOException {
         Student student = studentRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         List<CourseEnrollment> completedCourses = courseEnrollmentRepo.findByStudent(student)
                 .stream()
-                .filter(CourseEnrollment::isCompleted)
+                .filter(ce -> ce.isCompleted())
                 .toList();
 
         List<CoursesTranscriptDTO.CourseTranscriptRow> rows = new ArrayList<>();

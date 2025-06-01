@@ -1,52 +1,62 @@
 package group7.enrollmentSystem.helpers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.PostConstruct;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+
 import java.io.IOException;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class GradeService {
 
-    private Map<String, Integer> gradeThresholds;
+    private Map<String, Map<String, Object>> gradeData;
 
     @PostConstruct
     public void loadGradeThresholds() throws IOException {
-        // Load the JSON file from the resources directory
         ObjectMapper objectMapper = new ObjectMapper();
-        gradeThresholds = objectMapper.readValue(
+        gradeData = objectMapper.readValue(
                 new ClassPathResource("configs/gradesThreshold.json").getFile(),
-                Map.class
+                new TypeReference<Map<String, Map<String, Object>>>() {}
         );
-        System.out.println("Grade thresholds loaded: " + gradeThresholds);
+        System.out.println("Grade thresholds loaded: " + gradeData);
     }
 
     public String getGrade(int mark) {
-        // Sort the entries by their values (thresholds) in descending order
-        return gradeThresholds.entrySet().stream()
-                .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue())) // Sort by value descending
-                .filter(entry -> mark >= entry.getValue())
+        return gradeData.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    Integer v1 = (Integer) e1.getValue().get("mark");
+                    Integer v2 = (Integer) e2.getValue().get("mark");
+                    return v2.compareTo(v1);
+                })
+                .filter(entry -> mark >= (Integer) entry.getValue().get("mark"))
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElse("F");
     }
 
-    public void setGradeThresholds(Map<String, Integer> newThresholds) throws IOException {
-        if (newThresholds == null || newThresholds.isEmpty()) {
+    public double getGradePoint(String grade) {
+        Map<String, Object> data = gradeData.get(grade);
+        if (data == null) return 0.0;
+        Object gpaObj = data.get("gpa");
+        return gpaObj instanceof Number ? ((Number) gpaObj).doubleValue() : 0.0;
+    }
+
+    public int getLowestPassingMark() {
+        return (int) gradeData.get("D").get("mark");
+    }
+
+    public void setGradeThresholds(Map<String, Map<String, Object>> newData) throws IOException {
+        if (newData == null || newData.isEmpty()) {
             throw new IllegalArgumentException("Grade thresholds cannot be null or empty");
         }
-        this.gradeThresholds = newThresholds;
-
-        // Save the updated thresholds back to the JSON file
+        this.gradeData = newData;
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.writeValue(
                 new ClassPathResource("configs/gradesThreshold.json").getFile(),
-                this.gradeThresholds
+                this.gradeData
         );
-    }
-    public int getLowestPassingMark(){
-        return gradeThresholds.get("D");
     }
 }

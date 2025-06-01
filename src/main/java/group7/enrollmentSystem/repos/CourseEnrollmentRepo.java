@@ -37,7 +37,7 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     Collection<Object> findByStudentAndCourseInAndCompletedIsTrue(Student student, List<Course> sameLevelCourses);
 
     List<CourseEnrollment> findByStudent(Student student);
-    @Query("SELECT ce.course.id FROM CourseEnrollment ce WHERE ce.completed = TRUE AND ce.student = :student")
+    @Query("SELECT ce.course.id FROM CourseEnrollment ce WHERE ce.completed = TRUE AND ce.student = :student AND ce.failed = FALSE")
     List<Long> getCompletedCourseIdsByStudent(Student student);
     @Query("SELECT ce.course.id FROM CourseEnrollment ce WHERE ce.currentlyTaking = TRUE AND ce.student = :student")
     List<Long> getAppliedCourseIdsByStudent(Student student);

@@ -409,7 +409,10 @@ public class AdminApiController {
         restriction.setBlockViewCompletedCourses(dto.isBlockViewCompletedCourses());
         restriction.setBlockStudentAudit(dto.isBlockStudentAudit());
         restriction.setBlockGenerateTranscript(dto.isBlockGenerateTranscript());
-        restriction.setBlockForms(dto.isBlockGraduationApplication());
+        restriction.setBlockViewApplicationPage(dto.isBlockViewApplicationPage());
+        restriction.setBlockGradeChangeRequest(dto.isBlockGradeChangeRequest());
+        restriction.setBlockCompassionateApplication(dto.isBlockCompassionateApplication());
+        restriction.setBlockGraduationApplication(dto.isBlockGraduationApplication());
 
         restriction = restrictionRepo.save(restriction);
         return ResponseEntity.ok(studentHoldService.convertToDto(restriction));

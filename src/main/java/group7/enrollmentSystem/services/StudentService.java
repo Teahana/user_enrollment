@@ -529,7 +529,8 @@ public class StudentService {
         Map<String, Object> studentModel = new HashMap<>();
         studentModel.put("subject", "Grade Change Request");
         studentModel.put("header", "Grade Change");
-        studentModel.put("body", "You have requested a grade change for course: " + ce.getCourse().getTitle()
+        studentModel.put("body", "<p>Dear " + ce.getStudent().getFirstName() + " " + ce.getStudent().getLastName() + ", </p>" +
+                "You have requested a grade change for course: " + ce.getCourse().getTitle()
                 + " (" + ce.getCourse().getCourseCode() + ").");
         emailService.notifyStudentGradeChangeRequest(studentEmail, studentModel);
         Map<String, Object> adminModel = new HashMap<>();

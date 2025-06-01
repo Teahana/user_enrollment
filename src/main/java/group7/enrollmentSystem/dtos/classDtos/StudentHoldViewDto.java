@@ -20,5 +20,8 @@ public class StudentHoldViewDto {
     private boolean canViewCompletedCourses;
     private boolean canViewStudentAudit;
     private boolean canGenerateTranscript;
+    private boolean canViewApplicationPage;
+    private boolean canRequestGradeChange;
+    private boolean canApplyForCompassionate;
     private boolean canApplyForGraduation;
 }

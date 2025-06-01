@@ -234,6 +234,7 @@ public class StudentController {
             throw new CustomExceptions.ServiceRestrictedException("DOWNLOAD_TRANSCRIPT", e.getHoldType());
         }
     }
+  
     @GetMapping("/applicationHistory")
     public String viewApplicationHistory(Model model, Authentication auth) {
         String email = auth.getName();

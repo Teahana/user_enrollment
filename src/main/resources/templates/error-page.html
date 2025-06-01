@@ -6,14 +6,15 @@
     <title>Error -Enrollment System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/styles/navbar.css}">
 </head>
 <body>
-
+<div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <!-- ✅ Wrap everything inside main-content -->
 <div class="main-content">
 
-    <!-- ✅ Error Container (Now stretches) -->
+    <!-- Error Container (Now stretches) -->
     <div class="error-container text-center">
         <h1 class="text-danger fw-bold">Error <span th:text="${statusCode}"></span></h1>
         <p class="lead">

@@ -36,6 +36,9 @@ function renderHoldRestrictions(restrictions) {
             <td><input type="checkbox" class="form-check-input" ${restriction.blockViewCompletedCourses ? 'checked' : ''} disabled></td>
             <td><input type="checkbox" class="form-check-input" ${restriction.blockStudentAudit ? 'checked' : ''} disabled></td>
             <td><input type="checkbox" class="form-check-input" ${restriction.blockGenerateTranscript ? 'checked' : ''} disabled></td>
+            <td><input type="checkbox" class="form-check-input" ${restriction.blockViewApplicationPage ? 'checked' : ''} disabled></td>
+            <td><input type="checkbox" class="form-check-input" ${restriction.blockGradeChangeRequest ? 'checked' : ''} disabled></td>
+            <td><input type="checkbox" class="form-check-input" ${restriction.blockCompassionateApplication ? 'checked' : ''} disabled></td>
             <td><input type="checkbox" class="form-check-input" ${restriction.blockGraduationApplication ? 'checked' : ''} disabled></td>
             <td>
                 <button class="btn btn-sm btn-primary edit-btn"
@@ -84,6 +87,9 @@ function openEditModal(holdType) {
                 blockViewCompletedCourses: true,
                 blockStudentAudit: true,
                 blockGenerateTranscript: true,
+                blockViewApplicationPage: true,
+                blockGradeChangeRequest: true,
+                blockCompassionateApplication: true,
                 blockGraduationApplication: true
             });
             hideLoading();
@@ -96,6 +102,9 @@ function populateEditForm(restriction) {
     document.getElementById('blockViewCompletedCourses').checked = restriction.blockViewCompletedCourses;
     document.getElementById('blockStudentAudit').checked = restriction.blockStudentAudit;
     document.getElementById('blockGenerateTranscript').checked = restriction.blockGenerateTranscript;
+    document.getElementById('blockViewApplicationPage').checked = restriction.blockViewApplicationPage;
+    document.getElementById('blockGradeChangeRequest').checked = restriction.blockGradeChangeRequest;
+    document.getElementById('blockCompassionateApplication').checked = restriction.blockCompassionateApplication;
     document.getElementById('blockGraduationApplication').checked = restriction.blockGraduationApplication;
 
     const modal = new bootstrap.Modal(document.getElementById('editRestrictionModal'));
@@ -115,16 +124,19 @@ function initializeDefaultRestrictions() {
         .then(response => response.json())
         .then(restrictions => {
             if (restrictions.length === 0) {
-                createDefaultRestrictions();
+                return createDefaultRestrictions().then(() => {
+                    fetchHoldRestrictions(); // Fetch again after creating defaults
+                });
             }
-        });
+        })
+        .catch(error => console.error('Error initializing:', error));
 }
 
 function createDefaultRestrictions() {
     const holdTypes = ['UNPAID_FEES', 'UNPAID_REGISTRATION', 'DISCIPLINARY_ISSUES', 'UNSATISFACTORY_ACADEMIC_PROGRESS'];
 
-    holdTypes.forEach(holdType => {
-        fetch('/api/admin/hold-restrictions/' + holdType, {
+    const promises = holdTypes.map(holdType => {
+        return fetch('/api/admin/hold-restrictions/' + holdType, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -133,10 +145,15 @@ function createDefaultRestrictions() {
                 blockViewCompletedCourses: true,
                 blockStudentAudit: true,
                 blockGenerateTranscript: true,
+                blockViewApplicationPage: true,
+                blockGradeChangeRequest: true,
+                blockCompassionateApplication: true,
                 blockGraduationApplication: true
             })
         });
     });
+
+    return Promise.all(promises);
 }
 
 function saveRestrictionChanges() {
@@ -147,6 +164,9 @@ function saveRestrictionChanges() {
         blockViewCompletedCourses: document.getElementById('blockViewCompletedCourses').checked,
         blockStudentAudit: document.getElementById('blockStudentAudit').checked,
         blockGenerateTranscript: document.getElementById('blockGenerateTranscript').checked,
+        blockViewApplicationPage: document.getElementById('blockViewApplicationPage').checked,
+        blockGradeChangeRequest: document.getElementById('blockGradeChangeRequest').checked,
+        blockCompassionateApplication: document.getElementById('blockCompassionateApplication').checked,
         blockGraduationApplication: document.getElementById('blockGraduationApplication').checked
     };
 

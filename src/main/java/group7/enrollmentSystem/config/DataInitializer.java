@@ -7,6 +7,7 @@ import group7.enrollmentSystem.services.StudentProgrammeService;
 import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
+@Profile("!test")  // This disables DataInitializer in test profile
 public class DataInitializer implements CommandLineRunner {
 
     private final CourseRepo courseRepo;
@@ -97,15 +99,15 @@ public class DataInitializer implements CommandLineRunner {
 
             int exitCode = process.waitFor();
             if (exitCode == 0) {
-                System.out.println("✅ course_prerequisite restored successfully from backup!");
+                System.out.println("course_prerequisite restored successfully from backup!");
             } else {
-                System.err.println("❌ Error restoring course_prerequisite. Exit code: " + exitCode);
+                System.err.println("Error restoring course_prerequisite. Exit code: " + exitCode);
             }
 
             Files.deleteIfExists(tempFile); // Cleanup
 
         } catch (Exception e) {
-            System.err.println("❌ Exception during course_prerequisite restore: " + e.getMessage());
+            System.err.println("Exception during course_prerequisite restore: " + e.getMessage());
             e.printStackTrace();
         }
     }

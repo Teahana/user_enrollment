@@ -2,23 +2,30 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.serverKtDtos.ProgrammesAndCoursesDto;
+import group7.enrollmentSystem.enums.ApplicationStatus;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
+import group7.enrollmentSystem.services.FormsService;
 import group7.enrollmentSystem.services.ProgrammeService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+
 
 @Controller
 @RequestMapping("/admin")
@@ -34,6 +41,7 @@ public class AdminController {
     private final UserRepo userRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final CourseEnrollmentService courseEnrollmentService;
+    private final FormsService formsService;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
@@ -244,6 +252,69 @@ public class AdminController {
         return "gradeChangeRequests";
     }
 
+
+
+    @GetMapping("/applications")
+    public String viewAllApplications(Model model) {
+        List<GraduationApplication> graduationApps = formsService.getAllApplications();
+        List<CompassionateApplication> compassionateApps = formsService.getAllCompassionateApplications();
+
+        model.addAttribute("graduationApps", graduationApps);
+        model.addAttribute("compassionateApps", compassionateApps);
+        return "admin_applications";
+    }
+
+
+
+    @PostMapping("/updateApplicationStatus")
+    public String updateApplicationStatus(@RequestParam Long applicationId,
+                                          @RequestParam ApplicationStatus status) {
+        formsService.updateApplicationStatus(applicationId, status);
+        return "redirect:/admin/applications";
+    }
+    @PostMapping("/updateOtherApplicationStatus")
+    public String updateOtherApplicationStatus(@RequestParam Long applicationId,
+                                          @RequestParam ApplicationStatus status) {
+        formsService.updateOtherApplicationStatus(applicationId, status);
+        return "redirect:/admin/applications";
+    }
+    @PostMapping("/deleteGraduationApplication")
+    public String deleteGraduationApplication(@RequestParam Long applicationId, RedirectAttributes redirectAttributes) {
+        try {
+            formsService.deleteGraduationApplication(applicationId);
+            redirectAttributes.addFlashAttribute("message", "Application deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete application: " + e.getMessage());
+        }
+        return "redirect:/admin/applications";
+    }
+    @PostMapping("/deleteCompassionateApplication")
+    public String deleteCompassionateApplication(@RequestParam Long applicationId, RedirectAttributes redirectAttributes) {
+        try {
+            formsService.deleteCompassionateApplication(applicationId);
+            redirectAttributes.addFlashAttribute("message", "Application deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete application: " + e.getMessage());
+        }
+        return "redirect:/admin/applications";
+    }
+    @GetMapping("/applications/export/graduation")
+    public void exportGraduationCsv(HttpServletResponse response) throws IOException {
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=graduation_applications.csv");
+
+        PrintWriter writer = response.getWriter();
+        formsService.exportGraduationCsv(writer);
+    }
+
+    @GetMapping("/applications/export/compassionate")
+    public void exportCompassionateCsv(HttpServletResponse response) throws IOException {
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=other_applications.csv");
+
+        PrintWriter writer = response.getWriter();
+        formsService.exportCompassionateCsv(writer);
+    }
 
 
 }

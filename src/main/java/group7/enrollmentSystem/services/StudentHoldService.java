@@ -7,6 +7,7 @@ import group7.enrollmentSystem.dtos.classDtos.StudentHoldHistoryDto;
 import group7.enrollmentSystem.dtos.classDtos.StudentHoldViewDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
 import group7.enrollmentSystem.enums.OnHoldTypes;
+import group7.enrollmentSystem.helpers.EmailService;
 import group7.enrollmentSystem.models.HoldServiceRestriction;
 import group7.enrollmentSystem.models.OnHoldStatus;
 import group7.enrollmentSystem.models.Student;
@@ -19,7 +20,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -31,12 +31,16 @@ public class StudentHoldService {
     private final StudentRepo studentRepo;
     private final StudentHoldHistoryRepo studentHoldHistoryRepo;
     private final HoldServiceRestrictionRepo restrictionRepo;
+    private final EmailService emailService;
 
     public enum HoldRestrictionType {
         COURSE_ENROLLMENT,
         VIEW_COMPLETED_COURSES,
         STUDENT_AUDIT,
         GENERATE_TRANSCRIPT,
+        FORMS_APPLICATION,
+        GRADE_CHANGE_REQUEST,
+        COMPASSIONATE_APPLICATION,
         GRADUATION_APPLICATION
     }
 
@@ -68,10 +72,9 @@ public class StudentHoldService {
     }
 
     public void checkAccess(String email, HoldRestrictionType restrictionType) {
-        if (hasRestriction(email, restrictionType)) {
-            throw new CustomExceptions.StudentOnHoldException(
-                    getFirstRestrictingHoldType(email, restrictionType)
-            );
+        OnHoldTypes restrictingHoldType = getFirstRestrictingHoldType(email, restrictionType);
+        if (restrictingHoldType != null) {
+            throw new CustomExceptions.StudentOnHoldException(restrictingHoldType);
         }
     }
 
@@ -100,6 +103,9 @@ public class StudentHoldService {
             case VIEW_COMPLETED_COURSES -> restriction.isBlockViewCompletedCourses();
             case STUDENT_AUDIT -> restriction.isBlockStudentAudit();
             case GENERATE_TRANSCRIPT -> restriction.isBlockGenerateTranscript();
+            case FORMS_APPLICATION -> restriction.isBlockViewApplicationPage();
+            case GRADE_CHANGE_REQUEST -> restriction.isBlockGradeChangeRequest();
+            case COMPASSIONATE_APPLICATION -> restriction.isBlockCompassionateApplication();
             case GRADUATION_APPLICATION -> restriction.isBlockGraduationApplication();
         };
     }
@@ -114,6 +120,9 @@ public class StudentHoldService {
                 if (restriction.isBlockViewCompletedCourses()) dto.setCanViewCompletedCourses(false);
                 if (restriction.isBlockStudentAudit()) dto.setCanViewStudentAudit(false);
                 if (restriction.isBlockGenerateTranscript()) dto.setCanGenerateTranscript(false);
+                if (restriction.isBlockViewApplicationPage()) dto.setCanViewApplicationPage(false);
+                if (restriction.isBlockGradeChangeRequest()) dto.setCanRequestGradeChange(false);
+                if (restriction.isBlockCompassionateApplication()) dto.setCanApplyForCompassionate(false);
                 if (restriction.isBlockGraduationApplication()) dto.setCanApplyForGraduation(false);
             }
         });
@@ -191,6 +200,9 @@ public class StudentHoldService {
         dto.setBlockViewCompletedCourses(restriction.isBlockViewCompletedCourses());
         dto.setBlockStudentAudit(restriction.isBlockStudentAudit());
         dto.setBlockGenerateTranscript(restriction.isBlockGenerateTranscript());
+        dto.setBlockViewApplicationPage(restriction.isBlockViewApplicationPage());
+        dto.setBlockGradeChangeRequest(restriction.isBlockGradeChangeRequest());
+        dto.setBlockCompassionateApplication(restriction.isBlockCompassionateApplication());
         dto.setBlockGraduationApplication(restriction.isBlockGraduationApplication());
         return dto;
     }
@@ -230,6 +242,11 @@ public class StudentHoldService {
         // Record in history
         StudentHoldHistory history = StudentHoldHistory.create(studentId, holdType, true, actionBy);
         studentHoldHistoryRepo.save(history);
+
+        // Send Email/notificatttion
+        String fullName = student.getFirstName() + " " + student.getLastName();
+        emailService.notifyStudentHoldAdded(student.getEmail(), fullName, holdType);
+        emailService.notifyAdminHoldChange(actionBy, fullName, student.getEmail(), holdType, true);
     }
 
     @Transactional
@@ -249,6 +266,11 @@ public class StudentHoldService {
                     StudentHoldHistory history = StudentHoldHistory.create(
                             studentId, holdType, false, actionBy);
                     studentHoldHistoryRepo.save(history);
+
+                    // Send email
+                    String fullName = student.getFirstName() + " " + student.getLastName();
+                    emailService.notifyStudentHoldRemoved(student.getEmail(), fullName, holdType);
+                    emailService.notifyAdminHoldChange(actionBy, fullName, student.getEmail(), holdType, false);
                 });
     }
 
@@ -265,6 +287,9 @@ public class StudentHoldService {
         dto.setCanViewCompletedCourses(true);
         dto.setCanViewStudentAudit(true);
         dto.setCanGenerateTranscript(true);
+        dto.setCanViewApplicationPage(true);
+        dto.setCanRequestGradeChange(true);
+        dto.setCanApplyForCompassionate(true);
         dto.setCanApplyForGraduation(true);
     }
 }

@@ -208,4 +208,14 @@ public class StudentController {
         return "viewHolds";
     }
 
+    @GetMapping("/completedCourses/download")
+    public ResponseEntity<byte[]> downloadTranscript(Principal principal) throws DocumentException, IOException {
+        byte[] pdfBytes = studentService.generateCoursesTranscriptPdfForStudent(principal.getName());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "transcript.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
 }

@@ -35,17 +35,30 @@ public class CoursesTranscriptPdfGeneratorService {
         document.add(new Paragraph("Student ID: " + dto.getStudentId(), normalFont));
         document.add(new Paragraph("Name: " + dto.getStudentName(), normalFont));
         document.add(new Paragraph("Programme: " + dto.getProgramme(), normalFont));
-        document.add(new Paragraph("GPA: " + String.format("%.2f", dto.getGpa()), normalFont));
         document.add(new Paragraph("\n"));
 
-        // Completed Courses Table
+        // Completed, Passed, Failed Courses
         addCourseTableSection(document, "Completed Courses", dto.getCompletedCourses(), headerFont, normalFont);
-
-        // Passed Courses Table
         addCourseTableSection(document, "Passed Courses", dto.getPassedCourses(), headerFont, normalFont);
-
-        // Failed Courses Table
         addCourseTableSection(document, "Failed Courses", dto.getFailedCourses(), headerFont, normalFont);
+
+        // GPA Calculation (based on completed courses)
+        double totalMarks = 0;
+        int count = 0;
+
+        for (CoursesTranscriptDTO.CourseTranscriptRow row : dto.getCompletedCourses()) {
+            if (row.getMark() >= 0) {
+                totalMarks += row.getMark();
+                count++;
+            }
+        }
+
+        double gpa = count > 0 ? (totalMarks / count) / 25.0 : 0.0;
+
+        document.add(new Paragraph(String.format("Calculated GPA: %.2f", gpa), headerFont));
+        document.add(new Paragraph("Total Units Completed: " + dto.getCompletedCourses().size(), normalFont));
+        document.add(new Paragraph("Total Units Passed: " + dto.getPassedCourses().size(), normalFont));
+        document.add(new Paragraph("Total Units Failed: " + dto.getFailedCourses().size(), normalFont));
 
         document.close();
         return out.toByteArray();

@@ -11,5 +11,8 @@ public class HoldRestrictionDto {
     private boolean blockViewCompletedCourses;
     private boolean blockStudentAudit;
     private boolean blockGenerateTranscript;
+    private boolean blockViewApplicationPage;
+    private boolean blockGradeChangeRequest;
+    private boolean blockCompassionateApplication;
     private boolean blockGraduationApplication;
 }

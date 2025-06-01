@@ -45,12 +45,12 @@ public class StudentController {
         EnrollmentState state = enrollmentStateRepo.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
 
-        if (!state.isOpen()) {
-            model.addAttribute("pageOpen", false);
-            model.addAttribute("restrictionType", "ENROLLMENT_CLOSED");
-            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
-            return "accessDenied";
-        }
+//        if (!state.isOpen()) {
+//            model.addAttribute("pageOpen", false);
+//            model.addAttribute("restrictionType", "ENROLLMENT_CLOSED");
+//            model.addAttribute("message", "The course enrollment period has ended<br>Please contact Student Administrative Services for more info");
+//            return "accessDenied";
+//        }
 
         boolean canAccess = checkAccess(principal,
                 StudentHoldService.HoldRestrictionType.COURSE_ENROLLMENT);
@@ -92,6 +92,12 @@ public class StudentController {
         model.addAttribute("successMessage", "Course completed successfully!");
         return "redirect:/student/enrollment";
     }
+    @PostMapping("/failCourse/{id}")
+    public String failCourse(@PathVariable(value = "id") Long courseId, Model model, Principal principal) {
+        studentService.failCourse(courseId, principal.getName());
+        model.addAttribute("successMessage", "Course Failed successfully!");
+        return "redirect:/student/enrollment";
+    }
     @PostMapping("/cancelEnrollment/{id}")
     public String cancelEnrollment(@PathVariable Long id, Principal principal, RedirectAttributes redirectAttributes) {
         try {
@@ -111,6 +117,7 @@ public class StudentController {
         try{
             Student student = studentRepo.findByEmail(principal.getName())
                     .orElseThrow(() -> new RuntimeException("Student not found"));
+
             EnrollCourseRequest request = new EnrollCourseRequest(selectedCourseCodes, student.getId());
             studentService.enrollStudent(request);
             redirectAttributes.addFlashAttribute("successMessage", "Courses enrolled successfully!");
@@ -144,7 +151,12 @@ public class StudentController {
         model.addAttribute("completedEnrollments", completedEnrollments);
         return "completedCourses";
     }
-
+    @GetMapping("/requestGradeChange/{enrollmentId}")
+    public String requestGradeChange(@PathVariable Long enrollmentId, Principal principal, RedirectAttributes redirectAttributes) {
+        studentService.requestGradeChange(enrollmentId, principal.getName());
+        redirectAttributes.addFlashAttribute("success", "Grades requested successfully!");
+        return "redirect:/student/completedCourses";
+    }
     @GetMapping("/audit")
     public String loadStudentAuditPage(Model model, Authentication authentication) {
         boolean canAccess = checkAccess(authentication,
@@ -196,4 +208,14 @@ public class StudentController {
         return "viewHolds";
     }
 
+    @GetMapping("/completedCourses/download")
+    public ResponseEntity<byte[]> downloadTranscript(Principal principal) throws DocumentException, IOException {
+        byte[] pdfBytes = studentService.generateCoursesTranscriptPdfForStudent(principal.getName());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "transcript.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
 }

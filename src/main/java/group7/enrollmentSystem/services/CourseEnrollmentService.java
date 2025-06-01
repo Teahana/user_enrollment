@@ -262,4 +262,8 @@ public class CourseEnrollmentService {
             courseEnrollmentRepo.save(enrollment);
         }
     }
+
+    public List<CourseEnrollment> getAllGradeChangeRequests() {
+        return courseEnrollmentRepo.findByRequestGradeChangeTrue();
+    }
 }

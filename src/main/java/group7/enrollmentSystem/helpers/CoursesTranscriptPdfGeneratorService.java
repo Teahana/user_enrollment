@@ -3,15 +3,17 @@ package group7.enrollmentSystem.helpers;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 import group7.enrollmentSystem.dtos.classDtos.CoursesTranscriptDTO;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 @Service
 public class CoursesTranscriptPdfGeneratorService {
 
-    public byte[] generateTranscriptPdf(CoursesTranscriptDTO dto) throws DocumentException {
+    public byte[] generateTranscriptPdf(CoursesTranscriptDTO dto) throws DocumentException, IOException {
         Document document = new Document();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PdfWriter.getInstance(document, out);
@@ -20,6 +22,14 @@ public class CoursesTranscriptPdfGeneratorService {
         Font titleFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD);
         Font headerFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD);
         Font normalFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL);
+
+
+        // Add USP Logo
+        ClassPathResource imageResource = new ClassPathResource("static/images/usp_logo.png");
+        Image logo = Image.getInstance(imageResource.getURL());
+        logo.scaleToFit(110, 110);
+        document.add(logo);
+        document.add(new Paragraph("\n"));
 
         document.add(new Paragraph("ACADEMIC TRANSCRIPT", titleFont));
         document.add(new Paragraph("Student ID: " + dto.getStudentId(), normalFont));

@@ -6,6 +6,7 @@ import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.formDtos.CompassionateFormDTO;
 import group7.enrollmentSystem.dtos.formDtos.GraduationFormDTO;
+import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.*;
@@ -42,6 +43,7 @@ public class StudentController {
     private final StudentHoldService studentHoldService;
     private final GraduationApplicationRepo applicationRepo;
     private final FormsService formsService;
+    private final JwtService jwtService;
 
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
@@ -149,6 +151,8 @@ public class StudentController {
         String email = principal.getName();
         Student student = studentRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Student not found"));
 
+        String jwt = jwtService.generateToken(student, 5 * 60); // valid for 5 mins
+        model.addAttribute("downloadToken", jwt);
         // Fetch completed enrollments
         List<CourseEnrollment> completedEnrollments = courseEnrollmentService.getCompletedEnrollmentsWithHighestGrade(student.getId());
         model.addAttribute("completedEnrollments", completedEnrollments);

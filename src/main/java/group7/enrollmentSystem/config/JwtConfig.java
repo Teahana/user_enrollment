@@ -11,7 +11,7 @@ import java.util.Base64;
 @Configuration
 public class JwtConfig {
 
-    @Value("${jwt.secret}")
+    @Value("${SECURITY_JWT_SECRET}")
     private String secretKey;
 
     @Bean
@@ -20,6 +20,15 @@ public class JwtConfig {
             throw new IllegalArgumentException("JWT secret key is not set or resolved!");
         }
         byte[] decodedKey = Base64.getDecoder().decode(secretKey);
-        return Keys.hmacShaKeyFor(decodedKey);
+        Key key = Keys.hmacShaKeyFor(decodedKey);
+
+        // 🔍  print the exact bytes Spring will sign with
+        System.out.println("SPRING JWT KEY  (base-64url): "
+                + Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(key.getEncoded()));
+        System.out.println("SPRING property value: " + secretKey);   // raw text from properties
+
+
+        return key;
     }
 }

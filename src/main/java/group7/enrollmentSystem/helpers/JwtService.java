@@ -33,6 +33,7 @@ public class JwtService {
                 .compact();
     }
 
+
     /**
      * Parse and validate a JWT token.
      * Throws JwtException if the token is invalid or expired.

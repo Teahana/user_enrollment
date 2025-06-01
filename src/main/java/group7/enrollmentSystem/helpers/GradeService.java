@@ -18,7 +18,7 @@ public class GradeService {
     public void loadGradeThresholds() throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         gradeData = objectMapper.readValue(
-                new ClassPathResource("configs/gradesThreshold.json").getFile(),
+                new ClassPathResource("configs/grades.json").getFile(),
                 new TypeReference<Map<String, Map<String, Object>>>() {}
         );
         System.out.println("Grade thresholds loaded: " + gradeData);
@@ -55,7 +55,7 @@ public class GradeService {
         this.gradeData = newData;
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.writeValue(
-                new ClassPathResource("configs/gradesThreshold.json").getFile(),
+                new ClassPathResource("configs/grades.json").getFile(),
                 this.gradeData
         );
     }

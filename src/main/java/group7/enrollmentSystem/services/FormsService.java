@@ -22,6 +22,7 @@ import java.io.Writer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -105,20 +106,20 @@ public class FormsService {
         graduationApplicationRepository.save(app);
 
         // === Notify Admin ===
-        Map<String, Object> adminModel = Map.of(
-                "fullName", student.getFirstName() + " " + student.getLastName(),
-                "programme", programme.getName(),
-                "studentId", student.getStudentId(),
-                "submittedAt", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
-        );
+        Map<String, Object> adminModel = new HashMap<>();
+        adminModel.put("fullName", student.getFirstName() + " " + student.getLastName());
+        adminModel.put("programme", programme.getName());
+        adminModel.put("studentId", student.getStudentId());
+        adminModel.put(("dateSubmitted"), LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")));
+
         emailService.notifyAdminNewApplication("doiglas.m.habu@gmail.com", adminModel);
 
         // === Notify Student ===
-        Map<String, Object> studentModel = Map.of(
-                "fullName", student.getFirstName() + " " + student.getLastName(),
-                "programme", programme.getName(),
-                "studentId", student.getStudentId()
-        );
+        Map<String, Object> studentModel = new HashMap<>();
+        studentModel.put("fullName", student.getFirstName() + " " + student.getLastName());
+        studentModel.put("programme", programme.getName());
+        studentModel.put("studentId", student.getStudentId());
+
         emailService.notifyStudentApplicationSubmission("22johnc3na@gmail.com", studentModel);
     }
 

@@ -1,115 +1,100 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graduation Form</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" th:href="@{/styles/completion_form.css}">
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graduation Form</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/styles/completion_form.css}">
+    <style>
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        input:invalid, textarea:invalid, select:invalid {
+            border: 2px solid red;
+        }
+    </style>
 </head>
 <body>
 
 <div class="form-wrapper">
-  <h1>Application for Completion of Programme</h1>
-  <form th:action="@{/student/graduation_submit}" method="post" th:object="${graduationForm}">
-  <fieldset>
-      <legend>Section A: Personal Details</legend>
 
-      <label>Student ID: <input type="text" th:value="${student.studentId}" readonly></label>
-      <label>First Name: <input type="text" th:value="${student.firstName}" readonly></label>
-      <label>Surname: <input type="text" th:value="${student.lastName}" readonly></label>
-      <label>Date of Birth: <input type="date" th:value="*{dateOfBirth}"></label>
-      <label>Email: <input type="email" th:value="${student.email}" readonly></label>
-      <label>Telephone: <input type="tel" th:value="${student.phoneNumber}" readonly></label>
-      <label>Postal Address: <textarea readonly th:text="${student.address}"></textarea></label>
+    <!-- USP Banner Header -->
+    <div style="background-color: white; padding: 30px 0 10px; text-align: center; border-bottom: 2px solid #ccc;">
+        <img src="/images/usp_logo.png" alt="USP Logo" style="max-width: 280px; height: auto;">
+    </div>
 
-      <label>Programme you are completing:
-        <input type="text" th:value="${programme.name}" readonly>
-        <input type="hidden" th:field="*{programme}" th:value="${programme.programmeCode}" />
-      </label>
+    <h1>Application for Completion of Programme</h1>
+    <form th:action="@{/student/graduation_submit}" method="post" th:object="${graduationForm}" id="graduationForm">
+        <fieldset>
+            <legend>Section A: Personal Details</legend>
 
-      <label>Major 1: <input type="text" th:field="*{major1}"></label>
-      <label>Major 2: <input type="text" th:field="*{major2}"></label>
-      <label>Minor: <input type="text" th:field="*{minor}"></label>
-    </fieldset>
+            <label>Student ID: <input type="text" th:value="${student.studentId}" readonly></label>
+            <label>First Name: <input type="text" th:value="${student.firstName}" readonly></label>
+            <label>Surname: <input type="text" th:value="${student.lastName}" readonly></label>
+            <label>Date of Birth: <input type="date" id="dob" th:field="*{dateOfBirth}" required></label>
+            <span id="dobError" class="error-message"></span>
 
-    <fieldset>
-      <legend>Section B: Graduation Ceremony</legend>
-      <p>Please tick <strong>only one</strong> ceremony:</p>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Laucala_March"> Laucala Campus - March / April</label>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Laucala_Sept"> Laucala Campus - September / October</label>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Emalus"> Emalus Campus - April / May</label>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Samoa"> Samoa Campus - April / May</label>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Solomon"> Solomon Campus - September / October</label>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Tonga"> Tonga Campus - October / November</label>
-      <label><input type="radio" th:field="*{ceremonyPreference}" value="Foundation"> Foundation</label>
-      <label>Other Campus Ceremony: <input type="text" th:field="*{otherCampus}"></label>
-    </fieldset>
+            <label>Email: <input type="email" th:value="${student.email}" readonly></label>
+            <label>Telephone: <input type="tel" th:value="${student.phoneNumber}" readonly></label>
+            <label>Postal Address: <textarea readonly th:text="${student.address}"></textarea></label>
 
-    <fieldset>
-      <legend>Section C: Graduation Attendance</legend>
-      <label><input type="radio" th:field="*{willAttend}" th:value="true"> I will attend the graduation ceremony</label>
-      <label><input type="radio" th:field="*{willAttend}" th:value="false"> I will NOT attend the graduation ceremony</label>
-    </fieldset>
+            <label>Programme you are completing:
+                <input type="text" th:value="${programme.name}" readonly>
+                <input type="hidden" th:field="*{programme}" th:value="${programme.programmeCode}" />
+            </label>
 
-    <fieldset>
-      <legend>Section D: Declaration</legend>
-      <p>
-        I certify that the particulars in this form are correct, I have read the notes at the back of this form,
-        and I will abide by the rules set out in the Statutes, Ordinances, Regulations and the Charter
-        of the University of the South Pacific.
-      </p>
+            <label>Major 1: <input type="text" th:field="*{major1}"></label>
+            <label>Major 2: <input type="text" th:field="*{major2}"></label>
+            <label>Minor: <input type="text" th:field="*{minor}"></label>
+        </fieldset>
 
-      <label>Signature:</label>
-      <canvas id="signature-pad" width="400" height="150" style="border:1px solid #ccc; border-radius: 4px;"></canvas><br>
-      <button type="button" onclick="clearSignature()">Clear</button>
-      <input type="hidden" th:field="*{studentSignature}" id="signatureImage">
+        <fieldset>
+            <legend>Section B: Graduation Ceremony</legend>
+            <p>Please tick <strong>only one</strong> ceremony:</p>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Laucala_March"> Laucala Campus - March / April</label>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Laucala_Sept"> Laucala Campus - September / October</label>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Emalus"> Emalus Campus - April / May</label>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Samoa"> Samoa Campus - April / May</label>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Solomon"> Solomon Campus - September / October</label>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Tonga"> Tonga Campus - October / November</label>
+            <label><input type="radio" th:field="*{ceremonyPreference}" value="Foundation"> Foundation</label>
+            <label>Other Campus Ceremony: <input type="text" th:field="*{otherCampus}"></label>
+        </fieldset>
 
-      <label>Date:
-        <input type="date" th:field="*{signatureDate}" required>
-      </label>
-    </fieldset>
+        <fieldset>
+            <legend>Section C: Graduation Attendance</legend>
+            <label><input type="radio" th:field="*{willAttend}" th:value="true"> I will attend the graduation ceremony</label>
+            <label><input type="radio" th:field="*{willAttend}" th:value="false"> I will NOT attend the graduation ceremony</label>
+        </fieldset>
 
-    <button type="submit">Submit Form</button>
-  </form>
+        <fieldset>
+            <legend>Section D: Declaration</legend>
+            <p>
+                I certify that the particulars in this form are correct, I have read the notes at the back of this form,
+                and I will abide by the rules set out in the Statutes, Ordinances, Regulations and the Charter
+                of the University of the South Pacific.
+            </p>
+
+            <label>Signature:</label>
+            <canvas id="signature-pad" width="400" height="150" style="border:1px solid #ccc; border-radius: 4px;"></canvas><br>
+            <button type="button" onclick="clearSignature()">Clear</button>
+            <input type="hidden" th:field="*{studentSignature}" id="signatureImage">
+
+            <label>Date:
+                <input type="date" id="signatureDate" th:field="*{signatureDate}" required>
+            </label>
+            <span id="signatureDateError" class="error-message"></span>
+        </fieldset>
+
+        <button type="submit">Submit Form</button>
+    </form>
 </div>
 
-<script>
-  const canvas = document.getElementById('signature-pad');
-  const ctx = canvas.getContext('2d');
-  let drawing = false;
-
-  canvas.addEventListener('mousedown', () => drawing = true);
-  canvas.addEventListener('mouseup', () => {
-    drawing = false;
-    saveSignature();
-  });
-  canvas.addEventListener('mouseleave', () => drawing = false);
-  canvas.addEventListener('mousemove', draw);
-
-  function draw(e) {
-    if (!drawing) return;
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#000';
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-  }
-
-  function saveSignature() {
-    const dataURL = canvas.toDataURL();
-    document.getElementById('signatureImage').value = dataURL;
-  }
-
-  function clearSignature() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    document.getElementById('signatureImage').value = "";
-  }
-</script>
+<script th:src="@{/scripts/graduationForm.js}"></script>
 
 </body>
 </html>

@@ -7,6 +7,7 @@ import group7.enrollmentSystem.services.StudentProgrammeService;
 import group7.enrollmentSystem.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
+@Profile("!test")  // This disables DataInitializer in test profile
 public class DataInitializer implements CommandLineRunner {
 
     private final CourseRepo courseRepo;

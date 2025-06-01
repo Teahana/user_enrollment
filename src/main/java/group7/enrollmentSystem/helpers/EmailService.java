@@ -111,5 +111,28 @@ public class EmailService {
 
         sendHtmlMail(adminEmail, subject, "notification", model);
     }
+
+    @Async
+    public void notifyStudentApplicationStatusUpdate(String studentEmail, String fullName, String studentId, String applicationType, String status) {
+        Map<String, Object> model = new HashMap<>();
+        model.put("fullName", fullName);
+        model.put("studentId", studentId);
+        model.put("applicationType", applicationType);
+        model.put("status", status);
+
+        sendHtmlMail(studentEmail, "Your Application Status Update", "status_report", model);
+    }
+
+    @Async
+    public void notifyAdminApplicationStatusChange(String adminEmail, String fullName, String studentId, String applicationType, String status) {
+        Map<String, Object> model = new HashMap<>();
+        model.put("fullName", fullName);
+        model.put("studentId", studentId);
+        model.put("applicationType", applicationType);
+        model.put("status", status);
+
+        sendHtmlMail(adminEmail, "Student Application Status Updated", "status_report", model);
+    }
+
 }
 

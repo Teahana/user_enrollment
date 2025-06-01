@@ -208,4 +208,14 @@ public class StudentController {
         return "viewHolds";
     }
 
+    @GetMapping("/completedCourses/download")
+    public ResponseEntity<byte[]> downloadCompletedCourses(Principal principal) throws DocumentException, IOException {
+        byte[] pdfBytes = studentService.generateInvoicePdfForStudent(principal.getName());
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "invoice.pdf");
+
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
+    }
+
 }

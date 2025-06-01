@@ -209,7 +209,7 @@ public class StudentController {
     }
 
     @GetMapping("/completedCourses/download")
-    public ResponseEntity<byte[]> downloadTranscript(Principal principal) throws DocumentException {
+    public ResponseEntity<byte[]> downloadTranscript(Principal principal) throws DocumentException, IOException {
         byte[] pdfBytes = studentService.generateCoursesTranscriptPdfForStudent(principal.getName());
 
         HttpHeaders headers = new HttpHeaders();

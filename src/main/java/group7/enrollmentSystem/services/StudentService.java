@@ -49,7 +49,6 @@ public class StudentService {
     private final Random random = new Random();
     private final StudentHoldService studentHoldService;
     private final EmailService emailService;
-    private final CompletedCoursesPdfGeneratorService completedCoursesPdfGeneratorService;
 
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
         Student student = studentRepo.findByEmail(email)
@@ -544,45 +543,10 @@ public class StudentService {
         emailService.notifyAdminGradeChangeRequest("adriandougjonajitino@gmail.com",adminModel);
     }
 
-    public byte[] generateCompletedCoursesPdfForStudent(String email) throws DocumentException, IOException {
-        Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        List<CourseEnrollmentDto> enrolledCourses = courseEnrollmentService.getActiveEnrollments(student.getId())
-                .stream()
-                .map(ce -> new CourseEnrollmentDto(
-                        ce.getCourse().getId(),
-                        ce.getCourse().getCourseCode(),
-                        ce.getCourse().getTitle(),
-                        ce.getCourse().getCost(),
-                        ce.isPaid()))
-                .collect(Collectors.toList());
-
-        double totalDue = enrolledCourses.stream()
-                .mapToDouble(CourseEnrollmentDto::getCost)
-                .sum();
-
-        CompletedCoursesDTO completedCoursesDTO = new CompletedCoursesDTO();
-        completedCoursesDTO.setStudentName(student.getFirstName() + " " + student.getLastName());
-        completedCoursesDTO.setStudentId(student.getStudentId());
-
-        Optional<StudentProgramme> currentProgramme = studentProgrammeService.getCurrentProgramme(student);
-        if (currentProgramme.isPresent()) {
-            completedCoursesDTO.setProgramme(currentProgramme.get().getProgramme().getName());
-        } else {
-            throw new RuntimeException("No current programme found for the student");
-        }
-
-        completedCoursesDTO.setEnrolledCourses(enrolledCourses);
-        completedCoursesDTO.setTotalDue(totalDue);
-
-        return completedCoursesPdfGeneratorService.generateInvoicePdf(completedCoursesDTO);
-    }
-
     @Autowired
     private CoursesTranscriptPdfGeneratorService coursesTranscriptPdfGeneratorService;
 
-    public byte[] generateCoursesTranscriptPdfForStudent(String email) throws DocumentException {
+    public byte[] generateCoursesTranscriptPdfForStudent(String email) throws DocumentException, IOException {
         Student student = studentRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 

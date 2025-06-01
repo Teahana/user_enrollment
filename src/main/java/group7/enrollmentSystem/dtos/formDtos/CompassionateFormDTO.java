@@ -14,7 +14,7 @@ public class CompassionateFormDTO {
     // Application options
     private List<String> applicationType;
     private String reason;
-    private MultipartFile[] documents;
+    private List<MultipartFile[]> documents;
     private String studentSignature;
     private LocalDate submissionDate;
 

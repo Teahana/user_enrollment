@@ -27,12 +27,11 @@ public class CompassionateApplication {
     @CollectionTable(name = "missed_exam_entries", joinColumns = @JoinColumn(name = "application_id"))
     private List<MissedExamEntry> examEntries = new ArrayList<>();
 
-    @Lob
     private String studentSignature;
-
     private LocalDate submissionDate;
 
-    private String documentPaths; // Optional for future file handling
+    @ElementCollection
+    private List<String> documentPaths;
 
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;

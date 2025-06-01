@@ -39,9 +39,7 @@ public class GraduationApplication {
 
     private Boolean willAttend;
 
-    @Lob
-    @Column(columnDefinition = "LONGTEXT") // or "TEXT" if you want smaller size
-    private String studentSignature;
+    private String studentSignatureFilePath;
     private LocalDate signatureDate;
 
     private LocalDateTime submittedAt = LocalDateTime.now();

@@ -2,9 +2,12 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.serverKtDtos.ProgrammesAndCoursesDto;
-import group7.enrollmentSystem.enums.ApplicationStatus;
-import group7.enrollmentSystem.models.*;
+import group7.enrollmentSystem.models.Course;
+import group7.enrollmentSystem.models.EnrollmentState;
+import group7.enrollmentSystem.models.Programme;
+import group7.enrollmentSystem.models.User;
 import group7.enrollmentSystem.repos.*;
+import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
 import group7.enrollmentSystem.services.CourseService;
 import group7.enrollmentSystem.services.FormsService;
@@ -24,8 +27,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
+
 
 @Controller
 @RequestMapping("/admin")
@@ -40,7 +42,6 @@ public class AdminController {
     private final ProgrammeService programmeService;
     private final UserRepo userRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
-    private final FormsService formsService;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
@@ -244,6 +245,14 @@ public class AdminController {
 
         return "redirect:/admin/dashboard";
     }
+    @GetMapping("/gradeChangeRequests")
+    public String gradeChangeRequests(Model model) {
+        List<CourseEnrollment> ces = courseEnrollmentService.getAllGradeChangeRequests();
+        model.addAttribute("requests", ces);
+        return "gradeChangeRequests";
+    }
+
+
 
     @GetMapping("/applications")
     public String viewAllApplications(Model model) {

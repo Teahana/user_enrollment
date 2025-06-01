@@ -4,14 +4,15 @@ import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.dtos.classDtos.CoursesTranscriptDTO;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
-import group7.enrollmentSystem.helpers.GradeService;
-import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
+import group7.enrollmentSystem.helpers.*;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,8 @@ public class StudentService {
     private final InvoicePdfGeneratorService invoicePdfGeneratorService;
     private final GradeService gradeService;
     private final Random random = new Random();
+    private final StudentHoldService studentHoldService;
+    private final EmailService emailService;
 
     public List<CourseEnrollmentDto> getEligibleCourses(String email) {
         Student student = studentRepo.findByEmail(email)
@@ -210,8 +214,12 @@ public class StudentService {
 
         return result;
     }
-    //toDo: Check this for sem1 and sem2 validation when awake.
     public void enrollStudent(EnrollCourseRequest request) {
+        EnrollmentState state = enrollmentStateRepo.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Enrollment state not found"));
+        if (!state.isOpen()) {
+            throw new RuntimeException("The course enrollment period is closed. Please contact Student Administrative Services for more info.");
+        }
         Optional<Student> optionalStudent = studentRepo.findById(request.getUserId());
         if(!optionalStudent.isPresent()) {
             throw new RuntimeException("Student not found with ID: " + request.getUserId());
@@ -227,6 +235,15 @@ public class StudentService {
         System.out.println("Selected courses: " + request.getSelectedCourses().size());
         if(currentlyApplied + request.getSelectedCourses().size() > 4){
             throw new RuntimeException("You have reached the maximum number of courses you can apply for (4).");
+        }
+        //Check for any holds
+        int holdSize = StudentHoldService.HoldRestrictionType.values().length;
+        for(int i = 0; i < holdSize; i++) {
+            if(studentHoldService.hasRestriction(student.getEmail(),
+                    StudentHoldService.HoldRestrictionType.values()[i])){
+                throw new RuntimeException("You cannot enroll in courses due to a hold on your account: " +
+                        StudentHoldService.HoldRestrictionType.values()[i]);
+            }
         }
         Map<String, Object> response = validateEnrollmentRequest(student,programme,request.getSelectedCourses());
 
@@ -392,6 +409,10 @@ public class StudentService {
         int lowestPassingMark = gradeService.getLowestPassingMark();
         return this.random.nextInt(lowestPassingMark,101);//101 because the upperbound is exclusive
     }
+    private int generateFailMark(){
+        int lowestPassingMark = gradeService.getLowestPassingMark();
+        return this.random.nextInt(0,lowestPassingMark+1);//101 because the upperbound is exclusive
+    }
     public void failEnrolledCourses(long userId, List<String> selectedCourses) {
         Student student = studentRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Student not found with ID: " + userId));
@@ -476,5 +497,111 @@ public class StudentService {
         ce.setMark(mark);
         courseEnrollmentRepo.save(ce);
     }
+    public void failCourse(Long courseId, String name) {
+        Course c = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+        Student s = studentRepo.findByEmail(name)
+                .orElseThrow(() -> new RuntimeException("Student not found with email: " + name));
+        CourseEnrollment ce = courseEnrollmentRepo.findByStudentAndCourseAndCurrentlyTakingTrue(s,c);
+        int mark = generateFailMark();
+        String grade = gradeService.getGrade(mark);
+        ce.setCompleted(true);
+        ce.setFailed(true);
+        ce.setCurrentlyTaking(false);
+        ce.setCancelled(false);
+        ce.setGrade(grade);
+        ce.setMark(mark);
+        courseEnrollmentRepo.save(ce);
+    }
+
+    public void requestGradeChange(Long enrollmentId, String studentEmail) {
+        CourseEnrollment ce = courseEnrollmentRepo.findById(enrollmentId).orElseThrow(
+                () -> new RuntimeException("Enrollment not found with ID: " + enrollmentId));
+        if(ce.isRequestGradeChange()){
+            throw new RuntimeException("Enrollment with ID " + enrollmentId + " is already requested.");
+        }
+        ce.setRequestGradeChange(true);
+        ce.setRequestGradeChangeDate(LocalDate.now());
+        ce.setRequestGradeChangeTime(LocalTime.now());
+        courseEnrollmentRepo.save(ce);
+        Map<String, Object> studentModel = new HashMap<>();
+        studentModel.put("subject", "Grade Change Request");
+        studentModel.put("header", "Grade Change");
+        studentModel.put("body", "You have requested a grade change for course: " + ce.getCourse().getTitle()
+                + " (" + ce.getCourse().getCourseCode() + ").");
+        emailService.notifyStudentGradeChangeRequest(studentEmail, studentModel);
+        Map<String, Object> adminModel = new HashMap<>();
+        adminModel.put("subject", "Grade Change Request");
+        adminModel.put("header", "Grade Change");
+        // Include HTML for the link
+        adminModel.put("body", "Student " + studentEmail + " has requested a grade change for course: "
+                + ce.getCourse().getTitle() + " (" + ce.getCourse().getCourseCode() + ").<br/>"
+                + "You can view all grade change requests <a href='http://localhost/admin/gradeChangeRequests'>here</a>.");
+
+        emailService.notifyAdminGradeChangeRequest("adriandougjonajitino@gmail.com",adminModel);
+    }
+
+    @Autowired
+    private CoursesTranscriptPdfGeneratorService coursesTranscriptPdfGeneratorService;
+
+    public byte[] generateCoursesTranscriptPdfForStudent(String email) throws DocumentException, IOException {
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<CourseEnrollment> completedCourses = courseEnrollmentRepo.findByStudent(student)
+                .stream()
+                .filter(CourseEnrollment::isCompleted)
+                .toList();
+
+        List<CoursesTranscriptDTO.CourseTranscriptRow> rows = new ArrayList<>();
+        double totalMarks = 0;
+        int count = 0;
+
+        for (CourseEnrollment ce : completedCourses) {
+            CoursesTranscriptDTO.CourseTranscriptRow row = new CoursesTranscriptDTO.CourseTranscriptRow();
+            row.setCourseCode(ce.getCourse().getCourseCode());
+            row.setTitle(ce.getCourse().getTitle());
+            row.setGrade(ce.getGrade());
+            row.setMark(ce.getMark());
+            row.setFailed(ce.isFailed());
+            rows.add(row);
+
+            if (!ce.isFailed()) {
+                totalMarks += ce.getMark();
+                count++;
+            }
+        }
+
+        double gpa = count > 0 ? (totalMarks / count) / 25.0 : 0.0; // e.g., scale: 100 = 4.0 GPA
+
+        CoursesTranscriptDTO dto = new CoursesTranscriptDTO();
+        dto.setStudentId(student.getStudentId());
+        dto.setStudentName(student.getFirstName() + " " + student.getLastName());
+
+        studentProgrammeService.getCurrentProgramme(student)
+                .ifPresentOrElse(
+                        sp -> dto.setProgramme(sp.getProgramme().getName()),
+                        () -> { throw new RuntimeException("No current programme found for the student"); }
+                );
+
+        dto.setCompletedCourses(rows);
+        dto.setGpa(gpa);
+
+        // Separate rows
+        List<CoursesTranscriptDTO.CourseTranscriptRow> passed = rows.stream()
+                .filter(r -> !r.getGrade().equalsIgnoreCase("F") && !r.getGrade().equalsIgnoreCase("E"))
+                .toList();
+
+        List<CoursesTranscriptDTO.CourseTranscriptRow> failed = rows.stream()
+                .filter(r -> r.getGrade().equalsIgnoreCase("F") || r.getGrade().equalsIgnoreCase("E"))
+                .toList();
+
+        dto.setCompletedCourses(rows); // All completed
+        dto.setPassedCourses(passed);  // Subset: passed
+        dto.setFailedCourses(failed);  // Subset: failed
+
+        return coursesTranscriptPdfGeneratorService.generateTranscriptPdf(dto);
+    }
+
 }
 

@@ -5,16 +5,15 @@ import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.CompletedCoursesDTO;
 import group7.enrollmentSystem.dtos.classDtos.CourseEnrollmentDto;
+import group7.enrollmentSystem.dtos.classDtos.CoursesTranscriptDTO;
 import group7.enrollmentSystem.dtos.classDtos.InvoiceDto;
 import group7.enrollmentSystem.enums.PrerequisiteType;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
-import group7.enrollmentSystem.helpers.CompletedCoursesPdfGeneratorService;
-import group7.enrollmentSystem.helpers.EmailService;
-import group7.enrollmentSystem.helpers.GradeService;
-import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
+import group7.enrollmentSystem.helpers.*;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -579,5 +578,55 @@ public class StudentService {
 
         return completedCoursesPdfGeneratorService.generateInvoicePdf(completedCoursesDTO);
     }
+
+    @Autowired
+    private CoursesTranscriptPdfGeneratorService coursesTranscriptPdfGeneratorService;
+
+    public byte[] generateCoursesTranscriptPdfForStudent(String email) throws DocumentException {
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<CourseEnrollment> completedCourses = courseEnrollmentRepo.findByStudent(student)
+                .stream()
+                .filter(CourseEnrollment::isCompleted)
+                .toList();
+
+        List<CoursesTranscriptDTO.CourseTranscriptRow> rows = new ArrayList<>();
+        double totalMarks = 0;
+        int count = 0;
+
+        for (CourseEnrollment ce : completedCourses) {
+            CoursesTranscriptDTO.CourseTranscriptRow row = new CoursesTranscriptDTO.CourseTranscriptRow();
+            row.setCourseCode(ce.getCourse().getCourseCode());
+            row.setTitle(ce.getCourse().getTitle());
+            row.setGrade(ce.getGrade());
+            row.setMark(ce.getMark());
+            row.setFailed(ce.isFailed());
+            rows.add(row);
+
+            if (!ce.isFailed()) {
+                totalMarks += ce.getMark();
+                count++;
+            }
+        }
+
+        double gpa = count > 0 ? (totalMarks / count) / 25.0 : 0.0; // e.g., scale: 100 = 4.0 GPA
+
+        CoursesTranscriptDTO dto = new CoursesTranscriptDTO();
+        dto.setStudentId(student.getStudentId());
+        dto.setStudentName(student.getFirstName() + " " + student.getLastName());
+
+        studentProgrammeService.getCurrentProgramme(student)
+                .ifPresentOrElse(
+                        sp -> dto.setProgramme(sp.getProgramme().getName()),
+                        () -> { throw new RuntimeException("No current programme found for the student"); }
+                );
+
+        dto.setTranscriptRows(rows);
+        dto.setGpa(gpa);
+
+        return coursesTranscriptPdfGeneratorService.generateTranscriptPdf(dto);
+    }
+
 }
 

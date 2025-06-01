@@ -209,13 +209,13 @@ public class StudentController {
     }
 
     @GetMapping("/completedCourses/download")
-    public ResponseEntity<byte[]> downloadCompletedCourses(Principal principal) throws DocumentException, IOException {
-        byte[] pdfBytes = studentService.generateInvoicePdfForStudent(principal.getName());
+    public ResponseEntity<byte[]> downloadTranscript(Principal principal) throws DocumentException {
+        byte[] pdfBytes = studentService.generateCoursesTranscriptPdfForStudent(principal.getName());
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "invoice.pdf");
+        headers.setContentDispositionFormData("attachment", "transcript.pdf");
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
-
 }

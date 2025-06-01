@@ -41,6 +41,11 @@
                             Courses
                         </a>
                     </li>
+                    <li class="nav-item" sec:authorize="hasRole('ROLE_ADMIN')">
+                        <a class="nav-link custom-link" href="/admin/applications" th:classappend="${page == 'AdminApplications' ? 'active' : ''}">
+                            Applications
+                        </a>
+                    </li>
 
                     <!-- Student Links -->
                     <li class="nav-item" sec:authorize="hasRole('ROLE_STUDENT')">
@@ -75,12 +80,12 @@
                             Application Forms
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="studentDropdown">
-                            <li><a class="dropdown-item" href="http://localhost:3000/forms/graduation">Graduation Form</a></li>
-                            <li><a class="dropdown-item" href="/student/compassionate/forms">Compassionate Form</a></li>
+                            <li><a class="dropdown-item" href="student/graduationApplication">Graduation Form</a></li>
+                            <li><a class="dropdown-item" href="/student/compassionateApplication">Compassionate Form</a></li>
                         </ul>
                     </li>
                     <li class="nav-item" sec:authorize="hasRole('ROLE_STUDENT')">
-                        <a class="nav-link custom-link" href="/student/enrollment" th:classappend="${page == 'StudentEnrollment' ? 'active' : ''}">
+                        <a class="nav-link custom-link" href="/student/applicationHistory" th:classappend="${page == 'StudentEnrollment' ? 'active' : ''}">
                             My Applications
                         </a>
                     </li>

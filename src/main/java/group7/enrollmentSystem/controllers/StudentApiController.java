@@ -449,3 +449,4 @@ public class StudentApiController {
 
         return ResponseEntity.ok(Map.of("accessible", isAccessible));
 }
+}

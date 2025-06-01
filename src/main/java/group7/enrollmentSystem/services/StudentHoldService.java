@@ -19,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +36,7 @@ public class StudentHoldService {
         VIEW_COMPLETED_COURSES,
         STUDENT_AUDIT,
         GENERATE_TRANSCRIPT,
-        GRADUATION_APPLICATION
+        FORMS_APPLICATION,
     }
 
     public StudentHoldViewDto getStudentHoldDetails(String email) {
@@ -100,7 +99,7 @@ public class StudentHoldService {
             case VIEW_COMPLETED_COURSES -> restriction.isBlockViewCompletedCourses();
             case STUDENT_AUDIT -> restriction.isBlockStudentAudit();
             case GENERATE_TRANSCRIPT -> restriction.isBlockGenerateTranscript();
-            case GRADUATION_APPLICATION -> restriction.isBlockGraduationApplication();
+            case FORMS_APPLICATION -> restriction.isBlockForms();
         };
     }
 
@@ -114,7 +113,7 @@ public class StudentHoldService {
                 if (restriction.isBlockViewCompletedCourses()) dto.setCanViewCompletedCourses(false);
                 if (restriction.isBlockStudentAudit()) dto.setCanViewStudentAudit(false);
                 if (restriction.isBlockGenerateTranscript()) dto.setCanGenerateTranscript(false);
-                if (restriction.isBlockGraduationApplication()) dto.setCanApplyForGraduation(false);
+                if (restriction.isBlockForms()) dto.setCanApplyForGraduation(false);
             }
         });
     }
@@ -191,7 +190,7 @@ public class StudentHoldService {
         dto.setBlockViewCompletedCourses(restriction.isBlockViewCompletedCourses());
         dto.setBlockStudentAudit(restriction.isBlockStudentAudit());
         dto.setBlockGenerateTranscript(restriction.isBlockGenerateTranscript());
-        dto.setBlockGraduationApplication(restriction.isBlockGraduationApplication());
+        dto.setBlockGraduationApplication(restriction.isBlockForms());
         return dto;
     }
 

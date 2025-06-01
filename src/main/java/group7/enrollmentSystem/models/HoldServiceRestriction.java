@@ -19,5 +19,5 @@ public class HoldServiceRestriction {
     private boolean blockViewCompletedCourses = true;
     private boolean blockStudentAudit = true;
     private boolean blockGenerateTranscript = true;
-    private boolean blockGraduationApplication = true;
+    private boolean blockForms = true;
 }

@@ -2,10 +2,8 @@ package group7.enrollmentSystem.controllers;
 
 import group7.enrollmentSystem.dtos.classDtos.*;
 import group7.enrollmentSystem.dtos.serverKtDtos.ProgrammesAndCoursesDto;
-import group7.enrollmentSystem.models.Course;
-import group7.enrollmentSystem.models.EnrollmentState;
-import group7.enrollmentSystem.models.Programme;
-import group7.enrollmentSystem.models.User;
+import group7.enrollmentSystem.enums.ApplicationStatus;
+import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.CourseEnrollmentService;
 import group7.enrollmentSystem.services.CourseProgrammeService;
@@ -42,6 +40,8 @@ public class AdminController {
     private final ProgrammeService programmeService;
     private final UserRepo userRepo;
     private final CourseProgrammeRepo courseProgrammeRepo;
+    private final CourseEnrollmentService courseEnrollmentService;
+    private final FormsService formsService;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {

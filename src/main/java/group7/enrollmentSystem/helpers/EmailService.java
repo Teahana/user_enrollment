@@ -49,5 +49,19 @@ public class EmailService {
         String templateName = "notification";
         sendHtmlMail(mail, subject, templateName, adminModel);
     }
+
+    @Async
+    public void notifyAdminNewApplication(String mail, Map<String, Object> adminModel) {
+        String subject = "New Application Notification";
+        String templateName = "email_admin";
+        sendHtmlMail(mail, subject, templateName, adminModel);
+    }
+    @Async
+    public void notifyStudentApplicationSubmission(String mail, Map<String, Object> studentModel) {
+        String subject = "New Application Notification";
+        String templateName = "email_generic";
+        sendHtmlMail(mail, subject, templateName, studentModel);
+    }
+
 }
 

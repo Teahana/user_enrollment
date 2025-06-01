@@ -104,30 +104,24 @@ public class FormsService {
 
         graduationApplicationRepository.save(app);
 
-        // Send email to admin
-        emailService.sendHtmlMail(
-                "doiglas.m.habu@gmail.com",
-                "New Graduation Application Submitted",
-                "graduation-email", // your HTML template
-                Map.of(
-                        "fullName", student.getFirstName() + " " + student.getLastName(),
-                        "programme", programme.getName(),
-                        "studentId", student.getStudentId()
-                )
+        // === Notify Admin ===
+        Map<String, Object> adminModel = Map.of(
+                "fullName", student.getFirstName() + " " + student.getLastName(),
+                "programme", programme.getName(),
+                "studentId", student.getStudentId(),
+                "submittedAt", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
         );
+        emailService.notifyAdminNewApplication("doiglas.m.habu@gmail.com", adminModel);
 
-        // Send confirmation to student
-        emailService.sendHtmlMail(
-                "22john3na@gmail.com",
-                "Your Graduation Application Has Been Received",
-                "graduation-email", // reuse same template or create separate one
-                Map.of(
-                        "fullName", student.getFirstName() + " " + student.getLastName(),
-                        "programme", programme.getName(),
-                        "studentId", student.getStudentId()
-                )
+        // === Notify Student ===
+        Map<String, Object> studentModel = Map.of(
+                "fullName", student.getFirstName() + " " + student.getLastName(),
+                "programme", programme.getName(),
+                "studentId", student.getStudentId()
         );
+        emailService.notifyStudentApplicationSubmission("22johnc3na@gmail.com", studentModel);
     }
+
 
     public GraduationApplication getGraduationApplication(String email) {
         Student student = studentRepo.findByEmail(email)
@@ -164,18 +158,10 @@ public class FormsService {
     }
 
     public void submitApplication(String email, CompassionateFormDTO form) {
-        System.out.println("[DEBUG] Starting compassionate form submission for: " + email);
-
         Student student = studentRepo.findByEmail(email)
-                .orElseThrow(() -> {
-                    System.out.println("[ERROR] Student not found with email: " + email);
-                    return new RuntimeException("Student not found");
-                });
-
-        System.out.println("[DEBUG] Student found: " + student.getFirstName() + " " + student.getLastName());
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
         if (!compassionateRepo.findByStudent_StudentId(student.getStudentId()).isEmpty()) {
-            System.out.println("[ERROR] Compassionate application already exists for studentId: " + student.getStudentId());
             throw new RuntimeException("You have already submitted a compassionate application.");
         }
 
@@ -188,8 +174,6 @@ public class FormsService {
         app.setStudentSignature(form.getStudentSignature());
         app.setSubmissionDate(form.getSubmissionDate());
 
-        System.out.println("[DEBUG] Form fields set. Now converting exam entries...");
-
         List<CompassionateApplication.MissedExamEntry> examEntries = new ArrayList<>();
         for (int i = 0; i < form.getCourseCode().size(); i++) {
             CompassionateApplication.MissedExamEntry entry = new CompassionateApplication.MissedExamEntry();
@@ -201,45 +185,26 @@ public class FormsService {
         app.setExamEntries(examEntries);
         app.setStatus(ApplicationStatus.PENDING);
 
-        System.out.println("[DEBUG] Saving compassionate application to database...");
         compassionateRepo.save(app);
-        System.out.println("[DEBUG] Application saved successfully!");
 
-        // Dynamic subject line
-        String subject = "New " + joinedType + " Application Submitted";
-        String studentSubject = "Your " + joinedType + " Application Has Been Received";
+        Map<String, Object> adminModel = Map.of(
+                "fullName", student.getFirstName() + " " + student.getLastName(),
+                "studentId", student.getStudentId(),
+                "applicationType", joinedType,
+                "submittedAt", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
+        );
+
+        Map<String, Object> studentModel = Map.of(
+                "fullName", student.getFirstName() + " " + student.getLastName(),
+                "studentId", student.getStudentId()
+        );
 
         try {
-            System.out.println("[DEBUG] Sending email to Admin...");
-            emailService.sendHtmlMail(
-                    "adriandougjonajitino@gmail.com",
-                    subject,
-                    "email_admin",
-                    Map.of(
-                            "fullName", student.getFirstName() + " " + student.getLastName(),
-                            "studentId", student.getStudentId(),
-                            "applicationType", joinedType,
-                            "submittedAt", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
-                    )
-            );
-            System.out.println("[DEBUG] Admin notified.");
-
-            System.out.println("[DEBUG] Sending email to Student...");
-            emailService.sendHtmlMail(
-                    student.getEmail(), // or use a test email here
-                    studentSubject,
-                    "email",
-                    Map.of(
-                            "fullName", student.getFirstName() + " " + student.getLastName(),
-                            "studentId", student.getStudentId()
-                    )
-            );
-            System.out.println("[DEBUG] Student notified.");
+            emailService.notifyAdminNewApplication("doiglas.m.habu@gmail.com", adminModel);
+            emailService.notifyStudentApplicationSubmission("22johnc3na@gmail.com", studentModel);
         } catch (Exception e) {
             System.out.println("[ERROR] Email sending failed: " + e.getMessage());
         }
-
-        System.out.println("[DEBUG] Submission process complete.");
     }
 
 
@@ -283,6 +248,25 @@ public class FormsService {
                     app.getStatus()
             ));
         }
+    }
+
+    public void deleteGraduationApplication(Long applicationId) {
+        GraduationApplication app = graduationApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Graduation application not found"));
+        graduationApplicationRepository.delete(app);
+    }
+    public void deleteCompassionateApplication(Long applicationId) {
+        CompassionateApplication app = compassionateRepo.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Compassionate application not found"));
+        compassionateRepo.delete(app);
+    }
+
+    public boolean hasGraduationApp(String studentId) {
+        return graduationApplicationRepository.findByStudent_StudentId(studentId).isPresent();
+    }
+
+    public boolean hasCompassionateApp(String studentId) {
+        return !compassionateRepo.findByStudent_StudentId(studentId).isEmpty();
     }
 
 }

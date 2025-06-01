@@ -97,15 +97,15 @@ public class DataInitializer implements CommandLineRunner {
 
             int exitCode = process.waitFor();
             if (exitCode == 0) {
-                System.out.println("✅ course_prerequisite restored successfully from backup!");
+                System.out.println("course_prerequisite restored successfully from backup!");
             } else {
-                System.err.println("❌ Error restoring course_prerequisite. Exit code: " + exitCode);
+                System.err.println("Error restoring course_prerequisite. Exit code: " + exitCode);
             }
 
             Files.deleteIfExists(tempFile); // Cleanup
 
         } catch (Exception e) {
-            System.err.println("❌ Exception during course_prerequisite restore: " + e.getMessage());
+            System.err.println("Exception during course_prerequisite restore: " + e.getMessage());
             e.printStackTrace();
         }
     }

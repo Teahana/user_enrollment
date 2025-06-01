@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>All Applications - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/styles/navbar.css}">
+</head>
+<body class="p-4">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<div class="container">
+
+  <h2 class="mb-4">Graduation Applications</h2>
+
+  <div class="mb-3 d-flex justify-content-between">
+    <div>
+      <button class="btn btn-outline-primary me-2" onclick="filter('grad', 'ALL')">All</button>
+      <button class="btn btn-outline-warning me-2" onclick="filter('grad', 'PENDING')">Pending</button>
+      <button class="btn btn-outline-success me-2" onclick="filter('grad', 'APPROVED')">Approved</button>
+      <button class="btn btn-outline-danger me-2" onclick="filter('grad', 'REJECTED')">Rejected</button>
+    </div>
+    <a class="btn btn-success" th:href="@{/admin/applications/export/graduation}">Download CSV</a>
+  </div>
+
+  <table class="table table-bordered table-striped" id="gradTable">
+    <thead class="table-dark">
+    <tr>
+      <th>Student ID</th>
+      <th>Name</th>
+      <th>Programme</th>
+      <th>Submitted At</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="app : ${graduationApps}" th:attr="data-status=${app.status}">
+      <td th:text="${app.student.studentId}">SID</td>
+      <td th:text="${app.student.firstName + ' ' + app.student.lastName}">Name</td>
+      <td th:text="${app.programme.name}">Programme</td>
+      <td th:text="${#temporals.format(app.submittedAt, 'dd MMM yyyy HH:mm')}">Date</td>
+      <td th:text="${app.status}">Status</td>
+      <td>
+        <div th:if="${app.status.name() == 'PENDING'}">
+          <form th:action="@{/admin/updateApplicationStatus}" method="post" class="d-flex gap-2">
+            <input type="hidden" name="applicationId" th:value="${app.id}" />
+            <select name="status" class="form-select form-select-sm w-auto">
+              <option value="APPROVED">Approve</option>
+              <option value="REJECTED">Reject</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+  <hr class="my-5">
+
+  <h2 class="mb-4">Compassionate / Special Exam Applications</h2>
+
+  <div class="mb-3 d-flex justify-content-between">
+    <div>
+      <button class="btn btn-outline-primary me-2" onclick="filter('comp', 'ALL')">All</button>
+      <button class="btn btn-outline-warning me-2" onclick="filter('comp', 'PENDING')">Pending</button>
+      <button class="btn btn-outline-success me-2" onclick="filter('comp', 'APPROVED')">Approved</button>
+      <button class="btn btn-outline-danger me-2" onclick="filter('comp', 'REJECTED')">Rejected</button>
+    </div>
+    <a class="btn btn-success" th:href="@{/admin/applications/export/compassionate}">Download CSV</a>
+  </div>
+
+  <table class="table table-bordered table-striped" id="compTable">
+    <thead class="table-dark">
+    <tr>
+      <th>Student ID</th>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Reason</th>
+      <th>Submitted At</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="app : ${compassionateApps}" th:attr="data-status=${app.status}">
+      <td th:text="${app.student.studentId}">SID</td>
+      <td th:text="${app.student.firstName + ' ' + app.student.lastName}">Name</td>
+      <td th:text="${app.applicationType}">Type</td>
+      <td th:text="${app.reason}">Reason</td>
+      <td th:text="${#temporals.format(app.submissionDate, 'dd MMM yyyy')}">Date</td>
+      <td th:text="${app.status}">Status</td>
+      <td>
+        <div th:if="${app.status.name() == 'PENDING'}">
+          <form th:action="@{/admin/updateOtherApplicationStatus}" method="post" class="d-flex gap-2">
+            <input type="hidden" name="applicationId" th:value="${app.id}" />
+            <select name="status" class="form-select form-select-sm w-auto">
+              <option value="APPROVED">Approve</option>
+              <option value="REJECTED">Reject</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function filter(type, status) {
+    const tableId = type === 'grad' ? '#gradTable' : '#compTable';
+    const rows = document.querySelectorAll(`${tableId} tbody tr`);
+    rows.forEach(row => {
+      const rowStatus = row.getAttribute('data-status');
+      row.style.display = (status === 'ALL' || rowStatus === status) ? '' : 'none';
+    });
+  }
+</script>
+
+</body>
+</html>

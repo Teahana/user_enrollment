@@ -4,7 +4,8 @@ import com.itextpdf.text.DocumentException;
 import group7.enrollmentSystem.config.CustomExceptions;
 import group7.enrollmentSystem.dtos.appDtos.EnrollCourseRequest;
 import group7.enrollmentSystem.dtos.classDtos.*;
-import group7.enrollmentSystem.enums.OnHoldTypes;
+import group7.enrollmentSystem.dtos.formDtos.CompassionateFormDTO;
+import group7.enrollmentSystem.dtos.formDtos.GraduationFormDTO;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.*;
@@ -39,6 +40,8 @@ public class StudentController {
     private final StudentService studentService;
     private final StudentProgrammeAuditService auditService;
     private final StudentHoldService studentHoldService;
+    private final GraduationApplicationRepo applicationRepo;
+    private final FormsService formsService;
 
     @GetMapping("/enrollment")
     public String enrollment(Model model, Principal principal) {
@@ -218,4 +221,110 @@ public class StudentController {
 
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
+    @GetMapping("/applicationHistory")
+    public String viewApplicationHistory(Model model, Authentication auth) {
+        String email = auth.getName();
+
+        // Get Graduation application (only one allowed)
+        GraduationApplication gradApp = formsService.getGraduationApplication(email);
+        model.addAttribute("graduationApp", gradApp);
+
+        // Get Compassionate/Special/Aegrotat applications (can be multiple)
+        List<CompassionateApplication> compassionateApps = formsService.getCompassionateApplications(email);
+        model.addAttribute("compassionateApps", compassionateApps);
+
+        return "application_history"; // Adjust view name if needed
+    }
+
+
+
+    @GetMapping("/graduationApplication")
+    public String graduationApplicationForm(Model model, Authentication authentication) {
+        boolean canAccess = checkAccess(authentication,
+                StudentHoldService.HoldRestrictionType.FORMS_APPLICATION);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
+        }
+
+        String email = authentication.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
+
+        Programme programme = studentProgrammeService.getStudentProgramme(student);
+        if (programme == null) {
+            throw new RuntimeException("No current programme found for student.");
+        }
+
+        GraduationFormDTO form = new GraduationFormDTO();
+        form.setProgramme(programme.getProgrammeCode());
+
+        model.addAttribute("student", student);
+        model.addAttribute("programme", programme);
+        model.addAttribute("graduationForm", form);
+
+        return "forms/graduationForm";
+    }
+
+
+    @PostMapping("/graduation_submit")
+    public String submitGraduationForm(@ModelAttribute GraduationFormDTO form,
+                                       Authentication authentication,
+                                       Model model) {
+        String email = authentication.getName();
+        try {
+            formsService.submitGraduationApplication(email, form);
+            model.addAttribute("successMessage", "Application submitted successfully.");
+        } catch (RuntimeException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            return "forms/graduationForm";
+        }
+
+        return "redirect:/student/applicationHistory";
+    }
+
+
+    @GetMapping("/compassionateApplication")
+    public String compassionateApplicationForm(Model model, Authentication authentication) {
+        boolean canAccess = checkAccess(authentication,
+                StudentHoldService.HoldRestrictionType.FORMS_APPLICATION);
+
+        model.addAttribute("pageOpen", canAccess);
+        if (!canAccess) {
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+            model.addAttribute("restrictionType", "HOLD_RESTRICTION");
+            model.addAttribute("message", holdStatus.getHoldMessage());
+            return "accessDenied";
+        }
+
+        String email = authentication.getName();
+        Student student = studentRepo.findByEmail(email)
+                .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
+
+        // Attach student info and empty form object
+        model.addAttribute("student", student);
+        model.addAttribute("form", new CompassionateFormDTO());
+
+        return "forms/compassionateForm";
+    }
+    @PostMapping("/compassionate/submit")
+    public String submitCompassionateForm(@ModelAttribute("form") CompassionateFormDTO form,
+                                          Authentication authentication,
+                                          RedirectAttributes redirectAttributes) {
+        String email = authentication.getName();
+        try {
+            formsService.submitApplication(email, form);
+            redirectAttributes.addFlashAttribute("successMessage", "Your application was submitted successfully.");
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/student/compassionateApplication";
+        }
+
+        return "redirect:/student/applicationHistory";
+    }
+
 }

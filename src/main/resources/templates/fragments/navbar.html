@@ -73,17 +73,6 @@
                             Enrollment
                         </a>
                     </li>
-                    <li class="nav-item dropdown" sec:authorize="hasRole('ROLE_STUDENT')">
-                        <a class="nav-link dropdown-toggle custom-link" href="#" id="studentDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false"
-                           th:classappend="${page == 'StudentEnrollment' ? 'active' : ''}">
-                            Application Forms
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="studentDropdown">
-                            <li><a class="dropdown-item" href="student/graduationApplication">Graduation Form</a></li>
-                            <li><a class="dropdown-item" href="/student/compassionateApplication">Compassionate Form</a></li>
-                        </ul>
-                    </li>
                     <li class="nav-item" sec:authorize="hasRole('ROLE_STUDENT')">
                         <a class="nav-link custom-link" href="/student/applicationHistory" th:classappend="${page == 'StudentEnrollment' ? 'active' : ''}">
                             My Applications

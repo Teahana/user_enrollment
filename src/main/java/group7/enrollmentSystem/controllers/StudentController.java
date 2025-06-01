@@ -233,25 +233,37 @@ public class StudentController {
         List<CompassionateApplication> compassionateApps = formsService.getCompassionateApplications(email);
         model.addAttribute("compassionateApps", compassionateApps);
 
-        return "application_history"; // Adjust view name if needed
+        boolean hasGraduationApp = gradApp != null;
+        boolean hasCompassionateApp = compassionateApps != null && !compassionateApps.isEmpty();
+
+        model.addAttribute("hasGraduationApp", hasGraduationApp);
+        model.addAttribute("hasCompassionateApp", hasCompassionateApp);
+
+        return "application"; // maps to application.html
     }
 
 
 
-    @GetMapping("/graduationApplication")
-    public String graduationApplicationForm(Model model, Authentication authentication) {
-        boolean canAccess = checkAccess(authentication,
-                StudentHoldService.HoldRestrictionType.FORMS_APPLICATION);
 
+    @GetMapping("/graduationApplication")
+    public String graduationApplicationForm(Model model, Authentication authentication, RedirectAttributes redirectAttributes) {
+        String email = authentication.getName();
+
+        if (formsService.hasGraduationApp(email)) {
+            redirectAttributes.addFlashAttribute("warning", "You have already submitted a graduation application.");
+            return "redirect:/student/applicationHistory";
+        }
+
+        boolean canAccess = checkAccess(authentication, StudentHoldService.HoldRestrictionType.FORMS_APPLICATION);
         model.addAttribute("pageOpen", canAccess);
+
         if (!canAccess) {
-            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(email);
             model.addAttribute("restrictionType", "HOLD_RESTRICTION");
             model.addAttribute("message", holdStatus.getHoldMessage());
             return "accessDenied";
         }
 
-        String email = authentication.getName();
         Student student = studentRepo.findByEmail(email)
                 .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
 
@@ -269,6 +281,7 @@ public class StudentController {
 
         return "forms/graduationForm";
     }
+
 
 
     @PostMapping("/graduation_submit")
@@ -289,28 +302,33 @@ public class StudentController {
 
 
     @GetMapping("/compassionateApplication")
-    public String compassionateApplicationForm(Model model, Authentication authentication) {
-        boolean canAccess = checkAccess(authentication,
-                StudentHoldService.HoldRestrictionType.FORMS_APPLICATION);
+    public String compassionateApplicationForm(Model model, Principal principal, RedirectAttributes redirectAttributes) {
+        String email = principal.getName();
 
+        if (formsService.hasCompassionateApp(email)) {
+            redirectAttributes.addFlashAttribute("warning", "You have already submitted a compassionate/special exam application.");
+            return "redirect:/student/applicationHistory";
+        }
+
+        boolean canAccess = checkAccess(principal, StudentHoldService.HoldRestrictionType.FORMS_APPLICATION);
         model.addAttribute("pageOpen", canAccess);
+
         if (!canAccess) {
-            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(authentication.getName());
+            StudentHoldViewDto holdStatus = studentHoldService.getStudentHoldDetails(email);
             model.addAttribute("restrictionType", "HOLD_RESTRICTION");
             model.addAttribute("message", holdStatus.getHoldMessage());
             return "accessDenied";
         }
 
-        String email = authentication.getName();
         Student student = studentRepo.findByEmail(email)
                 .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
 
-        // Attach student info and empty form object
         model.addAttribute("student", student);
         model.addAttribute("form", new CompassionateFormDTO());
 
         return "forms/compassionateForm";
     }
+
     @PostMapping("/compassionate/submit")
     public String submitCompassionateForm(@ModelAttribute("form") CompassionateFormDTO form,
                                           Authentication authentication,

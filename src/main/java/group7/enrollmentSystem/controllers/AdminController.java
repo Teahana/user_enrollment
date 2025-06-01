@@ -278,6 +278,26 @@ public class AdminController {
         formsService.updateOtherApplicationStatus(applicationId, status);
         return "redirect:/admin/applications";
     }
+    @PostMapping("/deleteGraduationApplication")
+    public String deleteGraduationApplication(@RequestParam Long applicationId, RedirectAttributes redirectAttributes) {
+        try {
+            formsService.deleteGraduationApplication(applicationId);
+            redirectAttributes.addFlashAttribute("message", "Application deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete application: " + e.getMessage());
+        }
+        return "redirect:/admin/applications";
+    }
+    @PostMapping("/deleteCompassionateApplication")
+    public String deleteCompassionateApplication(@RequestParam Long applicationId, RedirectAttributes redirectAttributes) {
+        try {
+            formsService.deleteCompassionateApplication(applicationId);
+            redirectAttributes.addFlashAttribute("message", "Application deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete application: " + e.getMessage());
+        }
+        return "redirect:/admin/applications";
+    }
     @GetMapping("/applications/export/graduation")
     public void exportGraduationCsv(HttpServletResponse response) throws IOException {
         response.setContentType("text/csv");

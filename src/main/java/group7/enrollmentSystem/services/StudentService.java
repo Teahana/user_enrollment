@@ -587,6 +587,19 @@ public class StudentService {
         dto.setCompletedCourses(rows);
         dto.setGpa(gpa);
 
+        // Separate rows
+        List<CoursesTranscriptDTO.CourseTranscriptRow> passed = rows.stream()
+                .filter(r -> !r.getGrade().equalsIgnoreCase("F") && !r.getGrade().equalsIgnoreCase("E"))
+                .toList();
+
+        List<CoursesTranscriptDTO.CourseTranscriptRow> failed = rows.stream()
+                .filter(r -> r.getGrade().equalsIgnoreCase("F") || r.getGrade().equalsIgnoreCase("E"))
+                .toList();
+
+        dto.setCompletedCourses(rows); // All completed
+        dto.setPassedCourses(passed);  // Subset: passed
+        dto.setFailedCourses(failed);  // Subset: failed
+
         return coursesTranscriptPdfGeneratorService.generateTranscriptPdf(dto);
     }
 

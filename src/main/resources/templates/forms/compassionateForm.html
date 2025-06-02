@@ -10,15 +10,12 @@
       color: red;
       margin-left: 4px;
     }
-
     input:invalid, textarea:invalid, select:invalid {
       border: 2px solid red;
     }
-
     .scroll-highlight {
       animation: blink 1s ease-in-out 3;
     }
-
     @keyframes blink {
       0%, 100% { background-color: white; }
       50% { background-color: #ffe6e6; }
@@ -26,30 +23,35 @@
     .exam-group {
       margin-bottom: 1rem;
     }
-
+    .text-danger {
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
 <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
   <p th:text="${errorMessage}"></p>
 </div>
-
 <div th:if="${successMessage}" class="alert alert-success" role="alert">
   <p th:text="${successMessage}"></p>
 </div>
-<div class="form-wrapper">
-  <div class="invalid-feedback">Please enter a valid date</div>
 
+<div class="form-wrapper">
   <!-- USP Banner Header -->
   <div style="background-color: white; padding: 30px 0 10px; text-align: center; border-bottom: 2px solid #ccc;">
     <img src="/images/usp_logo.png" alt="USP Logo" style="max-width: 280px; height: auto;">
   </div>
-
+  <div style="text-align: center; margin: 15px;">
+    <button type="button" id="toggleValidationBtn" class="btn btn-warning">
+      Disable Frontend Validation
+    </button>
+  </div>
   <h1>Application for Compassionate / Aegrotat Pass / Special Exam</h1>
 
   <form th:action="@{/student/compassionate/submit}" method="post" enctype="multipart/form-data" th:object="${form}" onsubmit="return beforeSubmit();">
 
-  <fieldset>
+    <fieldset>
       <legend>What are you applying for?</legend>
       <label><input type="radio" name="applicationType" value="Compassionate Pass"> Compassionate Pass</label>
       <label><input type="radio" name="applicationType" value="Aegrotat Pass"> Aegrotat Pass</label>
@@ -57,42 +59,60 @@
     </fieldset>
 
     <label for="reason">Reason for application: <span class="required">*</span></label>
-    <textarea id="reason" name="reason" required th:text="*{reason}"></textarea>
+    <textarea id="reason" name="reason" required th:field="*{reason}"></textarea>
+    <div class="text-danger" th:if="${#fields.hasErrors('reason')}" th:errors="*{reason}"></div>
 
     <label for="documents">Attach supporting documents:</label>
-    <input type="file" id="documents" name="documents" multiple
-           accept=".pdf, .doc, .docx, image/*">
+    <input type="file" id="documents" name="documents" multiple accept=".pdf, .doc, .docx, image/*">
 
     <fieldset>
       <legend>SECTION A: Personal Details</legend>
 
       <label for="lastName">Last Name:</label>
       <input type="text" id="lastName" name="lastName" th:value="${student.lastName}" readonly>
+      <input type="hidden" th:field="*{lastName}">
+      <div class="text-danger" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+
 
       <label for="firstName">First Name:</label>
       <input type="text" id="firstName" name="firstName" th:value="${student.firstName}" readonly>
+      <input type="hidden" th:field="*{firstName}">
+      <div class="text-danger" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+
 
       <label for="dob">Date of Birth: <span class="required">*</span></label>
-      <input type="date" id="dob" name="dob" th:value="*{dateOfBirth}" required>
-      <span id="dobError" class="error-message"></span>
+      <input type="date" id="dob" name="dateOfBirth" th:field="*{dateOfBirth}" required>
+      <div class="text-danger" th:if="${#fields.hasErrors('dateOfBirth')}" th:errors="*{dateOfBirth}"></div>
 
       <label for="studentId">Student ID Number:</label>
       <input type="text" id="studentId" name="studentId" th:value="${student.studentId}" readonly>
+      <input type="hidden" th:field="*{studentId}">
+      <div class="text-danger" th:if="${#fields.hasErrors('studentId')}" th:errors="*{studentId}"></div>
+
 
       <label for="email">Email:</label>
       <input type="email" id="email" name="email" th:value="${student.email}" readonly>
+      <input type="hidden" th:field="*{email}">
+      <div class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+
 
       <label for="telephone">Telephone:</label>
-      <input type="tel" id="telephone" name="telephone" th:value="${student.phoneNumber}" readonly>
+      <input type="tel" id="telephone" name="telephone" th:value="${student.phoneNumber}" required th:field="*{telephone}">
+      <div class="text-danger" th:if="${#fields.hasErrors('telephone')}" th:errors="*{telephone}"></div>
+
 
       <label for="address">Address:</label>
-      <textarea id="address" name="address" rows="3" th:text="${student.address}"></textarea>
+      <textarea id="address" name="address" rows="3" required th:field="*{address}"></textarea>
+      <div class="text-danger" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
+
 
       <label for="campus">Campus: <span class="required">*</span></label>
-      <input type="text" id="campus" name="campus" th:value="*{campus}" required>
+      <input type="text" id="campus" name="campus" th:field="*{campus}" required>
+      <div class="text-danger" th:if="${#fields.hasErrors('campus')}" th:errors="*{campus}"></div>
 
       <label for="semesterYear">Semester / Year: <span class="required">*</span></label>
-      <input type="text" id="semesterYear" name="semesterYear" th:value="*{semesterYear}" required>
+      <input type="text" id="semesterYear" name="semesterYear" th:field="*{semesterYear}" required>
+      <div class="text-danger" th:if="${#fields.hasErrors('semesterYear')}" th:errors="*{semesterYear}"></div>
     </fieldset>
 
     <fieldset>
@@ -100,13 +120,16 @@
       <div id="examEntries">
         <div class="exam-group">
           <label>Course Code: <span class="required">*</span>
-            <input type="text" name="courseCode" th:value="*{courseCode}" required>
+            <input type="text" name="courseCode" th:field="*{courseCode}" required>
+            <div class="text-danger" th:if="${#fields.hasErrors('courseCode')}" th:errors="*{courseCode}"></div>
           </label>
           <label>Exam Date: <span class="required">*</span>
-            <input type="date" name="examDate" th:value="*{examDate}" required>
+            <input type="date" name="examDate" th:field="*{examDate}" required>
+            <div class="text-danger" th:if="${#fields.hasErrors('examDate')}" th:errors="*{examDate}"></div>
           </label>
           <label>Exam Time: <span class="required">*</span>
-            <input type="time" name="examTime" th:value="*{examTime}" required>
+            <input type="time" name="examTime" th:field="*{examTime}" required>
+            <div class="text-danger" th:if="${#fields.hasErrors('examTime')}" th:errors="*{examTime}"></div>
           </label>
         </div>
       </div>
@@ -126,20 +149,16 @@
         <br>
         <button type="button" onclick="clearSignature()">Clear Signature</button>
 
-
         <label for="submissionDate">Date: <span class="required">*</span></label>
-        <input type="date" id="submissionDate" name="submissionDate" required th:value="*{submissionDate}">
-        <span id="submissionDateError" class="error-message"></span>
-
+        <input type="date" id="submissionDate" name="submissionDate" th:field="*{submissionDate}" required>
+        <div class="text-danger" th:if="${#fields.hasErrors('submissionDate')}" th:errors="*{submissionDate}"></div>
       </div>
     </fieldset>
 
     <button id="submitButton" type="submit">Submit Application</button>
-
   </form>
 </div>
 
 <script th:src="@{/scripts/compassionForm.js}"></script>
-
 </body>
 </html>

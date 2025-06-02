@@ -11,6 +11,7 @@ import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
 import group7.enrollmentSystem.services.*;
 import group7.enrollmentSystem.helpers.InvoicePdfGeneratorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -346,19 +348,31 @@ public class StudentController {
     }
 
     @PostMapping("/compassionate/submit")
-    public String submitCompassionateForm(@ModelAttribute("form") CompassionateFormDTO form,
+    public String submitCompassionateForm(@Valid @ModelAttribute("form") CompassionateFormDTO form,
+                                          BindingResult bindingResult,
+                                          Model model,
                                           Authentication authentication,
                                           RedirectAttributes redirectAttributes) {
         String email = authentication.getName();
+        System.out.println("Form binding errors: " + bindingResult);
+        System.out.println("Reason field: " + form.getReason());
+        if (bindingResult.hasErrors()) {
+            // Re-attach student details for redisplay
+            Student student = studentRepo.findByEmail(email)
+                    .orElseThrow(() -> new CustomExceptions.StudentNotFoundException(email));
+            model.addAttribute("student", student);
+            return "forms/compassionateForm";
+        }
+
         try {
             System.out.println("form = " + form);
             formsService.submitApplication(email, form);
             redirectAttributes.addFlashAttribute("successMessage", "Your application was submitted successfully.");
+            return "redirect:/student/applicationHistory";
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/student/compassionateApplication";
         }
-
-        return "redirect:/student/applicationHistory";
     }
+
 }

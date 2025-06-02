@@ -1,4 +1,45 @@
-    const canvas = document.getElementById("signatureCanvas");
+let disableFrontendValidation = false; // starts with validation ON
+
+function applyFrontendValidationState() {
+    const inputs = document.querySelectorAll("input, select, textarea");
+    inputs.forEach(input => {
+        if (disableFrontendValidation) {
+            input.removeAttribute("required");
+            input.classList.remove("was-validated");
+        } else {
+            if (input.dataset.originalRequired === "true") {
+                input.setAttribute("required", "required");
+            }
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Backup original required attributes
+    document.querySelectorAll("input[required], select[required], textarea[required]").forEach(el => {
+        el.dataset.originalRequired = "true";
+    });
+
+    const toggleBtn = document.getElementById("toggleValidationBtn");
+    if (toggleBtn) {
+        toggleBtn.addEventListener("click", () => {
+            disableFrontendValidation = !disableFrontendValidation;
+            applyFrontendValidationState();
+            toggleBtn.textContent = disableFrontendValidation
+                ? "Enable Frontend Validation"
+                : "Disable Frontend Validation";
+            alert("Frontend validation is now " + (disableFrontendValidation ? "OFF" : "ON"));
+        });
+
+        // Set initial button label on load
+        toggleBtn.textContent = disableFrontendValidation
+            ? "Enable Frontend Validation"
+            : "Disable Frontend Validation";
+    }
+});
+
+
+const canvas = document.getElementById("signatureCanvas");
     const ctx = canvas.getContext("2d");
     let drawing = false;
 
@@ -39,32 +80,35 @@
     return canvas.toDataURL() === blank.toDataURL();
 }
 
-    function beforeSubmit() {
+function beforeSubmit() {
+    document.getElementById("signatureImage").value = canvas.toDataURL();
+
+    if (disableFrontendValidation) return true;
+
     const dob = document.getElementById("dob").value;
     const submissionDate = document.getElementById("submissionDate").value;
     const today = new Date().toISOString().split("T")[0];
 
     if (dob > today) {
-    alert("Date of Birth cannot be in the future.");
-    return false;
-}
+        alert("Date of Birth cannot be in the future.");
+        return false;
+    }
 
     if (submissionDate < today) {
-    alert("Submission date cannot be in the past.");
-    return false;
-}
+        alert("Submission date cannot be in the past.");
+        return false;
+    }
 
     if (isCanvasBlank(canvas)) {
-    alert("Please sign the application before submitting.");
-    return false;
+        alert("Please sign the application before submitting.");
+        return false;
+    }
+
+    return true;
 }
 
-    // Set base64 signature to hidden field
-    document.getElementById("signatureImage").value = canvas.toDataURL();
 
-    return true; // allow form submission
-}
-    function addExam() {
+function addExam() {
         const container = document.getElementById("examEntries");
         const original = container.querySelector(".exam-group");
         if (!original) return;

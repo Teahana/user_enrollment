@@ -1,9 +1,12 @@
 package group7.enrollmentSystem;
 
 import group7.enrollmentSystem.dtos.formDtos.CompassionateFormDTO;
+import group7.enrollmentSystem.helpers.FileUploads;
 import group7.enrollmentSystem.models.CompassionateApplication;
 import group7.enrollmentSystem.models.Student;
 import group7.enrollmentSystem.repos.CompassionateApplicationRepo;
+import group7.enrollmentSystem.repos.GraduationApplicationRepo;
+import group7.enrollmentSystem.repos.ProgrammeRepo;
 import group7.enrollmentSystem.repos.StudentRepo;
 import group7.enrollmentSystem.helpers.EmailService;
 import group7.enrollmentSystem.services.FormsService;
@@ -27,16 +30,22 @@ public class OtherApplicationFormTest {
 
     private StudentRepo studentRepo;
     private CompassionateApplicationRepo compassionateRepo;
+    private ProgrammeRepo programmeRepo;
+    private GraduationApplicationRepo graduationApplicationRepo;
     private EmailService emailService;
     private FormsService formsService;
+    private FileUploads fileUploads;
 
     @BeforeEach
     void setUp() {
         studentRepo = mock(StudentRepo.class);
         compassionateRepo = mock(CompassionateApplicationRepo.class);
+        programmeRepo = mock(ProgrammeRepo.class);
+        graduationApplicationRepo = mock(GraduationApplicationRepo.class);
         emailService = mock(EmailService.class);
+        fileUploads = mock(FileUploads.class);
 
-        formsService = new FormsService(studentRepo, null, null, compassionateRepo, emailService);
+        formsService = new FormsService(studentRepo, programmeRepo, graduationApplicationRepo, compassionateRepo, emailService, fileUploads);
     }
 
     /**
@@ -65,8 +74,12 @@ public class OtherApplicationFormTest {
         assertDoesNotThrow(() -> formsService.submitApplication("comp@test.com", form));
 
         verify(compassionateRepo, times(1)).save(any(CompassionateApplication.class));
-        verify(emailService, times(1)).notifyAdminNewApplication(eq("doiglas.m.habu@gmail.com"), any(Map.class));
-        verify(emailService, times(1)).notifyStudentApplicationSubmission(eq("22johnc3na@gmail.com"), any(Map.class));
+        verify(emailService, times(1)).notifyAdminNewApplication(
+                eq("adriandougjonajitino@gmail.com"), any(Map.class));
+
+        verify(emailService, times(1)).notifyStudentApplicationSubmission(
+                eq(student.getEmail()), any(Map.class));
+
     }
 
     /**

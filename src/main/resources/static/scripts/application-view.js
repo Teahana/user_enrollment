@@ -13,8 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 files.forEach(file => {
                     const li = document.createElement("li");
                     li.innerHTML = `
-            <strong>${file.name}</strong> (${file.mimeType}) 
-            <a href="/api/admin/getFile/${encodeURIComponent(file.name)}" class="btn btn-sm btn-outline-primary ms-2">Download</a>`;
+            <strong>${file.name}</strong> (${file.mimeType})`;
                     list.appendChild(li);
                 });
             })

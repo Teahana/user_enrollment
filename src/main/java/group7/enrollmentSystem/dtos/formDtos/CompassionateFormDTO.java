@@ -41,7 +41,7 @@ public class CompassionateFormDTO {
     private String studentId;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
+    //@Email(message = "Email must be valid")
     private String email;
 
     @NotBlank(message = "Phone number is required")

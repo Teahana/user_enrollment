@@ -192,7 +192,7 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        String adminEmail = "admin@gmail.com";
+        String adminEmail = "adriandougjonajitino@gmail.com";
 
         // Initialize hold for s11212749 (UNPAID_FEES)
         studentRepo.findByStudentId("s11212749").ifPresent(student -> {

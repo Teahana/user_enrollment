@@ -56,8 +56,8 @@ public class FormsService {
         graduationApplicationRepository.save(app);
 
         // Send email to admin
-        emailService.sendHtmlMail(
-                "admin@gmail.com",
+        emailService.sendHtmlMailAsync(
+                "adriandougjonajitino@gmail.com",
                 "New Graduation Application Submitted",
                 "graduation-email",
                 Map.of(
@@ -68,7 +68,7 @@ public class FormsService {
         );
 
         // Send confirmation to student
-        emailService.sendHtmlMail(
+        emailService.sendHtmlMailAsync(
                 student.getEmail(),
                 "Your Graduation Application Confirmation",
                 "graduation-email",

@@ -41,6 +41,10 @@ public class EmailService {
         }
     }
     @Async
+    public void sendHtmlMailAsync(String to, String subject, String templateName, Map<String, Object> model) {
+        sendHtmlMail(to, subject, templateName, model);
+    }
+    @Async
     public void notifyStudentGradeChangeRequest(String studentEmail, Map<String, Object> studentModel) {
         String subject = "Grade Change Request Notification";
         String templateName = "notification";

@@ -3,142 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <title>View Compassionate Application</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" th:href="@{/styles/navbar.css}">
-  <style>
-    .label { font-weight: bold; }
-    .section { margin-top: 2rem; }
-  </style>
+  <link rel="stylesheet" th:href="@{/styles/main.css}">
 </head>
 <body>
 <div th:replace="~{fragments/navbar :: navbar}"></div>
-<div class="container mt-4">
-  <h2>Compassionate Application Review</h2>
+<div class="container">
+  <div class="card animated-card p-4">
+    <h2 class="section-heading">Compassionate Application Review</h2>
 
-  <div class="section">
-    <div><span class="label">Application Type:</span> <span th:text="${app.applicationType}"></span></div>
-    <div><span class="label">Reason:</span> <pre th:text="${app.reason}"></pre></div>
-    <div><span class="label">Status:</span> <span th:text="${app.status}"></span></div>
-    <div><span class="label">Submission Date:</span> <span th:text="${app.submissionDate}"></span></div>
-  </div>
+    <div>
+      <p><strong>Application Type:</strong> <span th:text="${app.applicationType}"></span></p>
+      <p><strong>Reason:</strong></p>
+      <pre th:text="${app.reason}"></pre>
+      <p><strong>Status:</strong> <span th:text="${app.status}"></span></p>
+      <p><strong>Submission Date:</strong> <span th:text="${app.submissionDate}"></span></p>
+    </div>
 
-  <div class="section">
-    <h5>Missed Exams</h5>
-    <table class="table table-bordered">
-      <thead>
-      <tr>
-        <th>Course Code</th>
-        <th>Exam Date</th>
-        <th>Exam Time</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr th:each="entry : ${app.examEntries}">
-        <td th:text="${entry.courseCode}"></td>
-        <td th:text="${entry.examDate}"></td>
-        <td th:text="${entry.examTime}"></td>
-      </tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="mt-4">
+      <h5 class="section-heading">Missed Exams</h5>
+      <table class="table table-bordered">
+        <thead>
+        <tr>
+          <th>Course Code</th>
+          <th>Exam Date</th>
+          <th>Exam Time</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="entry : ${app.examEntries}">
+          <td th:text="${entry.courseCode}"></td>
+          <td th:text="${entry.examDate}"></td>
+          <td th:text="${entry.examTime}"></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
 
-  <div class="section">
-    <h5>Student Info</h5>
-    <p><strong>Name:</strong> <span th:text="${student.firstName + ' ' + student.lastName}"></span></p>
-    <p><strong>Student ID:</strong> <span th:text="${student.studentId}"></span></p>
-    <p><strong>Email:</strong> <span th:text="${student.email}"></span></p>
-    <p><strong>Phone:</strong> <span th:text="${student.phoneNumber}"></span></p>
-    <p><strong>Address:</strong> <span th:text="${student.address}"></span></p>
-    <p><strong>Campus:</strong> <span th:text="${app.campus}"></span></p>
-    <p><strong>Semester/Year:</strong> <span th:text="${app.semesterYear}"></span></p>
-  </div>
+    <div class="mt-4">
+      <h5 class="section-heading">Student Info</h5>
+      <p><strong>Name:</strong> <span th:text="${student.firstName + ' ' + student.lastName}"></span></p>
+      <p><strong>Student ID:</strong> <span th:text="${student.studentId}"></span></p>
+      <p><strong>Email:</strong> <span th:text="${student.email}"></span></p>
+      <p><strong>Phone:</strong> <span th:text="${student.phoneNumber}"></span></p>
+      <p><strong>Address:</strong> <span th:text="${student.address}"></span></p>
+      <p><strong>Campus:</strong> <span th:text="${app.campus}"></span></p>
+      <p><strong>Semester/Year:</strong> <span th:text="${app.semesterYear}"></span></p>
+    </div>
 
-  <script th:inline="javascript">
-    const filePaths = /*[[${app.documentPaths}]]*/ [];
+    <div class="mt-4">
+      <h5 class="section-heading">Attached Documents</h5>
+      <ul id="documentList"></ul>
+      <button id="downloadAllBtn" class="btn btn-primary mt-3">Download All</button>
+    </div>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const list = document.getElementById("documentList");
+    <div class="mt-4">
+      <h5 class="section-heading">Student Signature</h5>
+      <canvas id="signatureCanvas"></canvas>
+    </div>
 
-      // 🔍 Fetch and render file metadata via POST
-      fetch("/api/admin/fileMeta", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(filePaths)
-      })
-              .then(response => response.json())
-              .then(files => {
-                files.forEach(file => {
-                  const li = document.createElement("li");
-                  li.innerHTML = `
-          <strong>${file.name}</strong> (${file.mimeType})
-          <a href="/api/admin/getFile/${encodeURIComponent(file.name)}"
-        `;
-                  list.appendChild(li);
-                });
-              })
-              .catch(err => {
-                console.error("Failed to fetch file metadata", err);
-              });
+    <!-- Admin Actions -->
+    <div class="mt-4">
+      <h5 class="section-heading">Admin Actions</h5>
+      <div th:if="${app.status.name() == 'PENDING'}" class="mb-3 d-flex flex-wrap gap-3">
+        <form th:action="@{/admin/updateOtherApplicationStatus}" method="post" class="d-flex gap-2">
+          <input type="hidden" name="applicationId" th:value="${app.id}" />
+          <select name="status" class="form-select w-auto">
+            <option value="APPROVED">Approve</option>
+            <option value="REJECTED">Reject</option>
+          </select>
+          <button type="submit" class="btn btn-primary">Update Status</button>
+        </form>
+        <form th:action="@{/admin/deleteCompassionateApplication}" method="post">
+          <input type="hidden" name="applicationId" th:value="${app.id}" />
+          <button type="submit" class="btn btn-danger">Delete Application</button>
+        </form>
+      </div>
 
-      // 📥 Download All button (unchanged)
-      document.getElementById("downloadAllBtn").addEventListener("click", () => {
-        fetch("/api/admin/getFiles", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filePaths: filePaths })  // send as JSON map
-        })
-                .then(res => res.blob())
-                .then(blob => {
-                  const zipUrl = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = zipUrl;
-                  a.download = "supporting_documents.zip";
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(zipUrl);
-                })
-                .catch(err => {
-                  console.error("Download failed", err);
-                });
-      });
-    });
-    // Signature Rendering
-    const signaturePath = /*[[${app.studentSignatureFilePath}]]*/ "";
+      <div th:if="${app.status.name() != 'PENDING'}">
+        <div class="alert alert-info">
+          Status is <strong th:text="${app.status}"></strong>. No further admin actions available.
+        </div>
+      </div>
+    </div>
 
-    fetch("/api/admin/getFile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: signaturePath })
-    })
-            .then(res => res.blob())
-            .then(blob => {
-              const img = new Image();
-              img.onload = function () {
-                const canvas = document.getElementById("signatureCanvas");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(img, 0, 0);
-              };
-              img.src = URL.createObjectURL(blob);
-            })
-            .catch(err => {
-              console.error("Failed to load signature image", err);
-            });
-
-  </script>
-  <div class="section">
-    <h5>Attached Documents</h5>
-    <ul id="documentList"></ul>
-    <button id="downloadAllBtn" class="btn btn-primary mt-2">Download All</button>
-  </div>
-
-
-  <div class="section">
-    <h5>Student Signature</h5>
-    <canvas id="signatureCanvas" style="border:1px solid #ccc; max-width:400px;"></canvas>
   </div>
 </div>
+
+<script th:inline="javascript">
+  window.applicationFilePaths = /*[[${app.documentPaths}]]*/ [];
+  window.signaturePath = /*[[${app.studentSignatureFilePath}]]*/ "";
+</script>
+<script th:src="@{/scripts/application-view.js}"></script>
 </body>
 </html>

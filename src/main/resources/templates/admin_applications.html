@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>All Applications - Admin</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" th:href="@{/styles/navbar.css}">
+  <link rel="stylesheet" th:href="@{/styles/main.css}">
 </head>
 <body>
 
@@ -12,9 +13,9 @@
 <div class="container">
 
   <!-- Graduation Applications -->
-  <h2 class="mb-4">Graduation Applications</h2>
+  <h2 class="section-heading">Graduation Applications</h2>
 
-  <div class="mb-3 d-flex justify-content-between">
+  <div class="mb-3 d-flex justify-content-between flex-wrap gap-2">
     <div>
       <button class="btn btn-outline-primary me-2" onclick="filter('grad', 'ALL')">All</button>
       <button class="btn btn-outline-warning me-2" onclick="filter('grad', 'PENDING')">Pending</button>
@@ -24,7 +25,11 @@
     <a class="btn btn-success" th:href="@{/admin/applications/export/graduation}">Download CSV</a>
   </div>
 
-  <table class="table table-bordered table-striped" id="gradTable">
+  <div th:if="${#lists.isEmpty(graduationApps)}" class="alert alert-warning">
+    No graduation applications found.
+  </div>
+
+  <table class="table table-bordered table-striped" id="gradTable" th:if="${!#lists.isEmpty(graduationApps)}">
     <thead class="table-dark">
     <tr>
       <th>Student ID</th>
@@ -32,7 +37,7 @@
       <th>Programme</th>
       <th>Submitted At</th>
       <th>Status</th>
-      <th>Actions</th>
+      <th>View</th>
     </tr>
     </thead>
     <tbody>
@@ -43,23 +48,7 @@
       <td th:text="${#temporals.format(app.submittedAt, 'dd MMM yyyy HH:mm')}">Date</td>
       <td th:text="${app.status}">Status</td>
       <td>
-        <div class="d-flex gap-2">
-          <div th:if="${app.status.name() == 'PENDING'}">
-            <form th:action="@{/admin/updateApplicationStatus}" method="post" class="d-flex gap-2">
-              <input type="hidden" name="applicationId" th:value="${app.id}" />
-              <select name="status" class="form-select form-select-sm w-auto">
-                <option value="APPROVED">Approve</option>
-                <option value="REJECTED">Reject</option>
-              </select>
-              <button type="submit" class="btn btn-sm btn-primary">Update</button>
-            </form>
-          </div>
-          <form th:action="@{/admin/deleteGraduationApplication}" method="post">
-            <input type="hidden" name="applicationId" th:value="${app.id}" />
-            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-          </form>
-          <a th:href="@{/admin/graduation/view/{id}(id=${app.id})}" class="btn btn-sm btn-info">View</a>
-        </div>
+        <a th:href="@{/admin/graduation/view/{id}(id=${app.id})}" class="btn btn-sm btn-info">View</a>
       </td>
     </tr>
     </tbody>
@@ -67,10 +56,10 @@
 
   <hr class="my-5">
 
-  <!-- Compassionate / Special Exam Applications -->
-  <h2 class="mb-4">Compassionate / Special Exam Applications</h2>
+  <!-- Compassionate Applications -->
+  <h2 class="section-heading">Compassionate / Special Exam Applications</h2>
 
-  <div class="mb-3 d-flex justify-content-between">
+  <div class="mb-3 d-flex justify-content-between flex-wrap gap-2">
     <div>
       <button class="btn btn-outline-primary me-2" onclick="filter('comp', 'ALL')">All</button>
       <button class="btn btn-outline-warning me-2" onclick="filter('comp', 'PENDING')">Pending</button>
@@ -80,7 +69,11 @@
     <a class="btn btn-success" th:href="@{/admin/applications/export/compassionate}">Download CSV</a>
   </div>
 
-  <table class="table table-bordered table-striped" id="compTable">
+  <div th:if="${#lists.isEmpty(compassionateApps)}" class="alert alert-warning">
+    No compassionate/special exam applications found.
+  </div>
+
+  <table class="table table-bordered table-striped" id="compTable" th:if="${!#lists.isEmpty(compassionateApps)}">
     <thead class="table-dark">
     <tr>
       <th>Student ID</th>
@@ -89,7 +82,7 @@
       <th>Reason</th>
       <th>Submitted At</th>
       <th>Status</th>
-      <th>Actions</th>
+      <th>View</th>
     </tr>
     </thead>
     <tbody>
@@ -101,30 +94,12 @@
       <td th:text="${#temporals.format(app.submissionDate, 'dd MMM yyyy')}">Date</td>
       <td th:text="${app.status}">Status</td>
       <td>
-        <div class="d-flex gap-2">
-          <div th:if="${app.status.name() == 'PENDING'}">
-            <form th:action="@{/admin/updateOtherApplicationStatus}" method="post" class="d-flex gap-2">
-              <input type="hidden" name="applicationId" th:value="${app.id}" />
-              <select name="status" class="form-select form-select-sm w-auto">
-                <option value="APPROVED">Approve</option>
-                <option value="REJECTED">Reject</option>
-              </select>
-              <button type="submit" class="btn btn-sm btn-primary">Update</button>
-            </form>
-          </div>
-
-          <form th:action="@{/admin/deleteCompassionateApplication}" method="post">
-            <input type="hidden" name="applicationId" th:value="${app.id}" />
-            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-          </form>
-
-          <!-- ✅ New View button -->
-          <a th:href="@{/admin/compassionate/view/{id}(id=${app.id})}" class="btn btn-sm btn-info">View</a>
-        </div>
+        <a th:href="@{/admin/compassionate/view/{id}(id=${app.id})}" class="btn btn-sm btn-info">View</a>
       </td>
     </tr>
     </tbody>
   </table>
+
 </div>
 
 <script>

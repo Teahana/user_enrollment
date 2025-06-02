@@ -1,0 +1,35 @@
+
+
+.form-wrapper, .container {
+    padding: 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+h2 {
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.label {
+    font-weight: bold;
+}
+
+.section {
+    margin-top: 2rem;
+}
+
+.table {
+    margin-top: 1rem;
+    border: 1px solid #ccc;
+}
+
+.table th {
+    background-color: #e9ecef;
+}
+
+canvas {
+    border: 1px solid #ccc;
+    max-width: 100%;
+}

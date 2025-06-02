@@ -97,12 +97,14 @@
 
 
       <label for="telephone">Telephone:</label>
-      <input type="tel" id="telephone" name="telephone" th:value="${student.phoneNumber}" required th:field="*{telephone}">
+      <input type="tel" id="telephone" name="telephone" th:value="${student.phoneNumber}" readonly>
+      <input type="hidden" th:field="*{telephone}">
       <div class="text-danger" th:if="${#fields.hasErrors('telephone')}" th:errors="*{telephone}"></div>
 
 
       <label for="address">Address:</label>
-      <textarea id="address" name="address" rows="3" required th:field="*{address}"></textarea>
+      <textarea id="address" name="address" rows="3" th:text="${student.address}" readonly></textarea>
+      <input type="hidden" th:field="*{address}">
       <div class="text-danger" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
 
 

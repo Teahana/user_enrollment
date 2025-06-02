@@ -2,6 +2,7 @@ package group7.enrollmentSystem;
 
 import group7.enrollmentSystem.dtos.formDtos.GraduationFormDTO;
 import group7.enrollmentSystem.enums.ApplicationStatus;
+import group7.enrollmentSystem.helpers.FileUploads;
 import group7.enrollmentSystem.models.GraduationApplication;
 import group7.enrollmentSystem.models.Programme;
 import group7.enrollmentSystem.models.Student;
@@ -32,6 +33,7 @@ public class GraduationApplicationFormsTest {
     private GraduationApplicationRepo graduationApplicationRepo;
     private EmailService emailService;
     private FormsService formsService;
+    private FileUploads fileUploads;
 
     /**
      * Sets up mocked dependencies for each test case.
@@ -42,8 +44,9 @@ public class GraduationApplicationFormsTest {
         programmeRepo = mock(ProgrammeRepo.class);
         graduationApplicationRepo = mock(GraduationApplicationRepo.class);
         emailService = mock(EmailService.class);
+        fileUploads = mock(FileUploads.class);
 
-        formsService = new FormsService(studentRepo, programmeRepo, graduationApplicationRepo, null, emailService);
+        formsService = new FormsService(studentRepo, programmeRepo, graduationApplicationRepo, null, emailService,fileUploads );
     }
 
     /**
@@ -86,8 +89,11 @@ public class GraduationApplicationFormsTest {
         assertEquals("AI", savedApp.getMajor2());
         assertEquals(ApplicationStatus.PENDING, savedApp.getStatus());
 
-        verify(emailService, times(1)).notifyAdminNewApplication(eq("doiglas.m.habu@gmail.com"), any(Map.class));
-        verify(emailService, times(1)).notifyStudentApplicationSubmission(eq("22johnc3na@gmail.com"), any(Map.class));
+        verify(emailService, times(1)).notifyAdminNewApplication(
+                eq("adriandougjonajitino@gmail.com"), any(Map.class));
+
+        verify(emailService, times(1)).notifyStudentApplicationSubmission(
+                eq(student.getEmail()), any(Map.class));
     }
 
     /**

@@ -27,7 +27,7 @@ def require_jwt(view_func):
 
         try:
             decoded = decode_jwt(token)
-            g.user = decoded  # ✅ Request-scope assignment
+            g.user = decoded
             print("Decoded JWT:", decoded)  # Debug
         except jwt.ExpiredSignatureError:
             return jsonify({"error": "Token expired"}), 401

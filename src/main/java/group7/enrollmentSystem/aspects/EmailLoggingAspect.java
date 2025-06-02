@@ -39,7 +39,6 @@ public class EmailLoggingAspect {
     }
 
     @Pointcut("execution(* group7.enrollmentSystem.helpers.EmailService.*(..))")
-    public void allEmailServiceMethods() {}
     public void emailSendingMethods() {}
 
     @Before("emailSendingMethods()")

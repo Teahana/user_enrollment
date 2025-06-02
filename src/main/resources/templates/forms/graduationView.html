@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>View Graduation Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/styles/navbar.css}">
+</head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<div class="form-wrapper">
+    <h2>Submitted Graduation Application</h2>
+
+    <fieldset>
+        <legend>Section A: Personal Details</legend>
+        <p><strong>Student ID:</strong> <span th:text="${app.student.studentId}"></span></p>
+        <p><strong>First Name:</strong> <span th:text="${app.student.firstName}"></span></p>
+        <p><strong>Surname:</strong> <span th:text="${app.student.lastName}"></span></p>
+        <p><strong>Date of Birth:</strong> <span th:text="${app.dateOfBirth}"></span></p>
+        <p><strong>Email:</strong> <span th:text="${app.student.email}"></span></p>
+        <p><strong>Phone:</strong> <span th:text="${app.student.phoneNumber}"></span></p>
+        <p><strong>Address:</strong> <span th:text="${app.student.address}"></span></p>
+        <p><strong>Programme:</strong> <span th:text="${app.programme.name}"></span></p>
+        <p><strong>Major 1:</strong> <span th:text="${app.major1}"></span></p>
+        <p><strong>Major 2:</strong> <span th:text="${app.major2}"></span></p>
+        <p><strong>Minor:</strong> <span th:text="${app.minor}"></span></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>Section B: Graduation Ceremony</legend>
+        <p><strong>Preferred Ceremony:</strong> <span th:text="${app.ceremonyPreference}"></span></p>
+        <p><strong>Other Campus:</strong> <span th:text="${app.otherCampus}"></span></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>Section C: Attendance</legend>
+        <p><strong>Will Attend:</strong> <span th:text="${app.willAttend ? 'Yes' : 'No'}"></span></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>Section D: Declaration</legend>
+        <p><strong>Date:</strong> <span th:text="${app.signatureDate}"></span></p>
+        <p><strong>Signature:</strong></p>
+        <canvas id="signatureCanvas" width="400" height="150" style="border:1px solid #ccc;"></canvas>
+    </fieldset>
+</div>
+
+<script th:inline="javascript">
+    const signaturePath = /*[[${app.studentSignatureFilePath}]]*/ "";
+
+    fetch("/api/admin/getFile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: signaturePath })
+    })
+        .then(res => res.blob())
+        .then(blob => {
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.getElementById("signatureCanvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = URL.createObjectURL(blob);
+        })
+        .catch(err => {
+            console.error("Failed to load signature", err);
+        });
+</script>
+</body>
+</html>

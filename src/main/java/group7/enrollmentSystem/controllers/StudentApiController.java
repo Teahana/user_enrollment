@@ -449,4 +449,10 @@ public class StudentApiController {
 
         return ResponseEntity.ok(Map.of("accessible", isAccessible));
     }
+//    @PostMapping("/compassionate/submit")
+//    public ResponseEntity<MessageDto> submitCompassionateApplication(@RequestBody CompassionateFormDto formDto, Principal principal) {
+//        String email = principal.getName();
+//        studentService.submitCompassionateApplication(formDto, email);
+//        return ResponseEntity.ok(new MessageDto("Compassionate application submitted successfully"));
+//    }
 }

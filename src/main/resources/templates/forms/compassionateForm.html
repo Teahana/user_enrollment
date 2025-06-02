@@ -23,9 +23,20 @@
       0%, 100% { background-color: white; }
       50% { background-color: #ffe6e6; }
     }
+    .exam-group {
+      margin-bottom: 1rem;
+    }
+
   </style>
 </head>
 <body>
+<div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+  <p th:text="${errorMessage}"></p>
+</div>
+
+<div th:if="${successMessage}" class="alert alert-success" role="alert">
+  <p th:text="${successMessage}"></p>
+</div>
 <div class="form-wrapper">
   <div class="invalid-feedback">Please enter a valid date</div>
 
@@ -36,20 +47,21 @@
 
   <h1>Application for Compassionate / Aegrotat Pass / Special Exam</h1>
 
-  <form th:action="@{/student/compassionate/submit}" method="post" enctype="multipart/form-data" th:object="${form}">
+  <form th:action="@{/student/compassionate/submit}" method="post" enctype="multipart/form-data" th:object="${form}" onsubmit="return beforeSubmit();">
 
-    <fieldset>
+  <fieldset>
       <legend>What are you applying for?</legend>
-      <label><input type="checkbox" name="applicationType" value="Compassionate Pass"> Compassionate Pass</label>
-      <label><input type="checkbox" name="applicationType" value="Aegrotat Pass"> Aegrotat Pass</label>
-      <label><input type="checkbox" name="applicationType" value="Special Examination"> Special Examination</label>
+      <label><input type="radio" name="applicationType" value="Compassionate Pass"> Compassionate Pass</label>
+      <label><input type="radio" name="applicationType" value="Aegrotat Pass"> Aegrotat Pass</label>
+      <label><input type="radio" name="applicationType" value="Special Examination"> Special Examination</label>
     </fieldset>
 
     <label for="reason">Reason for application: <span class="required">*</span></label>
     <textarea id="reason" name="reason" required th:text="*{reason}"></textarea>
 
-<!--    <label for="documents">Attach supporting documents:</label>-->
-<!--    <input type="file" id="documents" name="documents" multiple>-->
+    <label for="documents">Attach supporting documents:</label>
+    <input type="file" id="documents" name="documents" multiple
+           accept=".pdf, .doc, .docx, image/*">
 
     <fieldset>
       <legend>SECTION A: Personal Details</legend>
@@ -108,8 +120,12 @@
       <p>Please sign below to declare the legitimacy of the submission provided</p>
 
       <div>
-<!--        <label for="signature">Applicant’s Signature: <span class="required">*</span></label>-->
-<!--        <input type="text" id="signature" name="studentSignature" required th:value="*{studentSignature}">-->
+        <label for="signatureCanvas">Applicant’s Signature: <span class="required">*</span></label>
+        <canvas id="signatureCanvas" width="400" height="150" style="border:1px solid #000;"></canvas>
+        <input type="hidden" id="signatureImage" name="studentSignature">
+        <br>
+        <button type="button" onclick="clearSignature()">Clear Signature</button>
+
 
         <label for="submissionDate">Date: <span class="required">*</span></label>
         <input type="date" id="submissionDate" name="submissionDate" required th:value="*{submissionDate}">
@@ -118,7 +134,7 @@
       </div>
     </fieldset>
 
-    <button type="submit">Submit Application</button>
+    <button id="submitButton" type="submit">Submit Application</button>
 
   </form>
 </div>

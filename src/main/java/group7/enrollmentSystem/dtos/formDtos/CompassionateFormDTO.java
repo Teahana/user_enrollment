@@ -3,6 +3,7 @@ package group7.enrollmentSystem.dtos.formDtos;
 
 import group7.enrollmentSystem.models.CompassionateApplication;
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -10,11 +11,12 @@ import java.time.LocalTime;
 import java.util.List;
 
 @Data
+@ToString
 public class CompassionateFormDTO {
     // Application options
     private List<String> applicationType;
     private String reason;
-    private List<MultipartFile[]> documents;
+    private MultipartFile[] documents;
     private String studentSignature;
     private LocalDate submissionDate;
 
@@ -33,7 +35,5 @@ public class CompassionateFormDTO {
     private List<String> courseCode;
     private List<LocalDate> examDate;
     private List<LocalTime> examTime;
-
-
 }
 

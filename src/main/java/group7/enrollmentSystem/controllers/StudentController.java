@@ -307,6 +307,7 @@ public class StudentController {
                                        Model model) {
         String email = authentication.getName();
         try {
+            System.out.println("Submitting graduation form: " + form);
             formsService.submitGraduationApplication(email, form);
             model.addAttribute("successMessage", "Application submitted successfully.");
         } catch (RuntimeException e) {
@@ -350,6 +351,7 @@ public class StudentController {
                                           RedirectAttributes redirectAttributes) {
         String email = authentication.getName();
         try {
+            System.out.println("form = " + form);
             formsService.submitApplication(email, form);
             redirectAttributes.addFlashAttribute("successMessage", "Your application was submitted successfully.");
         } catch (RuntimeException e) {
@@ -359,5 +361,4 @@ public class StudentController {
 
         return "redirect:/student/applicationHistory";
     }
-
 }

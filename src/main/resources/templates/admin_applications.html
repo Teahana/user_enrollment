@@ -58,6 +58,7 @@
             <input type="hidden" name="applicationId" th:value="${app.id}" />
             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
           </form>
+          <a th:href="@{/admin/graduation/view/{id}(id=${app.id})}" class="btn btn-sm btn-info">View</a>
         </div>
       </td>
     </tr>
@@ -111,10 +112,14 @@
               <button type="submit" class="btn btn-sm btn-primary">Update</button>
             </form>
           </div>
+
           <form th:action="@{/admin/deleteCompassionateApplication}" method="post">
             <input type="hidden" name="applicationId" th:value="${app.id}" />
             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
           </form>
+
+          <!-- ✅ New View button -->
+          <a th:href="@{/admin/compassionate/view/{id}(id=${app.id})}" class="btn btn-sm btn-info">View</a>
         </div>
       </td>
     </tr>

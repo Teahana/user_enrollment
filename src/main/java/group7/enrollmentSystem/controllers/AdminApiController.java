@@ -11,6 +11,7 @@ import group7.enrollmentSystem.dtos.serverKtDtos.MessageDto;
 import group7.enrollmentSystem.dtos.serverKtDtos.PrerequisitesDto;
 import group7.enrollmentSystem.enums.OnHoldTypes;
 import group7.enrollmentSystem.enums.SpecialPrerequisiteType;
+import group7.enrollmentSystem.helpers.FileUploads;
 import group7.enrollmentSystem.helpers.JwtService;
 import group7.enrollmentSystem.models.*;
 import group7.enrollmentSystem.repos.*;
@@ -23,15 +24,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -47,8 +50,62 @@ public class AdminApiController {
     private final JwtService jwtService;
     private final StudentRepo studentRepo;
     private final StudentHoldService studentHoldService;
-
     private final HoldServiceRestrictionRepo restrictionRepo;
+    private final FileUploads fileUploads;
+
+    @PostMapping("/fileMeta")
+    public ResponseEntity<List<Map<String, String>>> getFileMetadata(@RequestBody List<String> filePaths) {
+        try {
+            List<Map<String, String>> metadataList = fileUploads.getFileMetadata(filePaths);
+            return ResponseEntity.ok(metadataList);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+    @PostMapping("/getFiles")
+    public ResponseEntity<byte[]> getFilesAsZip(@RequestBody Map<String, List<String>> request) {
+        try {
+            List<String> filePaths = request.get("filePaths");
+            byte[] zipData = fileUploads.createZipFromFiles(filePaths);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"supporting_documents.zip\"")
+                    .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                    .body(zipData);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+
+    @PostMapping("/getFile")
+    public ResponseEntity<byte[]> getFile(@RequestBody Map<String, String> request) {
+        try {
+            String fileName = request.get("fileName");
+            System.out.println("Retrieving file: " + fileName);
+            byte[] fileData = fileUploads.retrieveFile(fileName);
+            if (fileData == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Detect MIME type dynamically
+            String mimeType = Files.probeContentType(Paths.get(fileName));
+            if (mimeType == null) {
+                mimeType = "application/octet-stream"; // Fallback MIME type
+            }
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, mimeType)
+                    .body(fileData);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 
     @Operation(
             summary = "Token-based admin login",

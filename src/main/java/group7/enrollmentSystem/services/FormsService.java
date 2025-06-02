@@ -5,6 +5,7 @@ import group7.enrollmentSystem.dtos.formDtos.CompassionateFormDTO;
 import group7.enrollmentSystem.dtos.formDtos.GraduationFormDTO;
 import group7.enrollmentSystem.enums.ApplicationStatus;
 import group7.enrollmentSystem.helpers.EmailService;
+import group7.enrollmentSystem.helpers.FileUploads;
 import group7.enrollmentSystem.models.CompassionateApplication;
 import group7.enrollmentSystem.models.GraduationApplication;
 import group7.enrollmentSystem.models.Programme;
@@ -36,6 +37,7 @@ public class FormsService {
     private final GraduationApplicationRepo graduationApplicationRepository;
     private final CompassionateApplicationRepo compassionateRepo;
     private final EmailService emailService;
+    private final FileUploads fileUploads;
 
     public void processGraduationForm(String email) {
         GraduationFormDTO form = new GraduationFormDTO();
@@ -98,7 +100,8 @@ public class FormsService {
         app.setCeremonyPreference(form.getCeremonyPreference());
         app.setOtherCampus(form.getOtherCampus());
         app.setWillAttend(form.getWillAttend());
-        app.setStudentSignatureFilePath(form.getStudentSignature());
+        String signaturePath = fileUploads.saveSignature(form.getStudentSignature());
+        app.setStudentSignatureFilePath(signaturePath);
         app.setSignatureDate(form.getSignatureDate());
         app.setSubmittedAt(LocalDateTime.now());
         app.setStatus(ApplicationStatus.PENDING);
@@ -183,8 +186,15 @@ public class FormsService {
         String joinedType = String.join(", ", form.getApplicationType());
         app.setApplicationType(joinedType);
         app.setReason(form.getReason());
-        app.setStudentSignature(form.getStudentSignature());
+        String signaturePath = fileUploads.saveSignature(form.getStudentSignature());
+        app.setStudentSignatureFilePath(signaturePath);
         app.setSubmissionDate(form.getSubmissionDate());
+        app.setCampus(form.getCampus());
+        app.setSemesterYear(form.getSemesterYear());
+
+        // 🔽 Save files
+        List<String> savedPaths = fileUploads.saveFiles(form.getDocuments());
+        app.setDocumentPaths(savedPaths);
 
         List<CompassionateApplication.MissedExamEntry> examEntries = new ArrayList<>();
         for (int i = 0; i < form.getCourseCode().size(); i++) {

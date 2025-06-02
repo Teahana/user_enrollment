@@ -19,7 +19,7 @@ public class GraduationFormDTO {
 
     private Boolean willAttend;
 
-    private String studentSignature; // or use signatureImage if drawing
+    private String studentSignature;
 
     private LocalDate signatureDate;
 

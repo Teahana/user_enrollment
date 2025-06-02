@@ -22,12 +22,14 @@ public class CompassionateApplication {
 
     private String applicationType;
     private String reason;
+    private String campus;
+    private String semesterYear;
 
     @ElementCollection
     @CollectionTable(name = "missed_exam_entries", joinColumns = @JoinColumn(name = "application_id"))
     private List<MissedExamEntry> examEntries = new ArrayList<>();
 
-    private String studentSignature;
+    private String studentSignatureFilePath;
     private LocalDate submissionDate;
 
     @ElementCollection

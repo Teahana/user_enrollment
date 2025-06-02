@@ -42,6 +42,8 @@ public class AdminController {
     private final CourseProgrammeRepo courseProgrammeRepo;
     private final CourseEnrollmentService courseEnrollmentService;
     private final FormsService formsService;
+    private final CompassionateApplicationRepo compassionateRepo;
+    private final GraduationApplicationRepo graduationRepo;
 
     @GetMapping("/dashboard")
     public String getAdminPage(Model model, Authentication authentication) {
@@ -315,6 +317,24 @@ public class AdminController {
         PrintWriter writer = response.getWriter();
         formsService.exportCompassionateCsv(writer);
     }
+    @GetMapping("/compassionate/view/{id}")
+    public String viewCompassionateForm(@PathVariable Long id, Model model) {
+        CompassionateApplication app = compassionateRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+
+        Student student = app.getStudent();
+
+        model.addAttribute("app", app);
+        model.addAttribute("student", student);
+        return "forms/compassionateView";
+    }
+    @GetMapping("/graduation/view/{id}")
+    public String viewGraduationApplication(@PathVariable Long id, Model model) {
+        GraduationApplication app = graduationRepo.findById(id).orElseThrow(() -> new RuntimeException("Application not found"));
+        model.addAttribute("app", app);
+        return "forms/graduationView";
+    }
+
 
 
 }

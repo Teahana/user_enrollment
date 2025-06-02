@@ -2,50 +2,53 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title>Graduation Application Confirmation</title>
+  <title>Application Status Update</title>
 </head>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
 <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #ddd;">
 
-  <h2 style="color: #2c3e50;">Graduation Application Received</h2>
+  <h2 style="color: #2c3e50;">Application Status Update</h2>
 
   <p style="font-size: 16px; color: #333;">
     Dear <strong th:text="${fullName}">[Student Name]</strong>,
   </p>
 
   <p style="font-size: 16px; color: #333;">
-    We are writing to confirm that your <strong>graduation application</strong> has been successfully received.
+    Your <strong th:text="${applicationType}">[Application Type]</strong> application has been reviewed.
+    <br>
+    The current status is:
+    <span style="font-weight: bold; color: #0d6efd;" th:text="${status}">[STATUS]</span>
   </p>
 
-  <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+  <table style="width: 100%; border-collapse: collapse; margin: 20px 20px;">
     <tr>
       <td style="padding: 8px; font-weight: bold; background-color: #e9ecef;">Student ID</td>
       <td style="padding: 8px;" th:text="${studentId}">[Student ID]</td>
     </tr>
     <tr>
-      <td style="padding: 8px; font-weight: bold; background-color: #e9ecef;">Programme</td>
-      <td style="padding: 8px;" th:text="${programme}">[Programme Name]</td>
+      <td style="padding: 8px; font-weight: bold; background-color: #e9ecef;">Application Type</td>
+      <td style="padding: 8px;" th:text="${applicationType}">[Application Type]</td>
     </tr>
   </table>
 
   <p style="font-size: 16px; color: #333;">
-    You can check your graduation application status at any time by clicking below:
+    You can view the status of your application by clicking the button below:
   </p>
 
   <div style="text-align: center; margin: 25px 0;">
     <a href="http://localhost:80/student/applicationHistory"
        style="background-color: #0d6efd; color: white; text-decoration: none; padding: 12px 24px; border-radius: 5px; display: inline-block;">
-      View Application Status
+      View Application History
     </a>
   </div>
 
   <p style="font-size: 14px; color: #555;">
-    Our graduation team will review your submission and contact you if any further information is required.
+    If you have any concerns or need further information, feel free to contact us.
   </p>
 
   <p style="font-size: 14px; color: #555; margin-top: 30px;">
     Best regards,<br>
-    <em>Graduation Office</em><br>
+    <em>USP Applications Team</em><br>
     University of the South Pacific
   </p>
 

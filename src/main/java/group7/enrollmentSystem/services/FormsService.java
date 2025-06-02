@@ -98,7 +98,7 @@ public class FormsService {
         app.setCeremonyPreference(form.getCeremonyPreference());
         app.setOtherCampus(form.getOtherCampus());
         app.setWillAttend(form.getWillAttend());
-        app.setStudentSignature(form.getStudentSignature());
+        app.setStudentSignatureFilePath(form.getStudentSignature());
         app.setSignatureDate(form.getSignatureDate());
         app.setSubmittedAt(LocalDateTime.now());
         app.setStatus(ApplicationStatus.PENDING);
@@ -112,7 +112,7 @@ public class FormsService {
         adminModel.put("studentId", student.getStudentId());
         adminModel.put(("dateSubmitted"), LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")));
 
-        emailService.notifyAdminNewApplication("doiglas.m.habu@gmail.com", adminModel);
+        emailService.notifyAdminNewApplication("adriandougjonajitino@gmail.com", adminModel);
 
         // === Notify Student ===
         Map<String, Object> studentModel = new HashMap<>();
@@ -120,7 +120,7 @@ public class FormsService {
         studentModel.put("programme", programme.getName());
         studentModel.put("studentId", student.getStudentId());
 
-        emailService.notifyStudentApplicationSubmission("22johnc3na@gmail.com", studentModel);
+        emailService.notifyStudentApplicationSubmission(email, studentModel);
     }
 
 
@@ -156,7 +156,18 @@ public class FormsService {
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         app.setStatus(status);
         graduationApplicationRepository.save(app);
+
+        // Notify student
+        Student student = app.getStudent();
+        emailService.notifyStudentApplicationStatusUpdate(
+                student.getEmail(),
+                student.getFirstName() + " " + student.getLastName(),
+                student.getStudentId(),
+                "Graduation",
+                status.name()
+        );
     }
+
 
     public void submitApplication(String email, CompassionateFormDTO form) {
         Student student = studentRepo.findByEmail(email)
@@ -201,8 +212,8 @@ public class FormsService {
         );
 
         try {
-            emailService.notifyAdminNewApplication("doiglas.m.habu@gmail.com", adminModel);
-            emailService.notifyStudentApplicationSubmission("22johnc3na@gmail.com", studentModel);
+            emailService.notifyAdminNewApplication("adriandougjonajitino@gmail.com", adminModel);
+            emailService.notifyStudentApplicationSubmission(email, studentModel);
         } catch (Exception e) {
             System.out.println("[ERROR] Email sending failed: " + e.getMessage());
         }
@@ -218,7 +229,18 @@ public class FormsService {
                 .orElseThrow(() -> new RuntimeException("Compassionate application not found"));
         app.setStatus(status);
         compassionateRepo.save(app);
+
+        // Notify student
+        Student student = app.getStudent();
+        emailService.notifyStudentApplicationStatusUpdate(
+                student.getEmail(),
+                student.getFirstName() + " " + student.getLastName(),
+                student.getStudentId(),
+                "Compassionate",
+                status.name()
+        );
     }
+
 
     public void exportGraduationCsv(PrintWriter writer) throws IOException {
         List<GraduationApplication> apps = graduationApplicationRepository.findAll();

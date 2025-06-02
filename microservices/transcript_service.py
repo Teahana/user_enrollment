@@ -53,7 +53,7 @@ class TranscriptPDF(FPDF):
         for e in enrollments:
             self.cell(40, 10, e.course_code, 1)
             self.cell(80, 10, e.course_title, 1)
-            self.cell(30, 10, e.grade, 1)
+            self.cell(30, 10, str(e.grade) if e.grade is not None else "", 1)
             self.cell(30, 10, str(e.mark), 1)
             self.ln()
         self.ln(5)
